@@ -1,11 +1,11 @@
-GeoServer 2.8.2
+GeoServer 2.8.4
 -------------------
 
-This release was built on Jan 23, 2016. The changelog for this release can be found:
+This release was built on Jun 17, 2016. The changelog for this release can be found:
 
-  http://jira.codehaus.org/browse/GEOS/fixforversion/11901
+  http://jira.codehaus.org/browse/GEOS/fixforversion/12801
 
 This release is based on:
 
-  GeoTools 14.2
-  GeoWebCache 1.8.1
+  GeoTools 14.4
+  GeoWebCache 1.8.2

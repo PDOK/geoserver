@@ -13,7 +13,7 @@
  <groupId>org.geoserver</groupId>
  <artifactId>geoserver</artifactId>
  <packaging>pom</packaging>
- <version>2.8.2</version>
+ <version>2.8.4</version>
  <name>GeoServer</name>
 
  <scm>
@@ -58,7 +58,6 @@
    <!-- contains snapshot and release (including third-party-dependences)               -->
    <!-- Restlet maven Repository (http://maven.restlet.org)                             -->
    <!-- ucar (https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases) -->
-   <!-- geosolutions (http://maven.geo-solutions.it/)                                   -->
    <snapshots>
      <enabled>true</enabled>
    </snapshots>
@@ -85,14 +84,17 @@
     </snapshots>
   </repository>
 
-  <repository>
-    <id>hibspat</id>
-    <name>Hibernate Spatial</name>
-    <url>http://www.hibernatespatial.org/repository</url>
-    <snapshots>
-      <enabled>true</enabled>
-    </snapshots>
-   </repository>
+   <repository>
+      <id>geosolutions</id>
+      <name>geosolutions repository</name>
+      <url>http://maven.geo-solutions.it/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+     <releases>
+       <enabled>true</enabled>
+     </releases>
+    </repository>
  </repositories>
 
  <dependencyManagement>
@@ -740,7 +742,7 @@
    <dependency>
     <groupId>commons-collections</groupId>
     <artifactId>commons-collections</artifactId>
-    <version>3.1</version>
+    <version>3.2.2</version>
    </dependency>
    <dependency>
 	<groupId>org.apache.commons</groupId>
@@ -879,12 +881,17 @@
    <dependency>
      <groupId>org.slf4j</groupId>
      <artifactId>slf4j-api</artifactId>
-     <version>1.6.1</version>
+     <version>1.6.4</version>
    </dependency>
    <dependency>
      <groupId>org.slf4j</groupId>
      <artifactId>slf4j-log4j12</artifactId>
-     <version>1.7.10</version>
+     <version>1.6.4</version>
+   </dependency>
+   <dependency>
+     <groupId>org.slf4j</groupId>
+     <artifactId>log4j-over-slf4j</artifactId>
+     <version>1.6.4</version>
    </dependency>
    <dependency>
     <groupId>log4j</groupId>
@@ -950,7 +957,7 @@
    <dependency>
     <groupId>org.slf4j</groupId>
     <artifactId>jcl104-over-slf4j</artifactId>
-    <version>1.0.1</version>
+    <version>1.6.4</version>
    </dependency>
    <dependency>
     <groupId>javax.media</groupId>
@@ -966,6 +973,11 @@
     <groupId>javax.media</groupId>
     <artifactId>jai_imageio</artifactId>
     <version>1.1</version>
+   </dependency>
+   <dependency>
+    <groupId>it.geosolutions.jaiext.concurrent-tile-cache</groupId>
+    <artifactId>jt-concurrent-tile-cache</artifactId>
+    <version>${jaiext.version}</version>
    </dependency>
    <dependency>
     <groupId>org.eclipse.emf</groupId>
@@ -1304,7 +1316,7 @@
       <exclude>${test.exclude.pattern}</exclude>
      </excludes>
      <forkMode>once</forkMode>
-     <argLine>-Xmx${test.maxHeapSize} -XX:MaxPermSize=${test.maxPermSize} -enableassertions ${jvm.opts} -Djava.awt.headless=${java.awt.headless} -Dsun.java2d.d3d=${sun.java2d.d3d}-DremoteOwsTests=${remoteOwsTests} -DquietTests=${quietTests} -Dorg.geotools.image.test.enabled=${image.tests} -Dorg.geotools.image.test.interactive=${interactive.image} -Duser.timezone=${user.timezone} -Dwindows.leniency=${windows.leniency}</argLine>
+     <argLine>-Xmx${test.maxHeapSize} -XX:MaxPermSize=${test.maxPermSize} -enableassertions ${jvm.opts} -Djava.awt.headless=${java.awt.headless} -Dsun.java2d.d3d=${sun.java2d.d3d}-DremoteOwsTests=${remoteOwsTests} -DquietTests=${quietTests} -Dorg.geotools.image.test.enabled=${image.tests} -Dorg.geotools.image.test.interactive=${interactive.image} -Duser.timezone=${user.timezone} -Dwindows.leniency=${windows.leniency} -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
      <enableAssertions>true</enableAssertions>
      <printSummary>true</printSummary>
      <testFailureIgnore>${allow.test.failure.ignore}</testFailureIgnore>
@@ -1361,7 +1373,7 @@
       <descriptor>release/ext-netcdf.xml</descriptor>
       <descriptor>release/ext-netcdf-out.xml</descriptor>
      </descriptors>
-     <finalName>geoserver-2.8.2</finalName>
+     <finalName>geoserver-2.8.4</finalName>
      <outputDirectory>${project.build.directory}/release</outputDirectory>
     </configuration>
    </plugin>
@@ -1443,7 +1455,7 @@
    <plugin>
      <groupId>pl.project13.maven</groupId>
      <artifactId>git-commit-id-plugin</artifactId>
-     <version>2.0.4</version>
+     <version>2.1.13</version>
      <executions>
        <execution>
          <goals>
@@ -1456,6 +1468,23 @@
        <failOnNoGitDirectory>false</failOnNoGitDirectory>
        <skipPoms>false</skipPoms>
        <verbose>false</verbose>
+       <injectAllReactorProjects>true</injectAllReactorProjects>
+       <runOnlyOnce>true</runOnlyOnce>
+       <!--
+       In order to use native git (3+ times faster) add the following in ~/.m2/settings.xml
+       <profiles>
+         <profile>
+           <id>gitNative</id>
+           <properties>
+             <git.commit.useNative>true</git.commit.useNative>
+           </properties>
+         </profile>
+       <profiles>
+       <activeProfiles>
+         <activeProfile>gitNative</activeProfile>
+       </activeProfiles>
+       -->
+       <useNativeGit>${git.commit.useNative}</useNativeGit>
      </configuration>
    </plugin>
 
@@ -1631,15 +1660,16 @@
 </modules>
 
  <properties>
-  <gs.version>2.8.2</gs.version>
-  <gt.version>14.2</gt.version>
-  <gwc.version>1.8.1</gwc.version>
+  <gs.version>2.8.4</gs.version>
+  <gt.version>14.4</gt.version>
+  <gwc.version>1.8.2</gwc.version>
   <spring.version>3.1.4.RELEASE</spring.version>
   <spring.security.version>3.1.0.RELEASE</spring.security.version> 
   <poi.version>3.8</poi.version>
   <wicket.version>1.4.12</wicket.version>
   <ant.version>1.8.4</ant.version>
   <imageio-ext.version>1.1.13</imageio-ext.version>
+  <jaiext.version>1.0.9</jaiext.version>
   <java.awt.headless>true</java.awt.headless>
   <jvm.opts></jvm.opts>
   <jalopy.phase>disabled</jalopy.phase>
@@ -1663,6 +1693,7 @@
   <hibernate-generic-dao-version>1.1.0</hibernate-generic-dao-version>
   <hibernate-spatial-version>1.1.1</hibernate-spatial-version>
   <hibernate-spatial-h2-version>1.1.1</hibernate-spatial-h2-version>
+  <git.commit.useNative>false</git.commit.useNative>
  </properties>
 
  <profiles>

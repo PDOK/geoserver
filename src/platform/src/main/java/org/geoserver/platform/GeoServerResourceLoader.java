@@ -1,4 +1,4 @@
-/* (c) 2014 Open Source Geospatial Foundation - all rights reserved
+/* (c) 2014 - 2016 Open Source Geospatial Foundation - all rights reserved
  * (c) 2001 - 2013 OpenPlans
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
@@ -18,13 +18,13 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
 
+import org.apache.commons.io.IOUtils;
 import org.geoserver.platform.resource.FileSystemResourceStore;
 import org.geoserver.platform.resource.Files;
 import org.geoserver.platform.resource.Paths;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.ResourceStore;
 import org.geoserver.platform.resource.Resources;
-import org.geotools.data.DataUtilities;
 import org.springframework.core.io.DefaultResourceLoader;
 
 /**
@@ -556,16 +556,8 @@ public class GeoServerResourceLoader extends DefaultResourceLoader implements Re
             }
         } finally {
             // Clean up
-            try {
-                if(is != null){
-                    is.close();
-                }
-                if(os != null){
-                    os.close();
-                }
-            } catch(IOException e) {
-                // we tried...
-            }
+            IOUtils.closeQuietly(is);
+            IOUtils.closeQuietly(os);
         }
     }
     
