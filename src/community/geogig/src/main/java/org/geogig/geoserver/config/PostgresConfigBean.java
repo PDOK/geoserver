@@ -6,6 +6,7 @@ package org.geogig.geoserver.config;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
@@ -144,5 +145,59 @@ public class PostgresConfigBean implements Serializable {
         bean.setUsername(username);
         bean.setPassword(password);
         return bean;
+    }
+
+    public static String parseRepoId(URI location) {
+        // get the path and parse database, repo and schema
+        String uriPath = location.getPath();
+        // URI might have a leading '/'. If it does, skip it
+        int startIndex = uriPath.startsWith(SLASH) ? 1 : 0;
+        String[] paths = uriPath.substring(startIndex).split(SLASH);
+        // last part is the repoID
+        return paths[paths.length-1];
+    }
+
+    @Override
+    public int hashCode() {
+        // hs all the fields, if they aren't null, otherwise use some prime numbers as place holders
+        return (host != null) ? host.hashCode() : 17 ^
+                ((port != null) ? port.hashCode() : 37) ^
+                ((username != null) ? username.hashCode() : 57) ^
+                ((schema != null) ? schema.hashCode() : 97) ^
+                ((password != null) ? password.hashCode() : 137) ^
+                ((database != null) ? database.hashCode() : 197);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final PostgresConfigBean other = (PostgresConfigBean) obj;
+        if (!Objects.equals(this.host, other.host)) {
+            return false;
+        }
+        if (!Objects.equals(this.database, other.database)) {
+            return false;
+        }
+        if (!Objects.equals(this.schema, other.schema)) {
+            return false;
+        }
+        if (!Objects.equals(this.username, other.username)) {
+            return false;
+        }
+        if (!Objects.equals(this.password, other.password)) {
+            return false;
+        }
+        if (!Objects.equals(this.port, other.port)) {
+            return false;
+        }
+        return true;
     }
 }

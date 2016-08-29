@@ -35,6 +35,14 @@ public class RepositoryInfo implements Serializable {
 
     private java.net.URI location;
 
+    /**
+     * Stores the "nice" name for a repo. This is the name that is shown in the Repository list, as
+     * well as what is stored in the GeoGIG repository config. It is transient, as we don't want to
+     * serialize this. It's just a place holder for the name until it can be persisted into the repo
+     * config.
+     */
+    private transient String repoName;
+
     public RepositoryInfo() {
         this(null);
     }
@@ -80,13 +88,19 @@ public class RepositoryInfo implements Serializable {
         this.name = name;
     }
 
+    public void setRepoName(String name) {
+        this.repoName = name;
+    }
+
     public String getRepoName() {
-        if (this.location != null)  {
-            // Name is deprecated, use the RepositoryResolver
-            RepositoryResolver uriResolver = RepositoryResolver.lookup(this.location);
-            return uriResolver.getName(this.location);
+        if (this.location != null) {
+            if (this.repoName == null) {
+                // lookup the resolver
+                RepositoryResolver resolver = RepositoryResolver.lookup(this.location);
+                this.repoName = resolver.getName(this.location);
+            }
         }
-        return null;
+        return this.repoName;
     }
 
     @Override

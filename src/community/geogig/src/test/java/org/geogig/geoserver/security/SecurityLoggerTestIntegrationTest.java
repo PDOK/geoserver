@@ -24,6 +24,7 @@ import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.test.GeoServerSystemTestSupport;
 import org.geoserver.test.TestSetup;
 import org.geoserver.test.TestSetupFrequency;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,13 +73,18 @@ public class SecurityLoggerTestIntegrationTest extends GeoServerSystemTestSuppor
         info.setLocation(repoURL);
         info = repositoryManager.save(info);
 
-        BASE_URL = "/geogig/repos/" + info.getId();
+        BASE_URL = "/geogig/repos/testrepo";
 
         logStore = GeoServerExtensions.bean(LogStore.class);
         assertNotNull(logStore);
 
         SecurityLogger logger = GeoServerExtensions.bean(SecurityLogger.class);
         assertNotNull(logger);
+    }
+    
+    @After
+    public void after() {
+		RepositoryManager.close();
     }
 
     private void login() throws Exception {
@@ -90,7 +96,6 @@ public class SecurityLoggerTestIntegrationTest extends GeoServerSystemTestSuppor
         String remoteURL = "http://example.com/geogig/upstream";
         final String url = BASE_URL + "/remote?remoteName=upstream&remoteURL=" + remoteURL;
         Document dom = getAsDOM(url);
-        System.out.println(dom.toString());
         // <response><success>true</success><name>upstream</name></response>
         assertXpathEvaluatesTo("true", "/response/success", dom);
 
