@@ -52,7 +52,7 @@ public abstract class WFSResponse extends org.geoserver.wfs.response.WFSResponse
 
         String baseURL = (String) EMFUtils.get((EObject)operation.getParameters()[0], "baseUrl");
         
-        encoder.setSchemaLocation(WFS.NAMESPACE, buildSchemaURL(baseURL, "wfs/2.0/wfs.xsd"));
+        encoder.setSchemaLocation(WFS.NAMESPACE, "http://schemas.opengis.net/wfs/2.0/wfs.xsd");
         encode(encoder, value, output, operation);
     }
 

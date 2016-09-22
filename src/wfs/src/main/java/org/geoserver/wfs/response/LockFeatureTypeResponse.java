@@ -130,7 +130,7 @@ public class LockFeatureTypeResponse extends WFSResponse {
         LockFeatureType req = (LockFeatureType)operation.getParameters()[0];
         
         encoder.setSchemaLocation(org.geoserver.wfs.xml.v1_1_0.WFS.NAMESPACE,
-                buildSchemaURL(req.getBaseUrl(), "schemas/wfs/1.1.0/wfs.xsd"));
+               "http://schemas.opengis.net/wfs/1.1.0/wfs.xsd");
 
         encoder.encode(lockResponse, org.geoserver.wfs.xml.v1_1_0.WFS.LOCKFEATURERESPONSE,
                 output);
