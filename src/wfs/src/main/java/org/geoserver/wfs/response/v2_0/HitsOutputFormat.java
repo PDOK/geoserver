@@ -42,7 +42,7 @@ public class HitsOutputFormat extends org.geoserver.wfs.response.HitsOutputForma
         Encoder e = new Encoder(new WFSConfiguration());
         e.setEncoding(Charset.forName( wfs.getGeoServer().getSettings().getCharset()) );
         e.setSchemaLocation(WFS.NAMESPACE,
-            ResponseUtils.appendPath(wfs.getSchemaBaseURL(), "wfs/2.0/wfs.xsd"));
+            "http://schemas.opengis.net/wfs/2.0/wfs.xsd");
         
         e.encode(hits.getAdaptee(), WFS.FeatureCollection, output);
     }

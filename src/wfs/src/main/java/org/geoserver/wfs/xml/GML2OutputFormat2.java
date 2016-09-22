@@ -94,7 +94,7 @@ public class GML2OutputFormat2 extends WFSGetFeatureOutputFormat {
         //encoder.setEncoding(wfs.getCharSet());
         
        encoder.setSchemaLocation(org.geoserver.wfs.xml.v1_1_0.WFS.NAMESPACE,
-               buildSchemaURL(gft.getBaseUrl(), "wfs/1.0.0/WFS-basic.xsd"));
+               "http://schemas.opengis.net/wfs/1.0.0/WFS-basic.xsd");
 
         //declare application schema namespaces
         Map<String, String> params = params("service", "WFS", "version", "1.0.0", "request", "DescribeFeatureType");
