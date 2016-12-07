@@ -294,7 +294,7 @@ public abstract class CapabilitiesTransformer extends TransformerBase {
 
                 String locationAtt = XSI_PREFIX + ":schemaLocation";
                 String locationDef = WFS_URI + " " + (wfs.isCanonicalSchemaLocation()?org.geoserver.wfs.xml.v1_0_0.WFS.CANONICAL_SCHEMA_LOCATION_CAPABILITIES:
-                "http://schemas.opengis.net/wfs/1.0.0/WFS-capabilities.xsd");
+                    buildSchemaURL(request.getBaseUrl(), "wfs/1.0.0/WFS-capabilities.xsd"));
                 attributes.addAttribute("", locationAtt, locationAtt, "", locationDef);
 
                 start("WFS_Capabilities", attributes);
@@ -924,7 +924,7 @@ public abstract class CapabilitiesTransformer extends TransformerBase {
                             .append(org.geoserver.wfs.xml.v1_1_0.WFS.CANONICAL_SCHEMA_LOCATION);
                 } else {
                     schemaLocation
-                            .append("http://schemas.opengis.net/wfs/1.1.0/wfs.xsd");
+                            .append(buildSchemaURL(request.getBaseUrl(), "wfs/1.1.0/wfs.xsd"));
                 }
                 addExtensionSchemaLocation(schemaLocation);
 
@@ -1992,7 +1992,7 @@ public abstract class CapabilitiesTransformer extends TransformerBase {
                 if (wfs.isCanonicalSchemaLocation()) {
                     schemaLocation.append(org.geotools.wfs.v2_0.WFS.CANONICAL_SCHEMA_LOCATION);
                 } else {
-                    schemaLocation.append("http://schemas.opengis.net/wfs/2.0/wfs.xsd");
+                    schemaLocation.append(buildSchemaURL(request.getBaseUrl(), "wfs/2.0/wfs.xsd"));
                 }
 
                 delegate.addExtensionSchemaLocation(schemaLocation);

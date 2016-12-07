@@ -202,7 +202,7 @@ public class TransactionResponse extends WFSResponse {
         TransactionType req = (TransactionType)operation.getParameters()[0];
         
         encoder.setSchemaLocation(org.geoserver.wfs.xml.v1_1_0.WFS.NAMESPACE,
-                "http://schemas.opengis.net/wfs/1.1.0/wfs.xsd");
+                buildSchemaURL(req.getBaseUrl(), "wfs/1.1.0/wfs.xsd"));
         encoder.encode(response, org.geoserver.wfs.xml.v1_1_0.WFS.TRANSACTIONRESPONSE, output);
        
     }
