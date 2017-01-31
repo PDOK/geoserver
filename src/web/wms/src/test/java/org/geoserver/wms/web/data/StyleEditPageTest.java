@@ -87,7 +87,7 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
             catalog.add(ds);
             
             FeatureTypeInfo ft = catalog.getFactory().createFeatureType();
-            ft.setName("unres");
+            ft.setName("unlayer");
             ft.setStore(catalog.getStoreByName("unstore", DataStoreInfo.class));
             ft.setCatalog(catalog);
             ft.setNamespace(catalog.getNamespaceByPrefix("sf"));
@@ -101,7 +101,6 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
             
             LayerInfo ftl = catalog.getFactory().createLayer();
             ftl.setResource(ft);
-            ftl.setName("unlayer");
             ftl.setDefaultStyle(getCatalog().getStyleByName("Default"));
             
             catalog.add(ftl);
@@ -132,7 +131,6 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
             
             LayerInfo wml = catalog.getFactory().createLayer();
             wml.setResource(wmr);
-            wml.setName("states");
             wml.setDefaultStyle(getCatalog().getStyleByName("Default"));
             
             catalog.add(wml);
@@ -150,6 +148,8 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         tester.debugComponentTrees();
         tester.assertComponent("styleForm:context:panel:name", TextField.class);
         tester.assertComponent("styleForm:styleEditor:editorContainer:editorParent:editor", TextArea.class);
+        
+        tester.assertVisible("styleForm:context:panel:upload");
         
         //Load the legend
         tester.executeAjaxEvent("styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:show", "click");
@@ -231,7 +231,6 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         tester.executeAjaxEvent("styleForm:context:tabs-container:tabs:3:link", "click");
         tester.executeAjaxEvent("styleForm:context:panel:changeLayer:link", "click");
         tester.assertComponent("styleForm:popup:content:layer.table", GeoServerTablePanel.class);
-        
         tester.executeAjaxEvent("styleForm:popup:content:layer.table:navigatorBottom:navigator:last", "click");
         tester.assertLabel("styleForm:popup:content:layer.table:listContainer:items:30:itemProperties:2:component:link:layer.name", "unlayer");
         tester.executeAjaxEvent("styleForm:popup:content:layer.table:listContainer:items:30:itemProperties:2:component:link", "click");

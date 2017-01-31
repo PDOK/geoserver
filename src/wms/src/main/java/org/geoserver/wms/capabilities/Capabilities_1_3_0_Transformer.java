@@ -1215,8 +1215,16 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
             }
             handleMetadataList(metadataLinks);
 
+            // the layer style is not provided since the group does just have
+            // one possibility, the lack of styles that will make it use
+            // the default ones for each layer
+            handleScaleDenominator(layerGroup);
+            
             // handle children layers and groups
-            if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
+            if(LayerGroupInfo.Mode.OPAQUE_CONTAINER.equals(layerGroup.getMode())) {
+                // just hide the layers in the group
+                layersAlreadyProcessed.addAll(layerGroup.layers());
+            } else if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
                 for (PublishedInfo child : layerGroup.getLayers()) {
                     if (child instanceof LayerInfo) {
                         LayerInfo layer = (LayerInfo) child;
@@ -1230,12 +1238,6 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                 }
             }
             
-            // the layer style is not provided since the group does just have
-            // one possibility, the lack of styles that will make it use
-            // the default ones for each layer
-            
-            handleScaleDenominator(layerGroup);
-
             end("Layer");            
         }
         

@@ -8,6 +8,7 @@ package org.geoserver.gwc.layer;
 import static com.google.common.base.Throwables.propagate;
 import static com.google.common.base.Throwables.propagateIfInstanceOf;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -292,11 +293,8 @@ public class DefaultTileLayerCatalog implements TileLayerCatalog {
             LOGGER.fine("Depersisting GeoServerTileLayerInfo from " + res.path());
         }
         GeoServerTileLayerInfoImpl info;
-        Reader reader = new InputStreamReader(res.in(), "UTF-8");
-        try {
+        try(Reader reader = new InputStreamReader(new ByteArrayInputStream(res.getContents()), "UTF-8")) {
             info = (GeoServerTileLayerInfoImpl) serializer.fromXML(reader);
-        } finally {
-            reader.close();
         }
 
         return info;

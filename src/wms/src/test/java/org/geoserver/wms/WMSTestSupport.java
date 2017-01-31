@@ -5,6 +5,7 @@
  */
 package org.geoserver.wms;
 
+import static junit.framework.TestCase.fail;
 import static org.junit.Assert.*;
 
 import java.awt.Color;
@@ -22,13 +23,16 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.dom.DOMSource;
 
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
@@ -39,8 +43,12 @@ import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.LayerGroupInfo.Mode;
 import org.geoserver.data.test.MockData;
 import org.geoserver.data.test.SystemTestData;
+import org.geoserver.ows.Dispatcher;
+import org.geoserver.ows.Request;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.test.GeoServerSystemTestSupport;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.FeatureSource;
@@ -49,13 +57,14 @@ import org.geotools.map.GridCoverageLayer;
 import org.geotools.map.Layer;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.styling.Style;
+import org.geotools.xml.Configuration;
+import org.geotools.xml.Parser;
 import org.geotools.xml.transform.TransformerBase;
 import org.opengis.feature.Feature;
 import org.opengis.feature.type.FeatureType;
-import org.vfny.geoserver.Request;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
-
+import org.xml.sax.SAXParseException;
 import org.springframework.mock.web.MockHttpServletResponse;
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -72,6 +81,10 @@ import com.vividsolutions.jts.geom.Envelope;
 public abstract class WMSTestSupport extends GeoServerSystemTestSupport {
 
     protected static final String NATURE_GROUP = "nature";
+    
+    protected static final String CONTAINER_GROUP = "containerGroup";
+    
+    protected static final String OPAQUE_GROUP = "opaqueGroup";
 
     protected static final int SHOW_TIMEOUT = 2000;
 
@@ -118,6 +131,7 @@ public abstract class WMSTestSupport extends GeoServerSystemTestSupport {
         
 
     }
+    
     @Override
     protected void onSetUp(SystemTestData testData) throws Exception {
         super.onSetUp(testData);
@@ -136,7 +150,34 @@ public abstract class WMSTestSupport extends GeoServerSystemTestSupport {
         }
         testData.addStyle("default", "Default.sld",MockData.class, catalog);
         //"default", MockData.class.getResource("Default.sld")
+        
+        // create a group containing the other group
+        LayerGroupInfo containerGroup = catalog.getFactory().createLayerGroup();
+        LayerGroupInfo nature = catalog.getLayerGroupByName(NATURE_GROUP);
+        if (nature != null) {
+            containerGroup.setName(CONTAINER_GROUP);
+            containerGroup.setMode(Mode.CONTAINER);
+            containerGroup.getLayers().add(nature);
+            CatalogBuilder cb = new CatalogBuilder(catalog);
+            cb.calculateLayerGroupBounds(containerGroup);
+            catalog.add(containerGroup);
+        }
+    }
 
+    protected void setupOpaqueGroup(Catalog catalog) throws Exception {
+        // setup an opaque group too
+        LayerGroupInfo opaqueGroup = catalog.getFactory().createLayerGroup();
+        LayerInfo roadSegments = catalog.getLayerByName(getLayerId(MockData.ROAD_SEGMENTS));
+        LayerInfo neatline = catalog.getLayerByName(getLayerId(MockData.MAP_NEATLINE));
+        if(roadSegments != null && neatline != null) {
+            opaqueGroup.setName(OPAQUE_GROUP);
+            opaqueGroup.setMode(Mode.OPAQUE_CONTAINER);;
+            opaqueGroup.getLayers().add(roadSegments);
+            opaqueGroup.getLayers().add(neatline);
+	        CatalogBuilder cb = new CatalogBuilder(catalog);
+            cb.calculateLayerGroupBounds(opaqueGroup);
+            catalog.add(opaqueGroup);
+        }
     }
     
 
@@ -567,6 +608,43 @@ public abstract class WMSTestSupport extends GeoServerSystemTestSupport {
         catalog.add(group);
         
         return group;
-    }    
-        
+    }
+
+    protected int getRawTopLayerCount() {
+        Catalog rawCatalog = (Catalog) GeoServerExtensions.bean("rawCatalog");
+        List<LayerInfo> layers = new ArrayList<LayerInfo>(rawCatalog.getLayers());
+        for (ListIterator<LayerInfo> it = layers.listIterator(); it.hasNext();) {
+            LayerInfo next = it.next();
+            if (!next.enabled() || next.getName().equals(MockData.GEOMETRYLESS.getLocalPart())) {
+                it.remove();
+            }
+        }
+        List<LayerGroupInfo> groups = rawCatalog.getLayerGroups();
+        int opaqueDelta = groups.stream().anyMatch(lg -> OPAQUE_GROUP.equals(lg.getName())) ? 2 : 0;
+        int expectedLayerCount = layers.size() + groups.size() - 1 /* nested layer group */ - opaqueDelta;
+        return expectedLayerCount;
+    }
+    
+    /**
+     * Validates a document against the
+     * 
+     * @param dom
+     * @param configuration
+     */
+    @SuppressWarnings("rawtypes")
+    protected void checkWms13ValidationErrors(Document dom) throws Exception {
+        Parser p = new Parser((Configuration) Class.forName("org.geotools.wms.v1_3.WMSConfiguration").newInstance());
+        p.setValidating(true);
+        p.parse(new DOMSource(dom));
+
+        if (!p.getValidationErrors().isEmpty()) {
+            for (Iterator e = p.getValidationErrors().iterator(); e.hasNext();) {
+                SAXParseException ex = (SAXParseException) e.next();
+                System.out.println(ex.getLineNumber() + "," + ex.getColumnNumber() + " -"
+                        + ex.toString());
+            }
+            fail("Document did not validate.");
+        }
+    }
+
 }

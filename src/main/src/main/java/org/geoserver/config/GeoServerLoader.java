@@ -5,10 +5,10 @@
  */
 package org.geoserver.config;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +44,8 @@ import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Paths;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.Resource.Type;
-import org.geoserver.util.IOUtils;
 import org.geoserver.platform.resource.Resources;
+import org.geoserver.util.IOUtils;
 import org.geotools.util.logging.Logging;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -251,6 +251,21 @@ public abstract class GeoServerLoader {
         }
     }
     
+    boolean checkStoresOnStartup(XStreamPersister xp) {
+        Resource f = resourceLoader.get( "global.xml");
+        if ( Resources.exists(f) ) {
+            try {
+                GeoServerInfo global = depersist(xp, f, GeoServerInfo.class);
+                final ResourceErrorHandling resourceErrorHandling = global.getResourceErrorHandling();
+                return resourceErrorHandling != null && !ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS.equals(
+                    resourceErrorHandling);
+            } catch (IOException e) {
+                LOGGER.log(Level.INFO, "Failed to determine the capabilities resource error handling", e);
+            }
+        }
+        return true;
+    }
+    
     /**
      * Reads the catalog from disk.
      */
@@ -260,7 +275,8 @@ public abstract class GeoServerLoader {
         xp.setCatalog( catalog );
         xp.setUnwrapNulls(false);
         
-        CatalogFactory factory = catalog.getFactory();
+        // see if we really need to verify stores on startup 
+        boolean checkStores = checkStoresOnStartup(xp);
        
         //global styles
         loadStyles(resourceLoader.get( "styles" ), catalog, xp);
@@ -361,7 +377,7 @@ public abstract class GeoServerLoader {
                             
                             LOGGER.info( "Loaded data store '" + ds.getName() +"'");
                             
-                            if (ds.isEnabled()) {
+                            if (checkStores && ds.isEnabled()) {
                                 //connect to the datastore to determine if we should disable it
                                 try {
                                     ds.getDataStore(null);
@@ -698,7 +714,7 @@ public abstract class GeoServerLoader {
     }
 
     void loadStyles(Resource styles, Catalog catalog, XStreamPersister xp) {
-        for ( Resource sf : Resources.list(styles, new Resources.ExtensionFilter("XML") ) ) {
+        for ( Resource sf : Resources.list(styles, new Resources.ExtensionFilter("XML")) ) {
             try {
                 //handle the .xml.xml case
                 if (Resources.exists(styles.get(sf.name() + ".xml"))) {
@@ -774,12 +790,8 @@ public abstract class GeoServerLoader {
      * Helper method which uses xstream to depersist an object as xml from disk.
      */
     <T> T depersist( XStreamPersister xp, Resource f , Class<T> clazz ) throws IOException {
-        BufferedInputStream in = new BufferedInputStream( f.in() );
-        try {
+        try(InputStream in = new ByteArrayInputStream(f.getContents())) {
             return xp.load( in, clazz );
-        }
-        finally {
-            in.close();
         }
     }
     
