@@ -33,16 +33,14 @@ import org.geoserver.data.test.SystemTestData;
 import org.geoserver.test.GeoServerSystemTestSupport;
 import org.geoserver.test.TestSetupFrequency;
 import org.geotools.data.DataAccess;
-import org.json.JSONObject;
 import org.locationtech.geogig.geotools.data.GeoGigDataStore;
 import org.locationtech.geogig.geotools.data.GeoGigDataStoreFactory;
-import org.locationtech.geogig.repository.GeoGIG;
 import org.locationtech.geogig.repository.Repository;
 import org.locationtech.geogig.repository.RepositoryResolver;
+import org.locationtech.geogig.repository.impl.GeoGIG;
 import org.locationtech.geogig.web.api.TestData;
 import org.opengis.feature.Feature;
 import org.opengis.feature.type.FeatureType;
-import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -115,6 +113,27 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
 
             return dispatch(req);
         }
+        
+        /**
+         * Issue a POST request to the provided URL with the given text.
+         *
+         * @param resourceUri   the url to issue the request to
+         * @param postText      the text to be posted
+         *
+         * @return the response to the request
+         */
+        public MockHttpServletResponse postText(String resourceUri, String postText)
+                throws Exception {
+
+            MockHttpServletRequest req = createRequest(resourceUri);
+
+            req.setContentType("text/plain");
+            req.addHeader("Content-Type", "text/plain");
+            req.setMethod("POST");
+            req.setContent(postText == null ? null : postText.getBytes());
+
+            return dispatch(req);
+        }
 
         /**
          * Issue a request with the given {@link Method} to the provided resource URI.
@@ -133,29 +152,13 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
 
         }
 
-        public MockHttpServletResponse callInternal(Method method, String resourceUri,
-                JSONObject payload) throws Exception {
-            return callWithContentTypeInternal(method, resourceUri, payload, "application/json");
-        }
-
         public MockHttpServletResponse callWithContentTypeInternal(Method method, String resourceUri,
-                JSONObject payload, String contentType) throws Exception {
+                String payload, String contentType) throws Exception {
             MockHttpServletRequest request = super.createRequest(resourceUri);
             request.setMethod(method.getName());
             // set the JSON payload
-            request.setContent(payload.toString().getBytes());
+            request.setContent(payload.getBytes());
             request.setContentType(contentType);
-
-            return dispatch(request, null);
-        }
-
-        public MockHttpServletResponse callInternal(Method method, String resourceUri,
-                Form form) throws Exception {
-            MockHttpServletRequest request = super.createRequest(resourceUri);
-            request.setMethod(method.getName());
-            // set the JSON payload
-            request.setContent(form.encode().getBytes());
-            request.setContentType("application/x-www-form-urlencoded");
 
             return dispatch(request, null);
         }
@@ -205,6 +208,7 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
         } finally {
             helper = null;
         }
+        System.runFinalization();
     }
 
     /**
@@ -259,6 +263,7 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
         String repoName = resolver.getName(repoURI);
         RepositoryInfo repositoryInfo = RepositoryManager.get().getByRepoName(repoName);
         assertNotNull(repositoryInfo);
+        catalog.dispose();
         return new TestData(geogig);
     }
 
@@ -298,7 +303,7 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
     @Override
     protected void callInternal(Method method, String resourceUri) {
         try {
-            resourceUri = replaceVariables(resourceUri);
+            //resourceUri = replaceVariables(resourceUri);
             this.lastResponse = helper.callInternal(method, "/geogig" + resourceUri);
         } catch (Exception e) {
             Throwables.propagate(e);
@@ -369,7 +374,7 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
      */
     @Override
     public Set<String> getLastResponseAllowedMethods() {
-        return Sets.newHashSet(getLastResponse().getHeader("ALLOW").split(","));
+        return Sets.newHashSet(getLastResponse().getHeader("ALLOW").replace(" ", "").split(","));
     }
 
     protected byte[] getBinary(MockHttpServletResponse response) {
@@ -381,24 +386,15 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
 //        }
     }
 
-    public void call(Method method, String resourceUri, JSONObject payload) {
-        try {
-            resourceUri = replaceVariables(resourceUri);
-            this.lastResponse = helper.callInternal(method, "/geogig" + resourceUri, payload);
-        } catch (Exception e) {
-            Throwables.propagate(e);
-        }
-    }
-
     /**
-     * Invokes URI request with specified Content-Type. This is used for testing mismatches in request
-     * body content and the Content-Type header.
+     * Invokes URI request with specified Content-Type.
      * @param method HTTP Method to invoke
      * @param resourceUri URI address to which to send the request
-     * @param payload JSON object payload to encode into the request
+     * @param payload payload to encode into the request
      * @param contentType Specific Content-Type header value to send
      */
-    public void callWithContentType(Method method, String resourceUri, JSONObject payload,
+    @Override
+    public void callInternal(Method method, String resourceUri, String payload,
             String contentType) {
         try {
             resourceUri = replaceVariables(resourceUri);
@@ -409,12 +405,24 @@ public class GeoServerFunctionalTestContext extends FunctionalTestContext {
         }
     }
 
-    public void call(Method method, String resourceUri, Form form) {
+	@Override
+	public String getHttpLocation(String repoName) {
+		return String.format("http://localhost:%d/geoserver/geogig/repos/%s", 8080, repoName);
+	}
+
+	@Override
+	protected void postTextInternal(String resourceUri, String postText) {
+        resourceUri = replaceVariables(resourceUri);
         try {
-            resourceUri = replaceVariables(resourceUri);
-            this.lastResponse = helper.callInternal(method, "/geogig" + resourceUri, form);
+            lastResponse = helper.postText("/geogig" + resourceUri, postText);
         } catch (Exception e) {
             Throwables.propagate(e);
         }
-    }
+	}
+
+	@Override
+	protected void serveHttpRepos() throws Exception {
+		// Do Nothing
+	}
+
 }

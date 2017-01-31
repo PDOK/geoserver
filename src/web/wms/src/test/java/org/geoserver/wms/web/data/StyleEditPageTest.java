@@ -151,6 +151,8 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         tester.assertComponent("styleForm:context:panel:name", TextField.class);
         tester.assertComponent("styleForm:styleEditor:editorContainer:editorParent:editor", TextArea.class);
         
+        tester.assertVisible("styleForm:context:panel:upload");
+        
         //Load the legend
         tester.executeAjaxEvent("styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:show", "click");
         
@@ -268,6 +270,16 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         
         assertNull(getCatalog().getStyleByName("Buildings"));
         assertNotNull(getCatalog().getStyleByName("BuildingsNew"));
+    }
+    
+    @Test
+    public void testChangeNameAlreadyExists() throws Exception {
+        FormTester form = tester.newFormTester("styleForm");
+        form.setValue("context:panel:name", "Default");
+        tester.executeAjaxEvent("submit", "click");
+        
+        tester.assertContains("java.lang.IllegalArgumentException: Style named &#039;Default&#039; already exists");
+        tester.debugComponentTrees();
     }
 
     @Test
