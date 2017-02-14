@@ -10,7 +10,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileReader;
 import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Locale;
 
@@ -23,11 +29,13 @@ import org.apache.wicket.Session;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.behavior.AbstractAjaxBehavior;
 import org.apache.wicket.feedback.FeedbackMessage;
+import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.util.tester.FormTester;
 import org.apache.wicket.util.tester.WicketTesterHelper;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.LegendInfo;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.DataStoreInfo;
@@ -37,7 +45,9 @@ import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
+import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.data.test.MockData;
+import org.geoserver.data.test.SystemTestData;
 import org.geoserver.data.test.TestData;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
@@ -57,6 +67,11 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
     StyleInfo buildingsStyle;
     StyleEditPage edit;
 
+    private static final String STYLE_TO_MOVE_NAME = "testStyle";
+    private static final String STYLE_TO_MOVE_FILENAME = "testMoveStyle.sld";
+    private static final String STYLE_TO_MOVE_FILENAME_UPDATED = "testMoveStyleUpdated.sld";
+    StyleInfo styleInfoToMove;
+    
     @Before
     public void setUp() throws Exception {
         Catalog catalog = getCatalog();
@@ -138,6 +153,14 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         
         edit = new StyleEditPage(buildingsStyle);
         tester.startPage(edit);
+        styleInfoToMove = catalog.getStyleByName("testStyle");
+        
+    }
+    
+    @Override
+    protected void onSetUp(SystemTestData testData) throws Exception {
+        super.onSetUp(testData);
+        testData.addStyle(STYLE_TO_MOVE_NAME, STYLE_TO_MOVE_FILENAME, this.getClass(), getCatalog());
     }
 
     @Test
@@ -361,4 +384,200 @@ public class StyleEditPageTest extends GeoServerWicketTestSupport {
         }
     }
 
+    /**
+     * Test that while editing a style, the user can create and then discard a legend without ever saving it.
+     */
+    @Test
+    public void testDiscardNewLegendInfo() {
+        tester.assertRenderedPage(StyleEditPage.class);
+        tester.assertNoErrorMessage();
+
+        // Show the legend panel (The test style does not initially have a legend)
+        tester.executeAjaxEvent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:show",
+                "click");
+
+        // Assert that the legend panel components exist
+        tester.assertComponent("styleForm:context:panel:legendPanel", ExternalGraphicPanel.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:onlineResource",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:width",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:height",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:format",
+                TextField.class);
+
+        // Hide the legend panel (= "Discard Legend")
+        tester.executeAjaxEvent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:hide",
+                "click");
+        tester.assertNoErrorMessage();
+
+        // Submit the style (no legend should be saved)
+        tester.executeAjaxEvent("submit", "click");
+
+        StyleInfo style = getCatalog().getStyleByName(MockData.BUILDINGS.getLocalPart());
+        assertNotNull(style);
+        assertNull(style.getLegend());
+
+    }
+
+    /**
+     * Test that while editing a style, the user can discard a previously saved legend.
+     */
+    @Test
+    public void testDiscardExistingLegend() throws IOException, URISyntaxException {
+
+        // Create a legend for the style
+        StyleInfo style = getCatalog().getStyleByName(MockData.BUILDINGS.getLocalPart());
+        LegendInfo legendInfo = getCatalog().getFactory().createLegend();
+        legendInfo.setFormat("jpg");
+        legendInfo.setOnlineResource("test.jpg");
+        legendInfo.setHeight(100);
+        legendInfo.setWidth(100);
+        style.setLegend(legendInfo);
+        getCatalog().save(style);
+
+        // Reload the page
+        tester.startPage(
+                new StyleEditPage(getCatalog().getStyleByName(MockData.BUILDINGS.getLocalPart())));
+
+        // Make sure the legend fields exist and are populated as expected
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:onlineResource",
+                TextField.class);
+        tester.assertModelValue(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:onlineResource",
+                "test.jpg");
+
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:width",
+                TextField.class);
+        tester.assertModelValue(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:width", 100);
+
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:height",
+                TextField.class);
+        tester.assertModelValue(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:height", 100);
+
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:format",
+                TextField.class);
+        tester.assertModelValue(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:format", "jpg");
+
+        // Hide the legend panel (= "Discard Legend")
+        tester.executeAjaxEvent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:hide",
+                "click");
+
+        // Submit the form. (The legend should be discarded)
+        FormTester form = tester.newFormTester("styleForm", false);
+        form.submit();
+        tester.assertNoErrorMessage();
+
+        style = getCatalog().getStyleByName(MockData.BUILDINGS.getLocalPart());
+        assertNotNull(style);
+        assertNull(style.getLegend());
+    }
+
+    /**
+     * Test that while editing a style, the user can discard a legend, even if the legend has invalid values at the time, and then continue to save
+     * the style.
+     */
+    @Test
+    public void testDiscardLegendWithBadValues() throws IOException, URISyntaxException {
+        tester.executeAjaxEvent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:show",
+                "click");
+
+        // Make sure the fields we are editing actually exist
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:onlineResource",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:width",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:height",
+                TextField.class);
+        tester.assertComponent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:list:format",
+                TextField.class);
+
+        // Set some bad values for the legend
+        FormTester form = tester.newFormTester("styleForm", false);
+        form.setValue("context:panel:legendPanel:externalGraphicContainer:list:onlineResource",
+                "missing.ong");
+        form.setValue("context:panel:legendPanel:externalGraphicContainer:list:width", "-100");
+        form.setValue("context:panel:legendPanel:externalGraphicContainer:list:height", "");
+        form.setValue("context:panel:legendPanel:externalGraphicContainer:list:format",
+                "bad/value");
+
+        // Hide the legend panel (= "Discard Legend")
+        tester.executeAjaxEvent(
+                "styleForm:context:panel:legendPanel:externalGraphicContainer:showhide:hide",
+                "click");
+
+        // Refresh the state of the FormTester after the executeAjaxEvent
+        form = tester.newFormTester("styleForm", false);
+
+        // Submit the form. (The bad legend values should no longer be set).
+        form.submit();
+        tester.assertNoErrorMessage();
+
+        StyleInfo style = getCatalog().getStyleByName(MockData.BUILDINGS.getLocalPart());
+        assertNotNull(style);
+        assertNull(style.getLegend());
+    }
+
+    /*
+     * Test that a user can update the .sld file contents and move the style into a workspace in a single edit.
+     */
+    @Test
+    public void testMoveWorkspaceAndEdit() throws Exception {
+        edit = new StyleEditPage(styleInfoToMove);
+        tester.startPage(edit);
+
+        // Before the edit, the style should have one <FeatureTypeStyle>
+        assertEquals(1, styleInfoToMove.getStyle().featureTypeStyles().size());
+
+        FormTester form = tester.newFormTester("styleForm", false);
+
+        // Update the workspace (select "sf" from the dropdown)
+        DropDownChoice<WorkspaceInfo> typeDropDown = (DropDownChoice<WorkspaceInfo>) tester
+                .getComponentFromLastRenderedPage("styleForm:context:panel:workspace");
+
+        for (int wsIdx = 0; wsIdx < typeDropDown.getChoices().size(); wsIdx++) {
+            WorkspaceInfo ws = typeDropDown.getChoices().get(wsIdx);
+            if ("sf".equalsIgnoreCase(ws.getName())) {
+                form.select("context:panel:workspace", wsIdx);
+                break;
+            }
+        }
+
+        // Update the raw style contents (the new style has TWO <FeatureTypeStyle> entries).
+        File styleFile = new File(getClass().getResource(STYLE_TO_MOVE_FILENAME_UPDATED).toURI());
+        String updatedSld = IOUtils.toString(new FileReader(styleFile)).replaceAll("\r\n", "\n")
+                .replaceAll("\r", "\n");
+        form.setValue("styleEditor:editorContainer:editorParent:editor", updatedSld);
+
+        // Submit the form and verify that both the new workspace and new rawStyle saved.
+        form.submit();
+
+        StyleInfo si = getCatalog().getStyleByName(getCatalog().getWorkspaceByName("sf"),
+                STYLE_TO_MOVE_NAME);
+        assertNotNull(si);
+        assertNotNull(si.getWorkspace());
+        assertEquals("sf", si.getWorkspace().getName());
+        assertEquals(2, si.getStyle().featureTypeStyles().size());
+    }
+    
 }

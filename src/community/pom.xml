@@ -69,7 +69,6 @@
           <descriptor>release/ext-params-extractor.xml</descriptor>
           <descriptor>release/ext-wps-remote.xml</descriptor>
           <descriptor>release/ext-python.xml</descriptor>
-          <descriptor>release/ext-ysld.xml</descriptor>
           <descriptor>release/ext-jdbcstore.xml</descriptor>
           <descriptor>release/ext-ncwms.xml</descriptor>
           <descriptor>release/ext-gwc-sqlite.xml</descriptor> 
@@ -80,6 +79,7 @@
           <descriptor>release/ext-backup-restore.xml</descriptor>
           <descriptor>release/ext-wmts-multi-dimensional.xml</descriptor> 
           <descriptor>release/ext-onelogin.xml</descriptor> 
+          <descriptor>release/ext-notification.xml</descriptor> 
           <descriptor>release/ext-ows-simulate.xml</descriptor> 
         </descriptors>
       </configuration>
@@ -176,6 +176,19 @@
         <module>onelogin</module>
       </modules>
     </profile>
+	<profile>
+      <id>notification</id>
+      <modules>
+		<module>notification-common</module>
+        <module>notification</module>
+      </modules>
+    </profile>
+	<profile>
+      <id>notification-geonode</id>
+      <modules>
+		<module>notification-geonode</module>
+      </modules>
+    </profile>
     <profile>
       <id>communityRelease</id>
       <modules>
@@ -211,7 +224,6 @@
         <module>jdbcstore</module>
         <module>gdal</module>
         <module>gwc-s3</module>
-        <module>ysld</module>
         <module>backup-restore</module>
         <module>ncwms</module>
         <module>web-resource</module>
@@ -222,6 +234,9 @@
         <module>security/oauth2-geonode</module>
         <module>wmts-multi-dimensional</module>
         <module>onelogin</module>
+        <module>notification</module>
+        <module>notification-common</module>
+        <module>notification-geonode</module>
         <module>ows-simulate</module>
       </modules>
     </profile>
@@ -294,6 +309,12 @@
       <id>mbtiles</id>
       <modules>
         <module>mbtiles</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>mbstyle</id>
+      <modules>
+        <module>mbstyle</module>
       </modules>
     </profile>
     <profile>
@@ -437,12 +458,6 @@
       </modules>
     </profile>
     <profile>
-      <id>ysld</id>
-      <modules>
-        <module>ysld</module>
-      </modules>
-    </profile>
-    <profile>
       <id>backup-restore</id>
       <modules>
         <module>backup-restore</module>
@@ -501,6 +516,12 @@
       <id>ows-simulate</id>
       <modules>
         <module>ows-simulate</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>opensearch-eo</id>
+      <modules>
+        <module>opensearch-eo</module>
       </modules>
     </profile>
   </profiles>
