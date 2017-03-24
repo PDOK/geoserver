@@ -27,6 +27,7 @@ import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.LockingCatalogFacade;
 import org.geoserver.catalog.MapInfo;
 import org.geoserver.catalog.NamespaceInfo;
 import org.geoserver.catalog.PublishedInfo;
@@ -100,7 +101,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
             if(!oldName.equals(newName)) {
                 Map<Name, LayerInfo> nameMap = getMapForValue(nameMultiMap, LayerInfoImpl.class);
                 LayerInfo value = nameMap.remove(oldName);
-                nameMap.put(newName, value);
+                // handle case of feature type without a corresponding layer
+                if(value != null) {
+                    nameMap.put(newName, value);
+                }
             }
         }
         
@@ -196,8 +200,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
     
     public void save(StoreInfo store) {
+        beforeSaved(store);
         stores.update(store);
-        saved(store);
+        commitProxy(store);
+        afterSaved(store);
     }
     
     public <T extends StoreInfo> T detach(T store) {
@@ -286,9 +292,11 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     
    
     public void save(ResourceInfo resource) {
+        beforeSaved(resource);
         resources.update(resource);
         layers.update(resource);
-        saved(resource);
+        commitProxy(resource);
+        afterSaved(resource);
     }
     
     public <T extends ResourceInfo> T detach(T resource) {
@@ -376,8 +384,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
     
     public void save(LayerInfo layer) {
+        beforeSaved(layer);
         layers.update(layer);
-        saved(layer);
+        commitProxy(layer);
+        afterSaved(layer);
     }
     
     public LayerInfo detach(LayerInfo layer) {
@@ -442,7 +452,9 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
 
     public void save(MapInfo map) {
-        saved( map );
+        beforeSaved(map);
+        commitProxy(map);
+        afterSaved(map);
     }
     
     public MapInfo detach(MapInfo map) {
@@ -497,8 +509,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
      * @see org.geoserver.catalog.impl.CatalogDAO#save(org.geoserver.catalog.LayerGroupInfo)
      */
     public void save(LayerGroupInfo layerGroup) {
+        beforeSaved(layerGroup);
         layerGroups.update(layerGroup);
-        saved(layerGroup);
+        commitProxy(layerGroup);
+        afterSaved(layerGroup);
     }
     
     public LayerGroupInfo detach(LayerGroupInfo layerGroup) {
@@ -573,8 +587,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
 
     public void save(NamespaceInfo namespace) {
+        beforeSaved(namespace);
         namespaces.update(namespace);
-        saved(namespace);
+        commitProxy(namespace);
+        afterSaved(namespace);
     }
 
     public NamespaceInfo detach(NamespaceInfo namespace) {
@@ -642,8 +658,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
             }
         }
         
+        beforeSaved(workspace);
         workspaces.update(workspace);
-        saved(workspace);
+        commitProxy(workspace);     
+        afterSaved(workspace);
     }
 
     public WorkspaceInfo detach(WorkspaceInfo workspace) {
@@ -695,8 +713,10 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
 
     public void save(StyleInfo style) {
+        beforeSaved(style);
         styles.update(style);
-        saved( style );
+        commitProxy(style);
+        afterSaved(style);
     }
 
     public StyleInfo detach(StyleInfo style) {
@@ -838,6 +858,7 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
     }
 
     public void syncTo(CatalogFacade dao) {
+        dao = ProxyUtils.unwrap(dao, LockingCatalogFacade.class);
         if (dao instanceof DefaultCatalogFacade) {
             //do an optimized sync
             DefaultCatalogFacade other = (DefaultCatalogFacade) dao;
@@ -879,7 +900,7 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
             }
             
             for (Map.Entry<String, DataStoreInfo> e : defaultStores.entrySet()) {
-                WorkspaceInfo ws = workspaces.findByName(new NameImpl(e.getKey()), WorkspaceInfo.class);
+                WorkspaceInfo ws = workspaces.findById(e.getKey(), WorkspaceInfo.class);
                 if (null != ws) {
                     dao.setDefaultDataStore(ws, e.getValue());
                 }
