@@ -10,12 +10,12 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>web</artifactId>
-    <version>2.10.1</version>
+    <version>2.10.3</version>
   </parent>
   <groupId>org.geoserver.web</groupId>
   <artifactId>gs-web-app</artifactId>
   <packaging>jar</packaging>
-  <version>2.10.1</version>
+  <version>2.10.3</version>
   <name>GeoServer Web Application</name>    
   <dependencies>
     <dependency>
@@ -170,6 +170,16 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-plus</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-util</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -380,7 +390,7 @@
         <dependency>
           <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-arcsde</artifactId>
-          <version>2.10.1</version>
+          <version>2.10.3</version>
         </dependency>
       </dependencies>
     </profile>
@@ -409,7 +419,7 @@
         <dependency>
           <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-sqlserver</artifactId>
-          <version>2.10.1</version>
+          <version>2.10.3</version>
         </dependency>
       </dependencies>
     </profile>
@@ -419,7 +429,7 @@
         <dependency>
           <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-oracle</artifactId>
-          <version>2.10.1</version>
+          <version>2.10.3</version>
         </dependency>
       </dependencies>
     </profile>
@@ -429,7 +439,7 @@
         <dependency>
           <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-oracle</artifactId>
-          <version>2.10.1</version>
+          <version>2.10.3</version>
         </dependency>
         <dependency>
             <groupId>com.oracle</groupId>
@@ -443,7 +453,7 @@
         <dependency>
           <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-mysql</artifactId>
-          <version>2.10.1</version>
+          <version>2.10.3</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1197,7 +1207,7 @@
           <version>${project.version}</version>
         </dependency>
       </dependencies>
-    </profile>   
+    </profile>
 	<profile>
       <id>gwc-distributed</id>
       <dependencies>
@@ -1235,8 +1245,8 @@
           <groupId>org.geoserver.community</groupId>
           <artifactId>gs-geofence-server</artifactId>
           <version>${project.version}</version>
-        </dependency>              
-      </dependencies>      
+        </dependency>
+      </dependencies>
    </profile>
    <profile>
       <id>vectortiles</id>
@@ -1245,8 +1255,8 @@
           <groupId>org.geoserver.community</groupId>
           <artifactId>gs-vectortiles</artifactId>
           <version>${project.version}</version>
-        </dependency>              
-      </dependencies>      
+        </dependency>
+      </dependencies>
    </profile>
    <profile>
       <id>gdal-translate</id>
@@ -1312,7 +1322,7 @@
       <id>ysld</id>
       <dependencies>
         <dependency>
-          <groupId>org.geoserver.community</groupId>
+          <groupId>org.geoserver.extension</groupId>
           <artifactId>gs-ysld</artifactId>
           <version>${project.version}</version>
         </dependency>
@@ -1454,6 +1464,26 @@
         <dependency>
           <groupId>org.geoserver.community</groupId>
           <artifactId>gs-wmts-multi-dimensional</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>notification</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.geoserver.community</groupId>
+          <artifactId>gs-notification</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.community</groupId>
+          <artifactId>gs-notification-common</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.geoserver.community</groupId>
+          <artifactId>gs-notification-geonode</artifactId>
           <version>${project.version}</version>
         </dependency>
       </dependencies>

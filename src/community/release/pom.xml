@@ -11,7 +11,7 @@
  <parent>
   <groupId>org.geoserver</groupId>
   <artifactId>community</artifactId>
-  <version>2.10.1</version>
+  <version>2.10.3</version>
  </parent>
  <groupId>org.geoserver.community</groupId>
  <artifactId>gs-release</artifactId>
@@ -187,12 +187,7 @@
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-wps-jdbc</artifactId>
      <version>${project.version}</version>
-   </dependency>  
-   <dependency>
-     <groupId>org.geoserver.community</groupId>
-     <artifactId>gs-ysld</artifactId>
-     <version>${project.version}</version>
-   </dependency>   
+   </dependency>
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-jdbcstore</artifactId>
@@ -246,6 +241,21 @@
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-sec-oauth2-geonode</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-notification</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-notification-common</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-notification-geonode</artifactId>
      <version>${project.version}</version>
    </dependency>
  </dependencies>
