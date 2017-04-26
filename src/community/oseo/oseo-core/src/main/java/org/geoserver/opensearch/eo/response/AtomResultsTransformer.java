@@ -8,11 +8,15 @@ import static org.geoserver.opensearch.eo.store.OpenSearchAccess.EO_NAMESPACE;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
@@ -39,12 +43,14 @@ import org.geotools.xml.Encoder;
 import org.geotools.xml.transform.Translator;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
+import org.springframework.http.MediaType;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -61,7 +67,7 @@ import com.vividsolutions.jts.geom.Polygon;
 public class AtomResultsTransformer extends LambdaTransformerBase {
 
     static final String QUICKLOOK_URL_KEY = "${QUICKLOOK_URL}";
-    
+
     static final String THUMB_URL_KEY = "${THUMB_URL}";
 
     static final String ATOM_URL_KEY = "${ATOM_URL}";
@@ -69,6 +75,8 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
     static final String OM_METADATA_KEY = "${OM_METADATA_URL}";
 
     static final String ISO_METADATA_KEY = "${ISO_METADATA_LINK}";
+
+    static final String BASE_URL_KEY = "${BASE_URL}";
 
     static final GMLConfiguration GML_CONFIGURATION = new GMLConfiguration();
 
@@ -112,6 +120,7 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             mapNamespacePrefix("xlink", "http://www.w3.org/1999/xlink");
             mapNamespacePrefix("xs", "http://www.w3.org/2001/XMLSchema");
             mapNamespacePrefix("sch", "http://www.ascc.net/xml/schematron");
+            mapNamespacePrefix("owc", "http://www.opengis.net/owc/1.0");
             for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
                 mapNamespacePrefix(pc.getPrefix(), pc.getNamespace());
             }
@@ -149,6 +158,19 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             String updated = DateTimeFormatter.ISO_INSTANT.format(Instant.now());
             element("updated", updated);
             buildPaginationLinks(results);
+            buildSearchLink(results.getRequest());
+            encodeEntries(results.getResults(), results.getRequest());
+        }
+
+        private void buildSearchLink(SearchRequest request) {
+            Map<String, String> kvp = null;
+            if(request.getParentId() != null) {
+                kvp = Collections.singletonMap("parentId", request.getParentId());
+            }
+            String href = ResponseUtils.buildURL(request.getBaseUrl(), "oseo/search/description", kvp, URLType.SERVICE);
+            element("link", NO_CONTENTS,
+                    attributes("rel", "search", "href", href, "type", DescriptionResponse.OS_DESCRIPTION_MIME));
+            
         }
 
         private int getQueryStartIndex(SearchResults results) {
@@ -177,7 +199,6 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             }
             encodePaginationLink("last", getLastPageStart(total, itemsPerPage), itemsPerPage,
                     request);
-            encodeEntries(results.getResults(), results.getRequest());
         }
 
         private void encodeEntries(FeatureCollection results, SearchRequest request) {
@@ -202,7 +223,6 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
 
         private void encodeCollectionEntry(Feature feature, SearchRequest request) {
             final String identifier = (String) value(feature, EO_NAMESPACE, "identifier");
-            final String name = (String) value(feature, "name");
 
             // build links and description replacement variables
             String identifierLink = buildCollectionIdentifierLink(identifier, request);
@@ -219,6 +239,52 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             element("link", NO_CONTENTS, attributes("rel", "alternate", "href", metadataLink,
                     "type", MetadataRequest.ISO_METADATA, "title", "ISO metadata"));
 
+            encodeOgcLinksFromFeature(feature, request);
+        }
+
+        private void encodeOgcLinksFromFeature(Feature feature, SearchRequest request) {
+            // build ogc links if available
+            Collection<Property> linkProperties = feature
+                    .getProperties(OpenSearchAccess.OGC_LINKS_PROPERTY_NAME);
+            if (linkProperties != null) {
+                Map<String, List<SimpleFeature>> linksByOffering = linkProperties.stream()
+                        .map(p -> (SimpleFeature) p).sorted(LinkFeatureComparator.INSTANCE)
+                        .collect(Collectors.groupingBy(f -> (String) f.getAttribute("offering")));
+                String hrefBase = getHRefBase(request);
+                encodeOgcLinks(linksByOffering, hrefBase);
+            }
+        }
+
+        private String getHRefBase(SearchRequest request) {
+            String baseURL = request.getBaseUrl();
+            String hrefBase = ResponseUtils.buildURL(baseURL, null, null, URLType.SERVICE);
+            if (hrefBase.endsWith("/")) {
+                hrefBase = hrefBase.substring(0, hrefBase.length() - 1);
+            }
+            return hrefBase;
+        }
+
+        private void encodeOgcLinks(Map<String, List<SimpleFeature>> linksByOffering,
+                String hrefBase) {
+            linksByOffering.forEach((offering, links) -> {
+                element("owc:offering", () -> {
+                    for (SimpleFeature link : links) {
+                        encodeOgcLink(link, hrefBase);
+                    }
+                }, attributes("code", offering));
+            });
+
+        }
+
+        private void encodeOgcLink(SimpleFeature link, String hrefBase) {
+            String method = (String) link.getAttribute("method");
+            String code = (String) link.getAttribute("code");
+            String type = (String) link.getAttribute("type");
+            String href = (String) link.getAttribute("href");
+            String hrefExpanded = QuickTemplate.replaceVariables(href,
+                    Collections.singletonMap(BASE_URL_KEY, hrefBase));
+            element("owc:operation", NO_CONTENTS,
+                    attributes("method", method, "code", code, "href", hrefExpanded, "type", type));
         }
 
         private void encodeProductEntry(Feature feature, SearchRequest request) {
@@ -241,12 +307,32 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             // build links to the metadata
             element("link", NO_CONTENTS, attributes("rel", "alternate", "href", metadataLink,
                     "type", MetadataRequest.OM_METADATA, "title", "O&M metadata"));
+
+            encodeOgcLinksFromFeature(feature, request);
+            
+            encodeDownloadLink(feature, request);
+        }
+
+        private void encodeDownloadLink(Feature feature, SearchRequest request) {
+            String location  = (String) value(feature, null, OpenSearchAccess.ORIGINAL_PACKAGE_LOCATION);
+            if(location != null) {
+                String type = (String) value(feature, null, OpenSearchAccess.ORIGINAL_PACKAGE_TYPE);
+                if(type == null) {
+                    type = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+                }
+                String hrefBase = getHRefBase(request);
+                String locationExpanded = QuickTemplate.replaceVariables(location,
+                        Collections.singletonMap(BASE_URL_KEY, hrefBase));
+                element("link", NO_CONTENTS, attributes("rel", "enclosure", "href", locationExpanded,
+                        "type", type, "title", "Source package download"));
+            }
         }
 
         private void encodeGenericEntryContents(Feature feature, String name,
                 final String identifierLink, Map<String, String> descriptionVariables) {
             element("id", identifierLink);
             element("title", name);
+            element("dc:identifier", name);
             // TODO: need an actual update column
             Date updated = (Date) value(feature, "timeStart");
             if (updated != null) {
@@ -339,7 +425,12 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
         }
 
         private Object value(Feature feature, String prefix, String attribute) {
-            Property property = feature.getProperty(new NameImpl(prefix, attribute));
+            Property property; 
+            if(prefix != null) {
+                property = feature.getProperty(new NameImpl(prefix, attribute));
+            } else {
+                property = feature.getProperty(attribute);
+            }
             if (property == null) {
                 return null;
             } else {
@@ -368,7 +459,7 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
 
         private int getLastPageStart(int total, int itemsPerPage) {
             // all in one page?
-            if (total <= itemsPerPage) {
+            if (total <= itemsPerPage || itemsPerPage == 0) {
                 return 1;
             }
             // check how many items in the last page, is the last page partial or full?

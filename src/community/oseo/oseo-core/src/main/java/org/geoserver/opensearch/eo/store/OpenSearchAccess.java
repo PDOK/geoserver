@@ -23,11 +23,26 @@ public interface OpenSearchAccess extends DataAccess<FeatureType, Feature> {
     public static String EO_NAMESPACE = "http://a9.com/-/opensearch/extensions/eo/1.0/";
 
     public static String GEO_NAMESPACE = "http://a9.com/-/opensearch/extensions/geo/1.0/";
+    
+    /**
+     * Internal attribute pointing to the original package location
+     */
+    public static String ORIGINAL_PACKAGE_LOCATION = "originalPackageLocation";
+    
+    /**
+     * Internal attribute stating he original package mime type
+     */
+    public static String ORIGINAL_PACKAGE_TYPE = "originalPackageType";
 
     /**
      * The optional property in collection and product containing the metadata (ISO or O&M)
      */
     public static Name METADATA_PROPERTY_NAME = new NameImpl(EO_NAMESPACE, "metadata");
+    
+    /**
+     * The optional property in collection and product containing the OGC links (it's a collection)
+     */
+    public static Name OGC_LINKS_PROPERTY_NAME = new NameImpl(EO_NAMESPACE, "ogcLinks");
     
     /**
      * The optional property in product containing the quicklook

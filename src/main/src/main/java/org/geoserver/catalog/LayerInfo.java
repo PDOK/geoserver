@@ -13,7 +13,11 @@ import java.util.Set;
  * @author Justin Deoliveira, The Open Planning Project
  */
 public interface LayerInfo extends PublishedInfo {
-    
+
+    enum WMSInterpolation {
+        Nearest, Bilinear, Bicubic
+    }
+
     /**
      * The rendering buffer
      */
@@ -144,15 +148,16 @@ public interface LayerInfo extends PublishedInfo {
     /**
      * Sets the opaque status
      * 
-     * @param opaque {@code true} to set this Layer as opaque, {@code false} to make the layer not opaque.
+     * @param opaque {@code true} to set this Layer as opaque, {@code false} to make the layer transparent.
      */
     void setOpaque(boolean opaque);
 
     /**
-     * Whether the layer is opaque
+     * Controls layer transparency (whether the layer is opaque or transparent).
      * <p>
-     * Defaults to {@code false}
+     * Defaults to {@code false}.
      * </p>
+     * @return Returns {@code true} for opaque layer, {@code false} for transparent.
      */
     boolean isOpaque();    
     /**
@@ -167,4 +172,28 @@ public interface LayerInfo extends PublishedInfo {
      */
     void setAdvertised(boolean advertised);
 
+    /**
+     * The default WMS interpolation method.
+     *
+     * <p>
+     * If not specifed (i.e. {@code null}), the service default will be used.
+     * </p>
+     */
+    WMSInterpolation getDefaultWMSInterpolationMethod();
+
+    /**
+     * Sets the default WMS interpolation method.
+     *
+     * <p>
+     * Admissible values are:
+     *  <ul>
+     *   <li><strong>Nearest</strong> - Nearest Neighbor Interpolation</li>
+     *   <li><strong>Bilinear</strong> - Bilinear Interpolation</li>
+     *   <li><strong>Bicubic</strong> - Bicubic Interpolation</li>
+     *  </ul>
+     * </p>
+     *
+     * @param interpolationMethod the interpolation method used by default
+     */
+    void setDefaultWMSInterpolationMethod(WMSInterpolation interpolationMethod);
 }
