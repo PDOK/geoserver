@@ -1107,7 +1107,7 @@
     <dependency>
       <groupId>com.thoughtworks.xstream</groupId>
       <artifactId>xstream</artifactId>
-      <version>1.4.7</version>
+      <version>1.4.10</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
@@ -1215,6 +1215,18 @@
       <groupId>org.jsoup</groupId>
       <artifactId>jsoup</artifactId>
       <version>1.10.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.svenmeier.wicket-dnd</groupId>
+      <artifactId>wicket-dnd</artifactId>
+      <version>0.7.3</version>
+      <exclusions>
+        <!-- wicket-dnd depends on wicket 7.0, we use a more recent version -->
+        <exclusion>
+           <groupId>org.apache.wicket</groupId>
+           <artifactId>wicket-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
  </dependencyManagement>
@@ -1810,7 +1822,7 @@
   <wicket.version>7.6.0</wicket.version>
   <ant.version>1.8.4</ant.version>
   <imageio-ext.version>1.1.17</imageio-ext.version>
-  <jaiext.version>1.0.13</jaiext.version>
+  <jaiext.version>1.0.14</jaiext.version>
   <java.awt.headless>true</java.awt.headless>
   <sun.java2d.d3d>true</sun.java2d.d3d>
   <jvm.opts></jvm.opts>

@@ -35,6 +35,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Collections;
 
+import static org.geoserver.data.test.MockData.WORLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -373,7 +374,16 @@ public class GetMapIntegrationTest extends WMSTestSupport {
         } finally {
             catalog.remove(group);
         }
-    }   
+    }
+
+    @Test
+    public void testWorkspaceQualifiedNoLayersError() throws Exception {
+        Document dom = getAsDOM("sf/wms?bbox=" + bbox + "&styles="
+                + "&layers=" + "&format=image/png" + "&request=GetMap" + "&width=550"
+                + "&height=250" + "&srs=EPSG:4326", Charset.defaultCharset().displayName());
+        assertEquals("ServiceExceptionReport", dom.getDocumentElement().getNodeName());
+        assertTrue(dom.getDocumentElement().getTextContent().contains("No LAYERS has been requested"));
+    }
     
     @Test
     public void testSldExternalEntities() throws Exception {

@@ -4,6 +4,8 @@
  */
 package org.geoserver.opensearch.eo.store;
 
+import static org.geoserver.opensearch.eo.store.JDBCOpenSearchAccess.FF;
+
 import java.io.IOException;
 import java.util.logging.Logger;
 
@@ -25,7 +27,7 @@ import org.opengis.filter.Filter;
  *
  * @author Andrea Aime - GeoSolutions
  */
-public class JDBCProductFeatureSource extends AbstractMappingSource {
+public class JDBCProductFeatureSource extends AbstractMappingStore {
 
     static final Logger LOGGER = Logging.getLogger(JDBCProductFeatureSource.class);
 
@@ -70,9 +72,9 @@ public class JDBCProductFeatureSource extends AbstractMappingSource {
     }
 
     @Override
-    protected void mapProperties(ComplexFeatureBuilder builder, SimpleFeature fi) {
+    protected void mapPropertiesToComplex(ComplexFeatureBuilder builder, SimpleFeature fi) {
         // basic mappings
-        super.mapProperties(builder, fi);
+        super.mapPropertiesToComplex(builder, fi);
 
         // quicklook extraction
         Object metadataValue = fi.getAttribute("quicklook");
