@@ -7,7 +7,6 @@ package org.geogig.geoserver.config;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.geoserver.catalog.Predicates.and;
 import static org.geoserver.catalog.Predicates.equal;
-import static org.locationtech.geogig.geotools.data.GeoGigDataStoreFactory.REPOSITORY;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,18 +21,21 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.geogig.geoserver.config.ConfigStore.RepositoryInfoChangedCallback;
 import org.geoserver.catalog.CascadeDeleteVisitor;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.StoreInfo;
 import org.geoserver.catalog.util.CloseableIterator;
 import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerInitializer;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.resource.Resource;
-import org.locationtech.geogig.cli.CLIContextBuilder;
+import org.geoserver.platform.resource.ResourceStore;
 import org.locationtech.geogig.geotools.data.GeoGigDataStoreFactory;
 import org.locationtech.geogig.model.Ref;
 import org.locationtech.geogig.porcelain.BranchListOp;
@@ -55,18 +57,16 @@ import org.opengis.filter.Filter;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class RepositoryManager implements GeoServerInitializer {
     static {
         if (GlobalContextBuilder.builder() == null
                 || GlobalContextBuilder.builder().getClass().equals(ContextBuilder.class)) {
-            GlobalContextBuilder.builder(new CLIContextBuilder());
+            GlobalContextBuilder.builder(new GeoServerContextBuilder());
         }
     }
 
@@ -79,13 +79,26 @@ public class RepositoryManager implements GeoServerInitializer {
         }
     }
 
-    private final ConfigStore store;
+    private final ConfigStore configStore;
+
+    private final ResourceStore resourceStore;
 
     private final RepositoryCache repoCache;
 
     private static RepositoryManager INSTANCE;
 
     private Catalog catalog;
+
+    private static final String REPO_ROOT = "geogig/repos";
+
+    private static final RepositoryInfoChangedCallback REPO_CHANGED_CALLBACK = new RepositoryInfoChangedCallback() {
+        @Override
+        public void repositoryInfoChanged(String repoId) {
+            if (INSTANCE != null && INSTANCE.repoCache != null) {
+                INSTANCE.repoCache.invalidate(repoId);
+            }
+        }
+    };
 
     public static synchronized RepositoryManager get() {
         if (INSTANCE == null) {
@@ -97,6 +110,7 @@ public class RepositoryManager implements GeoServerInitializer {
 
     public static void close() {
         if (INSTANCE != null) {
+            INSTANCE.configStore.removeRepositoryInfoChangedCallback(REPO_CHANGED_CALLBACK);
             INSTANCE.repoCache.invalidateAll();
             INSTANCE = null;
         }
@@ -106,10 +120,13 @@ public class RepositoryManager implements GeoServerInitializer {
         return new StaticSupplier();
     }
 
-    public RepositoryManager(ConfigStore store) {
-        checkNotNull(store);
-        this.store = store;
+    public RepositoryManager(ConfigStore configStore, ResourceStore resourceStore) {
+        checkNotNull(configStore);
+        checkNotNull(resourceStore);
+        this.configStore = configStore;
+        this.resourceStore = resourceStore;
         this.repoCache = new RepositoryCache(this);
+        this.configStore.addRepositoryInfoChangedCallback(REPO_CHANGED_CALLBACK);
     }
 
     @Override
@@ -119,7 +136,7 @@ public class RepositoryManager implements GeoServerInitializer {
     }
 
     public List<RepositoryInfo> getAll() {
-        return store.getRepositories();
+        return configStore.getRepositories();
     }
 
     public void invalidate(final String repoId) {
@@ -135,10 +152,15 @@ public class RepositoryManager implements GeoServerInitializer {
             repoURI = URI.create(hints.get(Hints.REPOSITORY_URL).get().toString());
         } else {
             // no location set yet, generate one
-            Resource root = store.getConfigRoot();
-            File parent = root.parent().dir().getAbsoluteFile();
-            File f = new File(parent, UUID.randomUUID().toString());
-            repoURI = f.toURI().normalize();
+            // NOTE: If the resource store does not support a file system, the repository will be
+            // created in a temporary directory. If this is the case, remove any repository
+            // resolvers that can resolve a 'file' URI to prevent the creation of such repos.
+            Resource root = resourceStore.get(REPO_ROOT);
+            File repoDir = root.get(UUID.randomUUID().toString()).dir();
+            if (!repoDir.exists()) {
+                repoDir.mkdirs();
+            }
+            repoURI = repoDir.toURI().normalize();
             hints.set(Hints.REPOSITORY_URL, repoURI);
         }
 
@@ -158,21 +180,22 @@ public class RepositoryManager implements GeoServerInitializer {
 
     public RepositoryInfo get(final String repoId) throws IOException {
         try {
-            return store.get(repoId);
+            return configStore.get(repoId);
         } catch (FileNotFoundException e) {
             throw new NoSuchElementException("No repository with ID " + repoId + " exists");
         }
     }
 
+    /**
+     * Retrieves a RepositoryInfo with a specified name.
+     *
+     * @param name The name of the repository desired.
+     *
+     * @return a RepositoryInfo object, if found. If not found, returns null.
+     */
     public RepositoryInfo getByRepoName(final String name) {
-        List<RepositoryInfo> all = getAll();
-        for (RepositoryInfo info : all) {
-            if (info.getRepoName().equals(name)) {
-                return info;
-            }
-        }
-        // didn't find it
-        throw new NoSuchElementException("No repository with ID " + name + " exists");
+        RepositoryInfo info = configStore.getByName(name);
+        return info;
     }
 
     public List<DataStoreInfo> findGeogigStores() {
@@ -192,34 +215,11 @@ public class RepositoryManager implements GeoServerInitializer {
         return findGeoGigStores(catalog, filter);
     }
 
-    static List<DataStoreInfo> findGeogigStoresWithOldConfiguration(Catalog catalog) {
-        // NOTE: Using a pre Filter and a post Predicate instead of a single AND Filter because
-        // JDBCConfig doesn't know how to translate a connectionParameters.resolver Filter into an
-        // SQL expression
-        org.opengis.filter.Filter preFilter = equal("type", GeoGigDataStoreFactory.DISPLAY_NAME);
-        List<DataStoreInfo> stores = findGeoGigStores(catalog, preFilter);
-
-        Predicate<DataStoreInfo> postFilter = new Predicate<DataStoreInfo>() {
-            @Override
-            public boolean apply(DataStoreInfo st) {
-                final Map<String, Serializable> conParams = st.getConnectionParameters();
-                if (conParams.containsKey(REPOSITORY.key)) {
-                    final File repoConfigFile = new File(conParams.get(REPOSITORY.key).toString());
-                    if (repoConfigFile.isDirectory()) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
-
-        return Lists.newArrayList(Iterables.filter(stores, postFilter));
-    }
-
     private static List<DataStoreInfo> findGeoGigStores(Catalog catalog,
             org.opengis.filter.Filter filter) {
         List<DataStoreInfo> geogigStores;
-        try (CloseableIterator<DataStoreInfo> dataStores = catalog.list(DataStoreInfo.class, filter)) {
+        try (CloseableIterator<DataStoreInfo> dataStores = catalog.list(DataStoreInfo.class,
+                filter)) {
             geogigStores = Lists.newArrayList(dataStores);
         }
 
@@ -237,7 +237,8 @@ public class RepositoryManager implements GeoServerInitializer {
         Filter filter = equal("type", GeoGigDataStoreFactory.DISPLAY_NAME);
 
         String locationKey = "connectionParameters." + GeoGigDataStoreFactory.REPOSITORY.key;
-        filter = and(filter, equal(locationKey, GeoServerGeoGigRepositoryResolver.getURI(repoName)));
+        filter = and(filter,
+                equal(locationKey, GeoServerGeoGigRepositoryResolver.getURI(repoName)));
         List<DataStoreInfo> dependent;
         try (CloseableIterator<DataStoreInfo> stores = this.catalog.list(DataStoreInfo.class,
                 filter)) {
@@ -318,13 +319,10 @@ public class RepositoryManager implements GeoServerInitializer {
         }
         // so far we don't need to invalidate the GeoGIG instance from the cache here... re-evaluate
         // if any configuration option would require so in the future
-        return store.save(info);
+        return configStore.save(info);
     }
 
     private void create(final RepositoryInfo repoInfo) {
-        // File targetDirectory = new File(repoInfo.getLocation());
-        // Preconditions.checkArgument(!isGeogigDirectory(targetDirectory));
-
         URI repoURI = repoInfo.getLocation();
         RepositoryResolver resolver = RepositoryResolver.lookup(repoURI);
         if (!resolver.repoExists(repoURI)) {
@@ -360,20 +358,18 @@ public class RepositoryManager implements GeoServerInitializer {
             storeInfo.accept(deleteVisitor);
         }
         try {
-            this.store.delete(repoId);
+            this.configStore.delete(repoId);
         } finally {
             this.repoCache.invalidate(repoId);
         }
     }
 
     RepositoryInfo findOrCreateByLocation(final URI repositoryURI) {
-        List<RepositoryInfo> repos = getAll();
-        for (RepositoryInfo info : repos) {
-            if (Objects.equal(info.getLocation(), repositoryURI)) {
-                return info;
-            }
+        RepositoryInfo info = configStore.getByLocation(repositoryURI);
+        if (info != null) {
+            return info;
         }
-        RepositoryInfo info = new RepositoryInfo();
+        info = new RepositoryInfo();
         info.setLocation(repositoryURI);
         return save(info);
     }
@@ -427,6 +423,47 @@ public class RepositoryManager implements GeoServerInitializer {
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to connect: " + e.getMessage(), e);
+        }
+    }
+
+    public boolean isGeogigLayer(LayerInfo layer) {
+        ResourceInfo resource = layer.getResource();
+        if (resource == null) {
+            return false;
+        }
+        StoreInfo store = resource.getStore();
+        if (store == null) {
+            return false;
+        }
+        return isGeogigStore(store);
+    }
+
+    public boolean isGeogigStore(CatalogInfo store) {
+        if (!(store instanceof DataStoreInfo)) {
+            return false;
+        }
+        final String storeType = ((DataStoreInfo) store).getType();
+        boolean isGeogigStore = GeoGigDataStoreFactory.DISPLAY_NAME.equals(storeType);
+        return isGeogigStore;
+    }
+
+    public Repository findRepository(LayerInfo geogigLayer) {
+        Preconditions.checkArgument(isGeogigLayer(geogigLayer));
+
+        Map<String, Serializable> params = geogigLayer.getResource().getStore()
+                .getConnectionParameters();
+        String repoUriStr = String.valueOf(params.get(GeoGigDataStoreFactory.REPOSITORY.key));
+        URI repoURI = URI.create(repoUriStr);
+        RepositoryResolver resolver = RepositoryResolver.lookup(repoURI);
+        String repoName = resolver.getName(repoURI);
+        RepositoryInfo repoInfo = getByRepoName(repoName);
+        String repoId = repoInfo.getId();
+        try {
+            Repository repository = getRepository(repoId);
+            Preconditions.checkState(repository != null);
+            return repository;
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
         }
     }
 }
