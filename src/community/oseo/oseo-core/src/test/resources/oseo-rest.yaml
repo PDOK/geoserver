@@ -47,12 +47,12 @@ paths:
       description: |
                    Creates a new collection via its search attributes and ogc links. 
                    The zip format accepts a set of files creating the collection in a single shot, and will contain the following files: 
-                   * collection.json: the list of searchable attributes and eventual OGC links
+                   * collection.json: the list of searchable attributes, the format is the same as the one returned by a GET on a collection, the "*HRef" properties should be omitted. 
                    * description.html: the HTML description for the product
                    * metadata.xml: the ISO metadata for the collection
                    * thumbnail.png: the collection thumbnail (ignored at the time of writing)
-                   The JSON format is the same as the one returned by a GET on a collection, the "*HRef" properties should be omitted.
-                   A creation with ZIP is recommend.
+                   * owsLinks.json: the list of OWS links, in the same JSON format as the associated resource
+                   A creation with ZIP is recommend for speed and consistency sake.
       parameters:
         - name: ogc_publish
           in: query
@@ -292,7 +292,7 @@ paths:
           examples:
             application/json: |
               {
-                links: [
+                "links": [
                    {
                      "offering": "http://www.opengis.net/spec/owc/1.0/req/atom/wms",
                      "method": "GET",
@@ -414,7 +414,9 @@ paths:
        * product.json: the list of searchable attributes and eventual OGC links
        * description.html: the HTML description for the product
        * metadata.xml: the O&M metadata for the collection
-       * thumbnail.png: the product thumbnail (ignored at the time of writing)
+       * thumbnail.png: the product thumbnail (can also have jpeg or jpg extension)
+       * owsLinks.json: the list of OWS links, in the same JSON format as the associated resource 
+       * granules.json: the list of granules, in the same JSON format as the associated resource
        The JSON format is the same as the one returned by a GET on an existing product, the "*Href" properties should be omitted 
       consumes:
         - application/json
@@ -463,49 +465,48 @@ paths:
                     "coordinates":[[[-180,-90],[180,-90],[180,90],[-180,90],[-180, -90]]]
                 },
                 "properties": {
-                  "eo:Identifier" : "S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04",
-                  "footprint" : 
+                  "eop:identifier" : "S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04",
                   "timeStart" : "2016-09-29T18:59:02Z",
                   "timeEnd" : "2016-09-29T18:59:02Z",
                   "originalPackageLocation" : "/var/data/sentinel2/2017/04/23/S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04.zip",
                   "thumbnailURL" : null,
                   "quicklookURL" : null,
-                  "eo:ParentIdentifier" : "SENTINEL2",
-                  "eo:ProductionStatus" : null,
-                  "eo:AcquisitionType" : "NOMINAL",
-                  "eo:OrbitNumber" : 65,
-                  "eo:OrbitDirection" : "DESCENDING",
-                  "eo:Track" : null,
-                  "eo:Frame" : null,
-                  "eo:SwathIdentifier" : null,
-                  "opt:CloudCover" : 0,
-                  "opt:SnowCover" : null,
-                  "eo:ProductQualityStatus" : null,
-                  "eo:ProductQualityDegradationStatus" : null,
-                  "eo:ProcessorName" : null,
-                  "eo:ProcessingCenter" : null,
-                  "eo:CreationDate" : "2016-09-29T18:59:02Z",
-                  "eo:ModificationDate" : null,
-                  "eo:ProcessingDate" : null,
-                  "eo:SensorMode" : null,
-                  "eo:ArchivingCenter" : "DPA"
-                  "eo:ProcessingMode" : "DATA_DRIVEN",
-                  "eo:AvailabilityTime" : null,
-                  "eo:AcquisitionStation" : null,
-                  "eo:AcquisitionSubtype" : null,
-                  "eo:StartTimeFromAscendingNode" : null,
-                  "eo:CompletionTimeFromAscendingNode" : null,
-                  "eo:IlluminationAzimuthAngle" : null,
-                  "eo:IlluminationZenithAngle" : null,
-                  "eo:IlluminationElevationAngle" : null,
-                  "sar:PolarisationMode" : null,
-                  "sar:PolarisationChannels" : null,
-                  "sar:AntennaLookDirection" : null,
-                  "sar:MinimumIncidenceAngle" : null,
-                  "sar:MaximumIncidenceAngle" : null,
-                  "sar:DopplerFrequency" : null,
-                  "sar:IncidenceAngleVariation" : null,
-                  "eoResolution" : null,
+                  "eop:parentIdentifier" : "SENTINEL2",
+                  "eop:productionStatus" : null,
+                  "eop:acquisitionType" : "NOMINAL",
+                  "eop:orbitNumber" : 65,
+                  "eop:orbitDirection" : "DESCENDING",
+                  "eop:track" : null,
+                  "eop:frame" : null,
+                  "eop:spwathIdentifier" : null,
+                  "opt:cloudCover" : 0,
+                  "opt:snowCover" : null,
+                  "eop:productQualityStatus" : null,
+                  "eop:productQualityDegradationStatus" : null,
+                  "eo:processorName" : null,
+                  "eop:processingCenter" : null,
+                  "eop:creationDate" : "2016-09-29T18:59:02Z",
+                  "eop:modificationDate" : null,
+                  "eop:processingDate" : null,
+                  "eop:sensorMode" : null,
+                  "eop:archivingCenter" : "DPA"
+                  "eop:processingMode" : "DATA_DRIVEN",
+                  "eop:availabilityTime" : null,
+                  "eop:acquisitionStation" : null,
+                  "eop:acquisitionSubtype" : null,
+                  "eop:startTimeFromAscendingNode" : null,
+                  "eop:completionTimeFromAscendingNode" : null,
+                  "eop:illuminationAzimuthAngle" : null,
+                  "eop:illuminationZenithAngle" : null,
+                  "eop:illuminationElevationAngle" : null,
+                  "sar:polarisationMode" : null,
+                  "sar:polarisationChannels" : null,
+                  "sar:antennaLookDirection" : null,
+                  "sar:minimumIncidenceAngle" : null,
+                  "sar:maximumIncidenceAngle" : null,
+                  "sar:dopplerFrequency" : null,
+                  "sar:incidenceAngleVariation" : null,
+                  "eop:resolution" : null,
                   "ogcLinksHref": "http://host:port/geoserver/rest/oseo/collection/SENTINEL2/products/S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04/ogcLinks",
                   "metadataHref": "http://host:port/geoserver/rest/oseo/collection/SENTINEL2/prodcuts/S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04metadata",
                   "descriptionHref": "http://host:port/geoserver/rest/oseo/collection/SENTINEL2/products/S2A_OPER_MSI_L1C_TL_SGS__20160929T154211_A006640_T32TPP_N02.04/description",
@@ -766,19 +767,26 @@ paths:
         - text/json
       responses:
         200:
-          description: Success
+          description: Success, returns the granules for the given product as a GeoJSON collection
           examples:
             application/json: |
-              [
-               {
-                 "location": "/path/to/the/source/file1.jp2",
-                 "footprint": {"type":"Polygon","coordinates":[[[-180,-90],[180,-90],[180,90],[-180,90],[-180, -90]]]}
-               },
-               {
-                 "location": "/path/to/the/source/file2.jp2",
-                 "footprint": {"type":"Polygon","coordinates":[[[-180,-90],[180,-90],[180,90],[-180,90],[-180, -90]]]}
-               }
-              ]
+              {
+                "type": "FeatureCollection",
+                "features": [
+                  {
+                    "type": "Feature",
+                    "geometry": {
+                      "type": "Polygon",
+                       "coordinate":[[[11.4772,40.5362],[11.5145,41.5243],[10.199,41.5456],[10.1811,40.5567],[11.4772,40.5362]]]
+                    },
+                    "properties": {
+                      "gid": 19,
+                      "location": "/efs/geoserver_data/coverages/sentinel/california/S2A_OPER_MSI_L1C_TL_SGS__20160117T141030_A002979_T32TPL_N02.01.tif"
+                    },
+                    "id": "GRANULE.19"
+                  }
+                ]
+              }
         404:
           description: The specified collection or product cannot be found
     put:

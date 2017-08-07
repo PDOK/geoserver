@@ -4,17 +4,26 @@
  */
 package org.geoserver.opensearch.rest;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
+
+import org.apache.commons.io.IOUtils;
 import org.geoserver.opensearch.eo.OSEOTestSupport;
 import org.geoserver.security.impl.GeoServerRole;
+import org.geotools.factory.CommonFactoryFinder;
 import org.junit.Before;
+import org.opengis.filter.FilterFactory2;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 
 public class OSEORestTestSupport extends OSEOTestSupport {
+    
+    protected static final FilterFactory2 FF = CommonFactoryFinder.getFilterFactory2();
 
     @Before
     public void loginAdmin() {
@@ -28,8 +37,13 @@ public class OSEORestTestSupport extends OSEOTestSupport {
         }
 
         assertEquals(expectedHttpCode, response.getStatus());
-        assertEquals("application/json", response.getContentType());
+        assertThat(response.getContentType(), startsWith("application/json"));
         return JsonPath.parse(response.getContentAsString());
     }
+    
+    protected byte[] getTestData(String location) throws IOException {
+        return IOUtils.toByteArray(getClass().getResourceAsStream(location));
+    }
+
 
 }
