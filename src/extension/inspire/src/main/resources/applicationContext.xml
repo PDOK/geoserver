@@ -16,9 +16,11 @@
   <bean id="inspireWcsExtendedCapsProvider" class="org.geoserver.inspire.wcs.WCSExtendedCapabilitiesProvider">
   </bean>
 
+  <!-- PDOK DOESNT USE WMTS IN GS 
   <bean id="inspireWmtsExtendedCapsProvider" class="org.geoserver.inspire.wmts.WMTSExtendedCapabilitiesProvider">
     <constructor-arg ref="geoServer"/>
-  </bean>
+  </bean> 
+  -->
   
   <bean id="inspireWmsAdminPanel" class="org.geoserver.web.services.AdminPagePanelInfo">
       <description>This bean adds the necessary form fields to Geoserver admin interface</description>
@@ -41,6 +43,7 @@
     <property name="componentClass" value="org.geoserver.inspire.web.InspireAdminPanel"/>
     <property name="serviceClass" value="org.geoserver.wcs.WCSInfo"/>
   </bean>
+  <!-- PDOK DOESNT USE WMTS IN GS 
   <bean id="inspireWmtsAdminPanel" class="org.geoserver.web.services.AdminPagePanelInfo">
     <description>This bean adds the necessary form fields to Geoserver admin interface</description>
     <property name="id" value="inspireWmtsAdminPanel"/>
@@ -51,4 +54,5 @@
 
   <bean id="inspireGridSetLoader" class="org.geoserver.inspire.wmts.InspireGridSetLoader">
   </bean>
+  -->
 </beans>
