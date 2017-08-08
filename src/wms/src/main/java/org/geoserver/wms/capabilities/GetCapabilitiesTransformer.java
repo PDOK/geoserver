@@ -806,20 +806,10 @@ public class GetCapabilitiesTransformer extends TransformerBase {
         }
 
         private boolean isExposable(LayerInfo layer) {
-            boolean wmsExposable = false;
-            if (layer.getType() == PublishedType.RASTER || layer.getType() == PublishedType.WMS) {
-                wmsExposable = true;
-            } else {
-                try {
-                    wmsExposable = layer.getType() == PublishedType.VECTOR
-                            && ((FeatureTypeInfo) layer.getResource()).getFeatureType()
-                                    .getGeometryDescriptor() != null;
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "An error occurred trying to determine if"
-                            + " the layer is geometryless", e);
-                }
+            if(!layer.isEnabled()) {
+                return false;
             }
-            return wmsExposable;   
+            return WMS.isWmsExposable(layer);   
         }
         
         /**
@@ -1087,7 +1077,10 @@ public class GetCapabilitiesTransformer extends TransformerBase {
                element("Abstract", "Layer-Group type layer: " + layerName);
            } else {
                element("Abstract", layerGroup.getAbstract());
-           }                
+           }
+           
+           // handle keywords
+           handleKeywordList(layerGroup.getKeywords());
 
            final ReferencedEnvelope layerGroupBounds = layerGroup.getBounds();
            final ReferencedEnvelope latLonBounds = layerGroupBounds.transform(
@@ -1138,7 +1131,10 @@ public class GetCapabilitiesTransformer extends TransformerBase {
            handleMetadataList(metadataLinks);
 
            // handle children layers and groups
-           if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
+           if(LayerGroupInfo.Mode.OPAQUE_CONTAINER.equals(layerGroup.getMode())) {
+               // just hide the layers in the group
+               layersAlreadyProcessed.addAll(layerGroup.layers());
+           } else if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
                for (PublishedInfo child : layerGroup.getLayers()) {
                    if (child instanceof LayerInfo) {
                        LayerInfo layer = (LayerInfo) child;
@@ -1157,6 +1153,7 @@ public class GetCapabilitiesTransformer extends TransformerBase {
            // the default ones for each layer
 
            handleScaleHint(layerGroup);
+
            end("Layer");
        }
        

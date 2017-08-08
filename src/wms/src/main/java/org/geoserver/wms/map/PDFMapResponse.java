@@ -74,7 +74,7 @@ public class PDFMapResponse extends AbstractMapResponse {
     /**
      * Whether to apply the new vector hatch fill optimization, or not (on by default, this is just a safeguard)
      */
-    static boolean ENCODE_TILING_PATTERNS = Boolean.parseBoolean(System.getProperty("org.geoserver.pdf.encodeTilingPatterns", "false"));
+    static boolean ENCODE_TILING_PATTERNS = Boolean.parseBoolean(System.getProperty("org.geoserver.pdf.encodeTilingPatterns", "true"));
 
     /**
      * A kilobyte

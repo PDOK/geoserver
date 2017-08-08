@@ -23,9 +23,6 @@ public class JMSSettingsModifyEvent extends JMSModifyEvent<SettingsInfo> {
 
     private static final long serialVersionUID = 1L;
 
-    // identifies the type of event (added, removed or settings modified)
-    private final JMSEventType eventType;
-
     public JMSSettingsModifyEvent(SettingsInfo source, List<String> propertyNames,
                                   List<Object> oldValues, List<Object> newValues) {
         this(source, propertyNames, oldValues, newValues, JMSEventType.MODIFIED);
@@ -37,11 +34,6 @@ public class JMSSettingsModifyEvent extends JMSModifyEvent<SettingsInfo> {
 
     public JMSSettingsModifyEvent(SettingsInfo source, List<String> propertyNames,
                                   List<Object> oldValues, List<Object> newValues, JMSEventType eventType) {
-        super(source, propertyNames, oldValues, newValues);
-        this.eventType = eventType;
-    }
-
-    public JMSEventType getEventType() {
-        return eventType;
+        super(source, propertyNames, oldValues, newValues, eventType);
     }
 }

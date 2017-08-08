@@ -11,7 +11,7 @@
  <parent>
   <groupId>org.geoserver</groupId>
   <artifactId>community</artifactId>
-  <version>2.10.4</version>
+  <version>2.11.2</version>
  </parent>
  <groupId>org.geoserver.community</groupId>
  <artifactId>gs-release</artifactId>
@@ -170,11 +170,6 @@
    </dependency>
    <dependency>
      <groupId>org.geoserver.community</groupId>
-     <artifactId>gs-vectortiles</artifactId>
-     <version>${project.version}</version>
-   </dependency>
-   <dependency>
-     <groupId>org.geoserver.community</groupId>
      <artifactId>gs-params-extractor</artifactId>
      <version>${project.version}</version>
    </dependency> 
@@ -230,7 +225,7 @@
    </dependency>
    <dependency>
      <groupId>org.geoserver.community</groupId>
-	 <artifactId>gs-sec-oauth2-google</artifactId>
+     <artifactId>gs-sec-oauth2-google</artifactId>
      <version>${project.version}</version>
    </dependency>
    <dependency>
@@ -241,6 +236,11 @@
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-sec-oauth2-geonode</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-onelogin</artifactId>
      <version>${project.version}</version>
    </dependency>
    <dependency>
@@ -256,6 +256,26 @@
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-notification-geonode</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-ows-simulate</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-jdbc-metrics</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-oseo-core</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-web-oseo</artifactId>
      <version>${project.version}</version>
    </dependency>
  </dependencies>

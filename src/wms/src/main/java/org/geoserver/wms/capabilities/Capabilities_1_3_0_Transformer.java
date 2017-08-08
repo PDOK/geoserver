@@ -948,19 +948,7 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                 return false;
             }
 
-            boolean wmsExposable = false;
-            if (layer.getType() == PublishedType.RASTER || layer.getType() == PublishedType.WMS) {
-                wmsExposable = true;
-            } else {
-                try {
-                    wmsExposable = layer.getType() == PublishedType.VECTOR
-                            && ((FeatureTypeInfo) layer.getResource()).getFeatureType()
-                                    .getGeometryDescriptor() != null;
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "An error occurred trying to determine if"
-                            + " the layer is geometryless", e);
-                }
-            }
+            boolean wmsExposable = WMS.isWmsExposable(layer); 
             return wmsExposable;
         }
 
@@ -1211,6 +1199,9 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
             } else {
                 element("Abstract", layerGroup.getAbstract());
             }
+
+            // handle keywords
+            handleKeywordList(layerGroup.getKeywords());
             
             final ReferencedEnvelope layerGroupBounds = layerGroup.getBounds();
             final ReferencedEnvelope latLonBounds = layerGroupBounds.transform(
@@ -1266,7 +1257,10 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
             handleScaleDenominator(layerGroup);
             
             // handle children layers and groups
-            if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
+            if(LayerGroupInfo.Mode.OPAQUE_CONTAINER.equals(layerGroup.getMode())) {
+                // just hide the layers in the group
+                layersAlreadyProcessed.addAll(layerGroup.layers());
+            } else if (!LayerGroupInfo.Mode.SINGLE.equals(layerGroup.getMode())) {
                 for (PublishedInfo child : layerGroup.getLayers()) {
                     if (child instanceof LayerInfo) {
                         LayerInfo layer = (LayerInfo) child;

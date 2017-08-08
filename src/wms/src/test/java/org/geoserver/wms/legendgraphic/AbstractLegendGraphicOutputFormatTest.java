@@ -11,13 +11,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.awt.image.IndexColorModel;
 import java.awt.image.RenderedImage;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,24 +20,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.logging.Logger;
 
-import javax.imageio.ImageIO;
 import javax.media.jai.PlanarImage;
-import javax.xml.namespace.QName;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.catalog.StyleInfo;
 import org.geoserver.data.test.MockData;
-import org.geoserver.data.test.SystemTestData;
-import org.geoserver.wms.GetLegendGraphic;
 import org.geoserver.wms.GetLegendGraphicRequest;
 import org.geoserver.wms.GetLegendGraphicRequest.LegendRequest;
-import org.geoserver.wms.WMSTestSupport;
-import org.geoserver.wms.legendgraphic.Cell.ColorMapEntryLegendBuilder;
-import org.geoserver.wms.legendgraphic.Cell.SingleColorMapEntryLegendBuilder;
-import org.geoserver.wms.map.ImageUtils;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.factory.CommonFactoryFinder;
@@ -63,9 +50,6 @@ import org.geotools.styling.Rule;
 import org.geotools.styling.SLDParser;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleFactory;
-import org.geotools.util.logging.Logging;
-import org.junit.After;
-import org.junit.Before;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.type.AttributeType;
 import org.opengis.feature.type.FeatureType;
@@ -365,6 +349,8 @@ public class AbstractLegendGraphicOutputFormatTest extends BaseLegendTest{
 
     }
     
+    
+    
     /**
      * Tests that the legend graphic is produced for multiple layers
      * with vector and coverage layers.
@@ -426,6 +412,8 @@ public class AbstractLegendGraphicOutputFormatTest extends BaseLegendTest{
 
     }
     
+
+    
     /**
      * Tests that the legend graphic is produced for multiple layers
      * with vector and coverage layers, when coverage is not visible
@@ -485,6 +473,45 @@ public class AbstractLegendGraphicOutputFormatTest extends BaseLegendTest{
 	            ImageUtilities.disposePlanarImageChain((PlanarImage) ri);
 	        }
 	    }
+    }
+    
+    /**
+     * Tests that the legend graphic is produced for multiple layers, one of which cannot be seen at the current scale
+     */
+    @org.junit.Test
+    public void testMultipleLayersWithVectorAndInvisibleVector() throws Exception {
+        GetLegendGraphicRequest req = new GetLegendGraphicRequest();
+        req.setScale(1000);
+        int titleHeight = getTitleHeight(req);
+
+        FeatureTypeInfo ftInfo = getCatalog().getFeatureTypeByName(
+                MockData.ROAD_SEGMENTS.getNamespaceURI(), MockData.ROAD_SEGMENTS.getLocalPart());
+        List<FeatureType> layers = new ArrayList<FeatureType>();
+        layers.add(ftInfo.getFeatureType());
+        layers.add(ftInfo.getFeatureType());
+        req.setLayers(layers);
+
+        List<Style> styles = new ArrayList<Style>();
+        final StyleInfo roadStyle = getCatalog().getStyleByName(MockData.ROAD_SEGMENTS.getLocalPart());
+        styles.add(roadStyle.getStyle());
+        styles.add(readSLD("InvisibleLine.sld"));
+
+        req.setStyles(styles);
+
+        this.legendProducer.buildLegendGraphic(req);
+
+        BufferedImage image = this.legendProducer.buildLegendGraphic(req);
+
+        // vector layer
+        assertPixel(image, 10, 10 + titleHeight, new Color(192, 160, 0));
+
+        assertPixel(image, 10, 30 + titleHeight, new Color(0, 0, 0));
+
+        assertPixel(image, 10, 50 + titleHeight, new Color(224, 64, 0));
+
+        // no second vector layer
+        assertTrue(image.getHeight() < 70 + titleHeight * 2);
+
     }
 
 	public void testMixedGeometry() throws Exception {
@@ -962,6 +989,102 @@ public class AbstractLegendGraphicOutputFormatTest extends BaseLegendTest{
 
             // was our external graphic icon painted?
             assertPixel(image, 10, HEIGHT_HINT + HEIGHT_HINT/2, Color.YELLOW);
+        } finally {
+            RenderedImage ri = coverage.getRenderedImage();
+            if(coverage instanceof GridCoverage2D) {
+                ((GridCoverage2D) coverage).dispose(true);
+            }
+            if(ri instanceof PlanarImage) {
+                ImageUtilities.disposePlanarImageChain((PlanarImage) ri);
+            }
+        }
+    }
+    
+    /**
+     * Tests labelMargin legend option
+     */
+    @org.junit.Test
+    public void testLabelMargin() throws Exception {              
+        GetLegendGraphicRequest req = new GetLegendGraphicRequest();
+
+        FeatureTypeInfo ftInfo = getCatalog().getFeatureTypeByName(
+                MockData.POINTS.getNamespaceURI(), MockData.POINTS.getLocalPart());
+        req.setLayer(ftInfo.getFeatureType());
+        Style externalGraphicStyle = readSLD("ExternalGraphicDemo.sld");
+        req.setStyle(externalGraphicStyle);
+
+        final int HEIGHT_HINT = 20;
+        req.setHeight(HEIGHT_HINT);
+        
+        HashMap legendOptions = new HashMap();
+        legendOptions.put("labelMargin", "10");
+        req.setLegendOptions(legendOptions);
+        
+        this.legendProducer.buildLegendGraphic(req);
+
+        BufferedImage image = this.legendProducer.buildLegendGraphic(req);
+        assertEquals(HEIGHT_HINT * 2, image.getHeight());
+        for(int x = 21; x <= 29; x++) {
+            assertPixel(image, x, HEIGHT_HINT/2, new Color(255, 255, 255));
+        }
+        
+        legendOptions.put("labelMargin", "20");
+        req.setLegendOptions(legendOptions);
+        
+        this.legendProducer.buildLegendGraphic(req);
+
+        image = this.legendProducer.buildLegendGraphic(req);
+        assertEquals(HEIGHT_HINT * 2, image.getHeight());
+        for(int x = 21; x <= 39; x++) {
+            assertPixel(image, x, HEIGHT_HINT/2, new Color(255, 255, 255));
+        }
+    }
+    
+    /**
+     * Tests labelMargin legend option
+     */
+    @org.junit.Test
+    public void testAbsoluteMargins() throws Exception {              
+        Style style = readSLD("ColorMapWithLongLabels.sld");
+        assertNotNull(style.featureTypeStyles());
+        assertEquals(1, style.featureTypeStyles().size());
+        FeatureTypeStyle fts = style.featureTypeStyles().get(0);
+        assertNotNull(fts.rules());
+        assertEquals(1, fts.rules().size());
+        Rule rule = fts.rules().get(0);
+        assertNotNull(rule.symbolizers());
+        assertEquals(1, rule.symbolizers().size());
+        assertTrue(rule.symbolizers().get(0) instanceof RasterSymbolizer);
+        RasterSymbolizer symbolizer = (RasterSymbolizer)rule.symbolizers().get(0);
+        assertNotNull(symbolizer.getColorMap());
+        assertEquals(3, symbolizer.getColorMap().getColorMapEntries().length);
+        
+        GetLegendGraphicRequest req = new GetLegendGraphicRequest();
+        CoverageInfo cInfo = getCatalog().getCoverageByName("world");
+        assertNotNull(cInfo);
+
+        GridCoverage coverage = cInfo.getGridCoverage(null, null);
+        try {
+            SimpleFeatureCollection feature;
+            feature = FeatureUtilities.wrapGridCoverage((GridCoverage2D) coverage);
+            req.setLayer(feature.getSchema());
+            req.setStyle(style);
+            HashMap legendOptions = new HashMap();
+            legendOptions.put("dx", "0.5");
+            legendOptions.put("dy", "0");
+            req.setLegendOptions(legendOptions);
+            
+            final int HEIGHT_HINT = 30;
+            req.setHeight(HEIGHT_HINT);
+            
+            // use default values for the rest of parameters
+            this.legendProducer.buildLegendGraphic(req);
+
+            BufferedImage image = this.legendProducer.buildLegendGraphic(req);
+            int absoluteWidth = image.getWidth();
+            legendOptions.put("absoluteMargins", "false");
+            image = this.legendProducer.buildLegendGraphic(req);
+            assertTrue(image.getWidth() > absoluteWidth);
         } finally {
             RenderedImage ri = coverage.getRenderedImage();
             if(coverage instanceof GridCoverage2D) {

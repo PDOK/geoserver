@@ -124,7 +124,7 @@ public class GwcServiceProxy {
         
         // get all elements of the pathInfo after the leading "/tms/1.0.0/" part.
         String pathInfo = request.getPathInfo();
-        pathInfo = pathInfo.substring(pathInfo.indexOf("tms/1.0.0"));
+        pathInfo = pathInfo.substring(pathInfo.indexOf(TMSDocumentFactory.TILEMAPSERVICE_LEADINGPATH));
         String[] params = pathInfo.split("/");
         // {"tms", "1.0.0", "img states@EPSG:4326", ... } 
         

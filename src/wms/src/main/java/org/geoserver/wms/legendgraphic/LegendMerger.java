@@ -20,9 +20,7 @@ import java.util.Map;
 import org.geoserver.wms.GetLegendGraphicRequest;
 import org.geoserver.wms.legendgraphic.LegendUtils.LegendLayout;
 import org.geoserver.wms.map.ImageUtils;
-import org.geotools.styling.Description;
 import org.geotools.styling.Rule;
-import org.opengis.util.InternationalString;
 
 /**
  * 
@@ -46,6 +44,7 @@ public class LegendMerger {
         int dx;
         int dy;
         int margin;
+        int labelMargin;
         Color backgroundColor;
         boolean transparent;
         boolean antialias;
@@ -65,6 +64,7 @@ public class LegendMerger {
          * @param dx horizontal dimension for raster icons
          * @param dy vertical dimension for raster icons
          * @param margin margin between icons
+         * @param labelMargin margin between icon and label
          * @param backgroundColor background color for the merged image
          * @param transparent using a transparent background
          * @param antialias enable antialiasing of fonts in labels
@@ -77,7 +77,7 @@ public class LegendMerger {
          * @param forceLabelsOn force labels to be always rendered
          * @param forceLabelsOff force labels to be never rendered
          */
-        public MergeOptions(List<RenderedImage> imageStack, int dx, int dy, int margin,
+        public MergeOptions(List<RenderedImage> imageStack, int dx, int dy, int margin, int labelMargin,
                 Color backgroundColor, boolean transparent, boolean antialias, LegendLayout layout,
                 int rowWidth, int rows, int columnHeight, int columns, Font labelFont, boolean forceLabelsOn, boolean forceLabelsOff) {
             super();
@@ -85,6 +85,7 @@ public class LegendMerger {
             this.dx = dx;
             this.dy = dy;
             this.margin = margin;
+            this.labelMargin = labelMargin;
             this.backgroundColor = backgroundColor;
             this.transparent = transparent;
             this.antialias = antialias;
@@ -108,9 +109,9 @@ public class LegendMerger {
          * @param forceLabelsOn force labels to be always rendered
          * @param forceLabelsOff force labels to be never rendered
          */
-        public MergeOptions (List<RenderedImage> imageStack, int dx, int dy, int margin, 
+        public MergeOptions (List<RenderedImage> imageStack, int dx, int dy, int margin, int labelMargin, 
                 GetLegendGraphicRequest req, boolean forceLabelsOn, boolean forceLabelsOff) {
-            this(imageStack, dx, dy, margin, LegendUtils.getBackgroundColor(req), 
+            this(imageStack, dx, dy, margin, labelMargin, LegendUtils.getBackgroundColor(req), 
                     req.isTransparent(), LegendUtils.isFontAntiAliasing(req), LegendUtils.getLayout(req), 
                     LegendUtils.getRowWidth(req), LegendUtils.getRows(req), LegendUtils.getColumnHeight(req), LegendUtils.getColumns(req),
                     LegendUtils.getLabelFont(req), forceLabelsOn, forceLabelsOff);
@@ -205,9 +206,15 @@ public class LegendMerger {
         public void setForceLabelsOff(boolean forceLabelsOff) {
             this.forceLabelsOff = forceLabelsOff;
         }
-        public static MergeOptions createFromRequest(List<RenderedImage> imageStack, int dx, int dy, int margin, 
+        public int getLabelMargin() {
+            return labelMargin;
+        }
+        public void setLabelMargin(int labelMargin) {
+            this.labelMargin = labelMargin;
+        }
+        public static MergeOptions createFromRequest(List<RenderedImage> imageStack, int dx, int dy, int margin, int labelMargin,
                 GetLegendGraphicRequest req, boolean forceLabelsOn, boolean forceLabelsOff) {
-            return new LegendMerger.MergeOptions(imageStack, dx, dy, margin, 
+            return new LegendMerger.MergeOptions(imageStack, dx, dy, margin, labelMargin,
                     req, forceLabelsOn, forceLabelsOff);
         }
     }
@@ -272,7 +279,7 @@ public class LegendMerger {
                     BufferedImage label = renderLabel(img, rules[i], req, mergeOptions);
                     if (label != null) {
                         img = joinBufferedImageHorizzontally(img, label, mergeOptions.getLabelFont(), mergeOptions.isAntialias(),
-                                mergeOptions.isTransparent(), mergeOptions.getBackgroundColor());
+                                mergeOptions.isTransparent(), mergeOptions.getBackgroundColor(), mergeOptions.getLabelMargin());
                     }
                     nodes.add(img);
                 } else {
@@ -677,11 +684,10 @@ public class LegendMerger {
      */
     private static BufferedImage joinBufferedImageHorizzontally(BufferedImage img,
             BufferedImage label, Font labelFont, boolean useAA, boolean transparent,
-            Color backgroundColor) {
+            Color backgroundColor, int labelXOffset) {
         // do some calculate first
-        int offset = 0;
-        int wid = img.getWidth() + label.getWidth() + offset;
-        int height = Math.max(img.getHeight(), label.getHeight()) + offset;
+        int wid = img.getWidth() + label.getWidth() + labelXOffset;
+        int height = Math.max(img.getHeight(), label.getHeight());
         // create a new buffer and draw two image into the new image
         BufferedImage newImage = ImageUtils.createImage(wid, height, (IndexColorModel) null,
                 transparent);
@@ -698,9 +704,9 @@ public class LegendMerger {
         }
         // move the images to the vertical center of the row
         int imgOffset = (int) Math.round((height - img.getHeight()) / 2d);
-        int labelOffset = (int) Math.round((height - label.getHeight()) / 2d);
+        int labelYOffset = (int) Math.round((height - label.getHeight()) / 2d);
         g2.drawImage(img, null, 0, imgOffset);
-        g2.drawImage(label, null, img.getWidth() + offset, labelOffset);
+        g2.drawImage(label, null, img.getWidth() + labelXOffset, labelYOffset);
         g2.dispose();
         return newImage;
     }
@@ -759,21 +765,7 @@ public class LegendMerger {
             GetLegendGraphicRequest req, MergeOptions options) {
         BufferedImage labelImg = null;
         if (!options.isForceLabelsOff() && rule != null) {
-            // What's the label on this rule? We prefer to use
-            // the 'title' if it's available, but fall-back to 'name'
-            final Description description = rule.getDescription();
-            
-            String label = "";
-            if (description != null && description.getTitle() != null) {
-                final InternationalString title = description.getTitle();
-                if (req.getLocale() != null) {
-                    label = title.toString(req.getLocale());
-                } else {
-                    label = title.toString();
-                }
-            } else if (rule.getName() != null) {
-                label = rule.getName();
-            }
+            String label = LegendUtils.getRuleLabel(rule, req);
             if (label != null && label.length() > 0) {
                 final BufferedImage renderedLabel = getRenderedLabel((BufferedImage) img, label,
                         req);

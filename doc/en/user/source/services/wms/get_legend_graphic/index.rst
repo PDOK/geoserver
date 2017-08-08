@@ -84,12 +84,14 @@ Here is a description of the various parameters that can be used in ``LEGEND_OPT
     - **bgColor (hex)** background color for the generated legend, values are expressed in ``0xRRGGBB`` format
     - **dpi (integer)** sets the DPI for the current request, in the same way as it is supported by GetMap. Setting a DPI larger than 91 (the default) makes all fonts, symbols and line widths grow without changing the current scale, making it possible to get a high resolution version of the legend suitable for inclusion in printouts 
     - **forceLabels** "on" means labels will always be drawn, even if only one rule is available. "off" means labels will never be drawn, even if multiple rules are available. Off by default.
+    - **labelMargin** margin (in pixels) to use between icons and labels.
     - **layout** sets icons layout to be **vertical** (default) or **horizontal**.
     - **columnheight** enables **multicolumn** layout when layout is **vertical**. Each column height is limited by the columnheight value (in pixels).
     - **rowwidth** enables **multirow** layout when layout is **horizontal**. Each row width is limited by the rowwidth value (in pixels).
     - **columns** enables **multicolumn** layout when layout is **vertical**. The value is the maximum columns number of legend. The rows used are equal to the next greater integer of <total of icons>/<number of columns>.
     - **rows** enables **multirow** layout when layout is **horizontal**. The value is the the maximum rows number of legend. The columns used are equal to the next greater integer of <total of icons>/<number of rows>.
     - **grouplayout** Orientation of groups of layer, possible values are **horizontal** and **vertical** (default if not specified).
+    - **countMatched** When set to true, adds at the end of each label the number of features matching that rule in the current map. Requires extra parameters, see details in the :ref:`dedicated section <content-dependent>`.
     
 
 Here is a sample request sporting most the options::
@@ -141,6 +143,7 @@ The producer for the raster legend will make use of this elements in order to bu
     - the height of each row is set to the maximum height of the single elements
     - the width of each row is set to the sum of the width of the various elements plus the various paddings
     - **dx,dy** the spaces between elements and rows are set to the 15% of the requested width and height. Notice that **dy** is ignored for the colormaps of type **ramp** since they must create a continuous color strip.
+    - **absoluteMargins** true/false, used to change the uom of **dx** from percentage (when false) to a fixed number of pixels (when true).
     - **mx,my** the margins from the border of the legends are set to the 1.5% of the total size of the legend
 
 Just to jump right to the conclusions (which is a bad practice I know, but no one is perfect ), here below I am adding an image of a sample legend with all the various options at work. The request that generated it is the following::
@@ -215,3 +218,61 @@ CQL Expressions and ENV
 
 If cql expressions are used in ColorMapEntry attributes (see :ref:`here <sld_reference_rastersymbolizer_colormap_cql>`) to create a dynamic color map taking values
 from ENV, the same ENV parameters used for GetMap can be given to GetLegendGraphic to get the desired legend entries.
+
+.. _content-dependent:
+
+Content dependent legends
+'''''''''''''''''''''''''
+
+GeoServer allows building content dependent legend, that is, legends whose contents depend on the currently displayed map.
+In order to support it the GetLegendGraphic call needs the following extra parameters:
+
+  * BBOX
+  * SRS or CRS (depending on the WMS version, SRS for 1.1.1 and CRS for 1.3.0)
+  * SRCWITH and SRCHEIGHT, the size of the reference map (width and height already have a different meaning in GetLegendGraphic)
+  
+Other parameters can also be added to better match the GetMap request, for example, it is recommended to mirror 
+filtering vendor parameters such as, for example, CQL_FILTER,FILTER,FEATUREID,TIME,ELEVATION.
+
+Content dependent evaluation is enabled via the following LEGEND_OPTIONS parameters:
+ 
+  *  countMatched: adds the number of features matching the particular rule at the end of the rule label (requires visible labels to work). Applicable only to vector layers.
+  
+More approaches may be added in future (e.g., making rules that are not matching any feature disappear).
+
+For example, let's assume the following layout is added to GeoServer (``legend.xml`` to be placed in ``GEOSERVER_DATA_DIR/layouts``)::
+
+  <layout>
+      <decoration type="legend" affinity="top,right" offset="0,0" size="auto"/>
+  </layout>
+
+This will make a legend appear in the GetMap response. The following preview request uses the layout to embed a legend and activates
+feature counting in it::
+
+  http://localhost:8080/geoserver/topp/wms?service=WMS&version=1.1.0&request=GetMap&layers=topp:states&styles=&bbox=-124.73142200000001,24.955967,-66.969849,49.371735&width=768&height=330&srs=EPSG:4326&format=application/openlayers&format_options=layout:legend&legend_options=countMatched:true;fontAntiAliasing:true
+  
+The result will look as follows:
+
+.. figure:: img/states-all.png
+   :align: center 
+
+   *Embedded legend, full map*
+  
+.. figure:: img/states-four.png
+   :align: center 
+
+   *Embedded legend, four states*
+
+.. figure:: img/states-one.png
+   :align: center 
+
+   *Embedded legend, single state*
+
+The same can be achieved using a stand-alone GetLegendGraphic request::
+
+  http://localhost:8080/geoserver/topp/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&width=20&height=20&layer=topp:states&bbox=-124.73142200000001,24.955967,-66.969849,49.371735&srcwidth=768&srcheight=330&srs=EPSG:4326&format=image/png&legend_options=countMatched:true;fontAntiAliasing:true
+  
+.. figure:: img/legend-all.png
+   :align: center 
+
+   *Direct legend request*

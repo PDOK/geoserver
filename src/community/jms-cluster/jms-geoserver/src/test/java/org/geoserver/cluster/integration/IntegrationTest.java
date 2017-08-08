@@ -198,11 +198,11 @@ public final class IntegrationTest {
         // apply catalog add changes to master
         applyAddCatalogChanges(INSTANCE_B);
         // check instance C
-        waitAndCheckEvents(INSTANCE_C, 24);
+        waitAndCheckEvents(INSTANCE_C, 25);
         List<InfoDiff> differences = differences(INSTANCE_B, INSTANCE_C);
         assertThat(differences.size(), is(0));
         // check instance D
-        waitAndCheckEvents(INSTANCE_D, 24);
+        waitAndCheckEvents(INSTANCE_D, 25);
         differences = differences(INSTANCE_B, INSTANCE_D);
         assertThat(differences.size(), is(0));
         // check instance A
@@ -212,11 +212,11 @@ public final class IntegrationTest {
         // apply modify changes to the catalog
         applyModifyCatalogChanges(INSTANCE_B);
         // check instance C
-        waitAndCheckEvents(INSTANCE_C, 18);
+        waitAndCheckEvents(INSTANCE_C, 20);
         differences = differences(INSTANCE_B, INSTANCE_C);
         assertThat(differences.size(), is(0));
         // check instance D
-        waitAndCheckEvents(INSTANCE_D, 18);
+        waitAndCheckEvents(INSTANCE_D, 20);
         differences = differences(INSTANCE_B, INSTANCE_D);
         assertThat(differences.size(), is(0));
         // check instance A
@@ -226,11 +226,11 @@ public final class IntegrationTest {
         // apply catalog delete events
         applyDeleteCatalogChanges(INSTANCE_B);
         // check instance C
-        waitAndCheckEvents(INSTANCE_C, 25);
+        waitAndCheckEvents(INSTANCE_C, 28);
         differences = differences(INSTANCE_B, INSTANCE_C);
         assertThat(differences.size(), is(0));
         // check instance D
-        waitAndCheckEvents(INSTANCE_D, 25);
+        waitAndCheckEvents(INSTANCE_D, 28);
         differences = differences(INSTANCE_B, INSTANCE_D);
         assertThat(differences.size(), is(0));
         // check instance A
@@ -483,6 +483,10 @@ public final class IntegrationTest {
         CoverageInfo coverage = catalog.getCoverageByName("coverage-Name");
         coverage.setAbstract("coverage-Abstract-modified");
         catalog.save(coverage);
+        // change style info
+        StyleInfo style = catalog.getStyleByName("style-Name");
+        style.setName("style-Name-modified");
+        catalog.save(style);
         // change layer info
         LayerInfo layer = catalog.getLayerByName("featureType-Name");
         layer.setAbstract("layer-Abstract-modified");
@@ -515,7 +519,7 @@ public final class IntegrationTest {
         FeatureTypeInfo featureType = catalog.getFeatureTypeByName("featureType-Name");
         catalog.remove(featureType);
         // delete style info
-        StyleInfo style = catalog.getStyleByName("style-Name");
+        StyleInfo style = catalog.getStyleByName("style-Name-modified");
         catalog.remove(style);
         // delete coverage
         CoverageInfo coverage = catalog.getCoverageByName("coverage-Name");

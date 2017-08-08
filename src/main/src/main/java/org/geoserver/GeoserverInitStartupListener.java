@@ -75,7 +75,7 @@ public class GeoserverInitStartupListener implements ServletContextListener {
 
     private final static String COMPARISON_TOLERANCE_PROPERTY = "COMPARISON_TOLERANCE";
 
-    private final static double DEFAULT_COMPARISON_TOLERANCE = 1e-9;
+    private final static double DEFAULT_COMPARISON_TOLERANCE = 1e-8;
 
     public void contextInitialized(ServletContextEvent sce) {
         // start up tctool - remove it before committing!!!!
@@ -119,8 +119,9 @@ public class GeoserverInitStartupListener implements ServletContextListener {
                         
         // setup concurrent operation registry
         JAI jaiDef = JAI.getDefaultInstance();
-        if(!(jaiDef.getOperationRegistry() instanceof ConcurrentOperationRegistry)) {
-            jaiDef.setOperationRegistry(ConcurrentOperationRegistry.initializeRegistry());
+        if(!(jaiDef.getOperationRegistry() instanceof ConcurrentOperationRegistry || 
+             jaiDef.getOperationRegistry() instanceof it.geosolutions.jaiext.ConcurrentOperationRegistry)) {
+             jaiDef.setOperationRegistry(ConcurrentOperationRegistry.initializeRegistry());
         }
         
         // setup the concurrent tile cache (has proper memory limit handling also for small tiles)

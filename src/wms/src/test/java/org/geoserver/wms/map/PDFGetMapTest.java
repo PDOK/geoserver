@@ -36,7 +36,6 @@ import org.geoserver.data.test.MockData;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.wms.WMSTestSupport;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -51,11 +50,6 @@ public class PDFGetMapTest extends WMSTestSupport {
             + "&width=300&height=300&srs=EPSG:4326";
     
     static boolean tilingPatterDefault = PDFMapResponse.ENCODE_TILING_PATTERNS;
-    
-    @Before
-    public void enableTilingPatternEncoding() {
-        PDFMapResponse.ENCODE_TILING_PATTERNS = true;
-    }
 
     @After
     public void setupTilingPatternEncoding() {

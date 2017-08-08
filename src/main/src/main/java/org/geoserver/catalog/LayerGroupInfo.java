@@ -25,7 +25,7 @@ public interface LayerGroupInfo extends PublishedInfo {
      */
     public enum Mode {
         /**
-         * The layer group is seen as a single exposed layer with a name.
+         * The layer group is seen as a single exposed layer with a name, does not actually contain the layers it's referencing
          */
         SINGLE {
             public String getName() {
@@ -34,6 +34,21 @@ public interface LayerGroupInfo extends PublishedInfo {
             
             public Integer getCode() {
                 return 0;
+            }
+        },
+        /**
+         * The layer group is seen as a single exposed layer with a name, but contains the layers it's referencing, 
+         * thus hiding them from the caps document unless also shown in other tree mode layers 
+         */
+        OPAQUE_CONTAINER {
+            public String getName() {
+                return "Opaque Container";
+            }
+            
+            public Integer getCode() {
+            	// added last, but a cross in between SINGLE and NAMED semantically,
+            	// so added in this position
+                return 4;
             }
         },
         /**
@@ -73,6 +88,7 @@ public interface LayerGroupInfo extends PublishedInfo {
                 return 3;
             }
         };
+        
 
         public abstract String getName();
         public abstract Integer getCode();
@@ -180,6 +196,16 @@ public interface LayerGroupInfo extends PublishedInfo {
      * @see MetadataLinkInfo
      */
     List<MetadataLinkInfo> getMetadataLinks();
+
+    /**
+     * Return the keywords associated with this layer group. If no keywords are available
+     * an empty list should be returned.
+     *
+     * @return a non NULL list containing the keywords associated with this layer group
+     */
+    default List<KeywordInfo> getKeywords() {
+        return new ArrayList<>();
+    }
 
     /**
      * A way to compare two LayerGroupInfo instances that works around all the wrappers we have

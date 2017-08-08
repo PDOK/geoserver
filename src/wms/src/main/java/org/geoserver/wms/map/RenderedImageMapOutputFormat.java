@@ -7,6 +7,7 @@ package org.geoserver.wms.map;
 
 import it.geosolutions.jaiext.lookup.LookupTable;
 import it.geosolutions.jaiext.lookup.LookupTableFactory;
+import it.geosolutions.jaiext.range.Range;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -44,6 +45,7 @@ import javax.media.jai.ROIShape;
 import javax.media.jai.operator.ConstantDescriptor;
 import javax.media.jai.operator.MosaicDescriptor;
 
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.platform.resource.Resource;
@@ -497,21 +499,31 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                 }
             }
         }
-        
-        if(request.getInterpolations() != null && !request.getInterpolations().isEmpty()) {
-            int count = 0;
-            List<Interpolation> interpolations = request.getInterpolations();
-            for(Layer layer : mapContent.layers()) {
-                if(count < interpolations.size()) {
-                    Interpolation interpolation = interpolations.get(count);
-                    if(interpolation != null) {
-                        layer.getUserData().put(StreamingRenderer.BYLAYER_INTERPOLATION, interpolation);
-                    }
+
+        for (int i = 0; i < request.getLayers().size(); i++) {
+
+            Interpolation interpolationToSet = null;
+            // check interpolations vendor parameter first
+            if (request.getInterpolations() != null && request.getInterpolations().size() > i) {
+                interpolationToSet = request.getInterpolations().get(i);
+            }
+            // if vendor param not set, check by layer interpolation configuration
+            if (interpolationToSet == null) {
+                LayerInfo layerInfo = request.getLayers().get(i).getLayerInfo();
+
+                LayerInfo.WMSInterpolation byLayerInterpolation = getConfiguredLayerInterpolation(layerInfo);
+                if (byLayerInterpolation != null) {
+                    interpolationToSet = toInterpolationObject(byLayerInterpolation);
                 }
-                count++;
+            }
+
+            if (interpolationToSet != null) {
+                Layer layer = mapContent.layers().get(i);
+                layer.getUserData().put(StreamingRenderer.BYLAYER_INTERPOLATION,
+                        interpolationToSet);
             }
         }
-        
+
         renderer.setRendererHints(rendererParams);
 
         // if abort already requested bail out
@@ -903,29 +915,38 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
         } else {
             bgColor = new Color(bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), 255);
         }
-  
+
         //
         // Grab the interpolation
         //
         final Interpolation interpolation;
-        if(layerInterpolation != null) {
+        if (layerInterpolation != null) {
             interpolation = layerInterpolation;
         } else {
-            if (wms != null) {
-                if (WMSInterpolation.Nearest.equals(wms.getInterpolation())) {
-                    interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
-                } else if (WMSInterpolation.Bilinear.equals(wms.getInterpolation())) {
-                    interpolation = Interpolation.getInstance(Interpolation.INTERP_BILINEAR);
-                } else if (WMSInterpolation.Bicubic.equals(wms.getInterpolation())) {
-                    interpolation = Interpolation.getInstance(Interpolation.INTERP_BICUBIC);
-                } else {
-                    interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
-                }
+            LayerInfo.WMSInterpolation byLayerInterpolation = null;
+            if (mapContent.getRequest().getLayers().size() > layerIndex)
+            {
+                LayerInfo layerInfo = mapContent.getRequest().getLayers().get(layerIndex)
+                        .getLayerInfo();
+                byLayerInterpolation = getConfiguredLayerInterpolation(layerInfo);
+            }
+
+            WMSInfo.WMSInterpolation byServiceInterpolation = null;
+            if (byLayerInterpolation == null && wms != null) {
+                // if interpolation method is not configured for this layer, use service default
+                byServiceInterpolation = wms.getInterpolation();
+            }
+
+            if (byLayerInterpolation != null) {
+                interpolation = toInterpolationObject(byLayerInterpolation);
+            } else if (byServiceInterpolation != null) {
+                interpolation = toInterpolationObject(byServiceInterpolation);
             } else {
+                // default to Nearest Neighbor
                 interpolation = Interpolation.getInstance(Interpolation.INTERP_NEAREST);
             }
         }
-      
+
         // 
         // Tiling
         //
@@ -1200,6 +1221,7 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
         //
         
         // in case of component color model
+        boolean noDataTransparencyOnGrayByte = false;
         if (cm instanceof ComponentColorModel) {
 
             // convert to RGB if necessary
@@ -1226,10 +1248,17 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                     }
                 } else if(!hasAlpha) {
                     // no transparency in the original data, so no need to expand to RGB
-                    if(transparent) {
+                    if (transparent) {
                         // we need to expand the image with an alpha channel
-                        image = addAlphaChannel(image);
-                        bgValues = new double[] { mapToGrayColor(bgColor, ccm), 0 };
+                        // let's see if we can do that by directly mapping no data to transparent color
+                        RenderedImage transparentImage = grayNoDataTransparent(image);
+                        if (transparentImage == null) {
+                            image = addAlphaChannel(image);
+                            bgValues = new double[] { mapToGrayColor(bgColor, ccm), 0 };
+                        } else {
+                            image = transparentImage;
+                            noDataTransparencyOnGrayByte = true;
+                        }
                     } else {
                         bgValues = new double[] { mapToGrayColor(bgColor, ccm) };
                     }
@@ -1238,7 +1267,7 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                     final ImageWorker iw = new ImageWorker(image);
                     final RenderedImage alpha = iw.retainLastBand().getRenderedImage();
                     alphaChannels = new PlanarImage[] { PlanarImage.wrapRenderedImage(alpha) };
-                    
+
                     if (transparent) {
                         bgValues = new double[] { mapToGrayColor(bgColor, ccm), 0 };
                     } else {
@@ -1252,7 +1281,7 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                 hasAlpha = cm.hasAlpha();
             }
 
-            if(bgValues == null) {
+            if (bgValues == null && !noDataTransparencyOnGrayByte) {
                 if (hasAlpha) {
                     // get alpha
     	            final ImageWorker iw = new ImageWorker(image);
@@ -1292,7 +1321,7 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                 || transparencyType != Transparency.OPAQUE
                 || iw.getNoData() != null || roiCandidate instanceof ROI) {
             image = applyBackgroundTransparency(mapRasterArea, image, intersection, layout,
-                    bgValues, alphaChannels, transparencyType, iw, roiCandidate);
+                    bgValues, alphaChannels, transparencyType, iw, roiCandidate, noDataTransparencyOnGrayByte);
         } else {
             // Check if we need to crop a subset of the produced image, else return it right away
             if (imageBounds.contains(mapRasterArea) && !imageBounds.equals(mapRasterArea)) { // the produced image does not need a final mosaicking operation but a crop!
@@ -1308,7 +1337,7 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
     private RenderedImage applyBackgroundTransparency(final Rectangle mapRasterArea,
             RenderedImage image, Rectangle intersection, final ImageLayout layout,
             double[] bgValues, PlanarImage[] alphaChannels, final int transparencyType,
-            ImageWorker iw, Object roiCandidate) {
+            ImageWorker iw, Object roiCandidate, boolean preProcessedWithTransparency) {
         ROI roi;
         if (roiCandidate instanceof ROI) {
             ROI imageROI = (ROI) roiCandidate;
@@ -1328,11 +1357,11 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
         } else {
             roi = new ROIShape(!intersection.isEmpty() ? intersection : mapRasterArea);
         }
-        ROI[] rois = new ROI[] {roi};
+        ROI[] rois = (!preProcessedWithTransparency) ? new ROI[] {roi} : null;
 
         // build the transparency thresholds
-        double[][] thresholds = new double[][] { { ColorUtilities.getThreshold(image
-                .getSampleModel().getDataType()) } };
+        double[][] thresholds = (!preProcessedWithTransparency) ? new double[][] { { ColorUtilities.getThreshold(image
+                .getSampleModel().getDataType()) } } : null;
         // apply the mosaic
         
         iw.setRenderingHint(JAI.KEY_IMAGE_LAYOUT, layout);
@@ -1400,6 +1429,32 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
         }
     }
 
+    /**
+     * Optmized method for Gray Scale Byte images to turn noData value to transparent.
+     * @param image
+     * @return
+     */
+    private RenderedImage grayNoDataTransparent(RenderedImage image) {
+        // Using an ImageWorker
+        ImageWorker iw =  new ImageWorker(image);
+        Range noData = iw.getNoData();
+        ColorModel cm = image.getColorModel();
+        final int numColorBands = cm.getNumColorComponents();
+        if (noData != null && image.getSampleModel().getDataType() == DataBuffer.TYPE_BYTE
+                && numColorBands == 1 && cm instanceof ComponentColorModel)
+        {
+            int minValue = noData.getMin().intValue();
+            int maxValue = noData.getMax().intValue();
+            if (minValue == maxValue && minValue >= Byte.MIN_VALUE && minValue <= Byte.MAX_VALUE) {
+                // Optimization on gray images with noData value. Make that value transparent
+                Color transparentColor = new Color(minValue, minValue, minValue);
+                iw.makeColorTransparent(transparentColor);
+                return iw.getRenderedImage();
+            }
+        }
+        return null;
+    }
+
     private RenderedImage addAlphaChannel(RenderedImage image) {
         final ImageLayout tempLayout= new ImageLayout(image);
         tempLayout.unsetValid(ImageLayout.COLOR_MODEL_MASK).unsetValid(ImageLayout.SAMPLE_MODEL_MASK);                    
@@ -1408,8 +1463,10 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                 Float.valueOf(image.getHeight()),
                 new Byte[] { Byte.valueOf((byte) 255) }, 
                 new RenderingHints(JAI.KEY_IMAGE_LAYOUT,tempLayout));
+
         // Using an ImageWorker
         ImageWorker iw =  new ImageWorker(image);
+
         // Adding Alpha band
         iw.addBand(alpha, false, true, null);
         return iw.getRenderedImage();
@@ -1631,4 +1688,52 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
         }
         return readParams;
     }
+
+    private static LayerInfo.WMSInterpolation getConfiguredLayerInterpolation(LayerInfo layer) {
+
+        LayerInfo.WMSInterpolation configuredInterpolation = null;
+
+        if (layer != null && layer.getDefaultWMSInterpolationMethod() != null) {
+            try {
+                configuredInterpolation = layer.getDefaultWMSInterpolationMethod();
+            } catch (IllegalArgumentException e) {
+                // ignore
+            }
+        }
+
+        return configuredInterpolation;
+    }
+
+    private static Interpolation toInterpolationObject(LayerInfo.WMSInterpolation interpolationMethod) {
+        if (interpolationMethod == null) {
+            return null;
+        }
+
+        switch (interpolationMethod) {
+        case Bilinear:
+            return Interpolation.getInstance(Interpolation.INTERP_BILINEAR);
+        case Bicubic:
+            return Interpolation.getInstance(Interpolation.INTERP_BICUBIC);
+        case Nearest:
+        default:
+            return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
+        }
+    }
+
+    private static Interpolation toInterpolationObject(WMSInfo.WMSInterpolation interpolationMethod) {
+        if (interpolationMethod == null) {
+            return null;
+        }
+
+        switch (interpolationMethod) {
+        case Bilinear:
+            return Interpolation.getInstance(Interpolation.INTERP_BILINEAR);
+        case Bicubic:
+            return Interpolation.getInstance(Interpolation.INTERP_BICUBIC);
+        case Nearest:
+        default:
+            return Interpolation.getInstance(Interpolation.INTERP_NEAREST);
+        }
+    }
+
 }

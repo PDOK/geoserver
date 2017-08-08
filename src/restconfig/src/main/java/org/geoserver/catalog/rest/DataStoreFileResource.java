@@ -403,6 +403,7 @@ public class DataStoreFileResource extends StoreFileResource {
 
                         tx.commit();
                     } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Failed to import data, rolling back the transaction", e);
                         tx.rollback();
                     } finally {
                         tx.close();

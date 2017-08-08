@@ -11,7 +11,7 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>geoserver</artifactId>
-    <version>2.10.4</version>
+    <version>2.11.2</version>
   </parent>
 
   <groupId>org.geoserver</groupId>
@@ -313,7 +313,12 @@
         <module>netcdf-out</module>
       </modules>
     </profile>
-
+    <profile>
+      <id>vectortiles</id>
+      <modules>
+        <module>vectortiles</module>
+      </modules>
+    </profile>
     <profile>
       <id>ysld</id>
       <modules>
@@ -358,6 +363,7 @@
         <module>grib</module>
         <module>netcdf</module>
         <module>netcdf-out</module>
+        <module>vectortiles</module>
         <module>ysld</module>
       </modules>
     </profile>
@@ -399,6 +405,7 @@
         <module>grib</module>
         <module>netcdf</module>
         <module>netcdf-out</module>
+        <module>vectortiles</module>
         <module>ysld</module>
       </modules>
     </profile>

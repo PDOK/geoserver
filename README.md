@@ -15,11 +15,11 @@ GeoServer forms a core component of the Geospatial Web.
 
 ## License
 
-GeoServer licensed under the [GPL](http://docs.geoserver.org/2.10.x/en/user/introduction/license.html).
+GeoServer licensed under the [GPL](http://docs.geoserver.org/latest/en/user/introduction/license.html).
 
 ## Using
 
-Please refer to the [user guide](http://docs.geoserver.org/2.10.x/en/user/) for information
+Please refer to the [user guide](http://docs.geoserver.org/latest/en/user/) for information
 on how to install and use GeoServer.
 
 ## Building

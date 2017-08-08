@@ -5,7 +5,6 @@
 package org.geoserver.cluster.integration;
 
 import org.apache.commons.lang.SerializationUtils;
-import org.geoserver.catalog.CascadeDeleteVisitor;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.CoverageStoreInfo;
@@ -297,29 +296,28 @@ public final class IntegrationTestsUtils {
      * Remove info object from the provided GeoServer instance.
      */
     private static void remove(GeoServer geoServer, Catalog catalog, Info info) {
-        CascadeDeleteVisitor visitor = new CascadeDeleteVisitor(catalog);
         if (info instanceof WorkspaceInfo) {
-            visitor.visit((WorkspaceInfo) info);
+            catalog.remove((WorkspaceInfo) info);
         } else if (info instanceof NamespaceInfo) {
-            visitor.visit((NamespaceInfo) info);
+            catalog.remove((NamespaceInfo) info);
         } else if (info instanceof DataStoreInfo) {
-            visitor.visit((DataStoreInfo) info);
+            catalog.remove((DataStoreInfo) info);
         } else if (info instanceof CoverageStoreInfo) {
-            visitor.visit((CoverageStoreInfo) info);
+            catalog.remove((CoverageStoreInfo) info);
         } else if (info instanceof WMSStoreInfo) {
-            visitor.visit((WMSStoreInfo) info);
+            catalog.remove((WMSStoreInfo) info);
         } else if (info instanceof FeatureTypeInfo) {
-            visitor.visit((FeatureTypeInfo) info);
+            catalog.remove((FeatureTypeInfo) info);
         } else if (info instanceof CoverageInfo) {
-            visitor.visit((CoverageInfo) info);
+            catalog.remove((CoverageInfo) info);
         } else if (info instanceof LayerInfo) {
-            visitor.visit((LayerInfo) info);
+            catalog.remove((LayerInfo) info);
         } else if (info instanceof StyleInfo) {
-            visitor.visit((StyleInfo) info);
+            catalog.remove((StyleInfo) info);
         } else if (info instanceof LayerGroupInfo) {
-            visitor.visit((LayerGroupInfo) info);
+            catalog.remove((LayerGroupInfo) info);
         } else if (info instanceof WMSLayerInfo) {
-            visitor.visit((WMSLayerInfo) info);
+            catalog.remove((WMSLayerInfo) info);
         } else if (info instanceof SettingsInfo) {
             geoServer.remove((SettingsInfo) info);
         } else if (info instanceof ServiceInfo) {

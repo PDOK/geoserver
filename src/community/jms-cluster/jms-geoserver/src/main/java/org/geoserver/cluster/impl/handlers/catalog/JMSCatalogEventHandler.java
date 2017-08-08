@@ -6,7 +6,6 @@
 package org.geoserver.cluster.impl.handlers.catalog;
 
 import com.thoughtworks.xstream.XStream;
-import org.apache.commons.collections.ArrayStack;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.event.CatalogEvent;
@@ -24,7 +23,7 @@ import java.util.logging.Level;
 /**
  * Abstract class which use Xstream as message serializer/de-serializer.
  * We extend this class to implementing synchronize method.
- *
+ * 
  * @author Carlo Cancellieri - carlo.cancellieri@geo-solutions.it
  *
  */

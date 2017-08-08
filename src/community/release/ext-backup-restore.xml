@@ -40,8 +40,8 @@
          <include>com.ibm.jbatch-tck-spi*.jar</include>
          <include>javax.batch-api*.jar</include>
          <include>javax.servlet-api*.jar</include>
-         <include>javax.inject*.jar</include>      
-      </includes>
+         <include>javax.inject*.jar</include>
+      </includes>      
       <excludes>
       </excludes>
     </fileSet>

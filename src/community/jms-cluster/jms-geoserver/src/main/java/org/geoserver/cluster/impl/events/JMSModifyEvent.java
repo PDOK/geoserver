@@ -6,6 +6,7 @@
 package org.geoserver.cluster.impl.events;
 
 import org.geoserver.cluster.impl.events.configuration.JMSEventType;
+import org.geoserver.cluster.impl.events.configuration.JMSServiceModifyEvent;
 
 import java.io.Serializable;
 import java.util.List;
@@ -32,7 +33,7 @@ public class JMSModifyEvent<S extends Serializable> {
     private final JMSEventType eventType;
 
     public JMSModifyEvent(final S source, final List<String> propertyNames,
-            final List<Object> oldValues, final List<Object> newValues) {
+                          final List<Object> oldValues, final List<Object> newValues) {
         this.source = source;
         this.propertyNames = propertyNames;
         this.oldValues = oldValues;
@@ -73,6 +74,11 @@ public class JMSModifyEvent<S extends Serializable> {
     public S getSource() {
         return (S) source;
     }
+
+    /**
+	 * 
+	 */
+    private static final long serialVersionUID = 1L;
 
     public JMSEventType getEventType() {
         return eventType;
