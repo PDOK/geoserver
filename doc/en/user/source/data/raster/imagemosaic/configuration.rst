@@ -77,7 +77,7 @@ The table below describes the various elements in this configuration file.
      - Envelope for the mosaic formatted as ``LLX,LLY URX,URY`` (notice the space between the lower left and upper right coordinate pairs).
    * - CheckAuxiliaryMetadata
      - N
-     - This parameter allows to specify whether the ImageMosaic plugin should check for the presence of a GDAL aux.xml file beside each granule file. For most common use cases, you don't need to set or specify this parameter. Being disabled by Default, ImageMosaic won't look for an ancillary file for each granule being initialized in the GranuleCatalog. This avoid useless checks, especially when dealing with thousand of granules. You should set that parameter to ``true`` when you want to instruct the ImageMosaic to look for a GDAL generated aux.xml file containing PAM (Persistent Auxiliary Metadata) for each granule, to be attached to the Granule info (GranuleDescriptor). This is specially useful when you have setup a `Dynamic ColorMap rendering transformation <http://docs.geoserver.org/stable/en/user/community/colormap/index.html>`_ which dynamically set a color map based on the statistics collected into the granule's GDAL PAM being previously generated with a gdalinfo -stats parameter.
+     - This parameter allows to specify whether the ImageMosaic plugin should check for the presence of a GDAL aux.xml file beside each granule file. For most common use cases, you don't need to set or specify this parameter. Being disabled by Default, ImageMosaic won't look for an ancillary file for each granule being initialized in the GranuleCatalog. This avoid useless checks, especially when dealing with thousand of granules. You should set that parameter to ``true`` when you want to instruct the ImageMosaic to look for a GDAL generated aux.xml file containing PAM (Persistent Auxiliary Metadata) for each granule, to be attached to the Granule info (GranuleDescriptor). This is specially useful when you have setup a :ref:`Dynamic ColorMap rendering transformation <community_colormap>` which dynamically set a color map based on the statistics collected into the granule's GDAL PAM being previously generated with a gdalinfo -stats parameter.
    * - LevelsNum
      - Y
      - Represents the number of reduced resolution layers that we currently have for the granules of this mosaic.
@@ -119,6 +119,18 @@ If needed, different storage can be used for the index — like a spatial DBMS, 
    * - Parameter
      - Mandatory?
      - Description
+   * - StoreName
+     - N
+     - Can be used to refer to a GeoServer registered store, using a "workspace:storeName" syntax. When this is used,
+       the no other connection parameters need to be provided. The SPI can still be provided to inform the mosaic of
+       the resulting type of store (e.g., Oracle) in case specific behavior need to be enacted for it (e.g., in the
+       case of Oracle the attributes are all uppercase and cannot be longer than 30 chars, the mosaic will respect
+       the limits but the `SPI` parameter needs to be explicitly set to `org.geotools.data.oracle.OracleNGDataStoreFactory`
+       as the actual store type is hidden when it reaches the mosaic code). 
+       Also, as a reminder, the code is picking up a Store reference, not a layer one, meaning that security restrictions
+       that might have been applied to a layer exposing the feature type do not apply to the mosaic code (e.g., if
+       a user has restrictions such as a spatial filter on said layer, it won't transfer to the mosaic, which needs to
+       be secured separately) 
    * - SPI
      - Y
      - The DataStoreFactory used to connect to the index store:

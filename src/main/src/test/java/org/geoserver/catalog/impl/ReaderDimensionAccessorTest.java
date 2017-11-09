@@ -8,11 +8,15 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeSet;
 
 import org.geoserver.catalog.util.ReaderDimensionsAccessor;
@@ -95,4 +99,51 @@ public class ReaderDimensionAccessorTest {
         assertEquals(15, thirdEntry.getMinimum(), 0d);
         assertEquals(20, thirdEntry.getMaximum(), 0d);
     }
+
+    private static SimpleDateFormat DF = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+
+    static {
+        DF.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
+
+    @Test
+    public void testCustomTimeDimensionConvertion() throws IOException, ParseException {
+        MockDimensionReader reader = new MockDimensionReader();
+        reader.metadata.put("HAS_MYDIM_DOMAIN", "true");
+        reader.metadata.put("MYDIM_DOMAIN_DATATYPE", "java.util.Date");
+        ReaderDimensionsAccessor accessor = new ReaderDimensionsAccessor(reader);
+        List<Object> converted = accessor.convertDimensionValue("MYDIM",
+                Arrays.asList("2001-05-01T00:00:00.000Z","2001-05-02T00:00:00.000Z","2001-05-03T00:00:00.000Z"));
+        assertEquals(3, converted.size());
+        assertEquals(DF.parse("2001-05-01 00:00:00"), converted.get(0));
+        assertEquals(DF.parse("2001-05-02 00:00:00"), converted.get(1));
+        assertEquals(DF.parse("2001-05-03 00:00:00"), converted.get(2));
+    }
+
+    @Test
+    public void testCustomDepthDimensionConvertion() throws IOException, ParseException {
+        MockDimensionReader reader = new MockDimensionReader();
+        reader.metadata.put("HAS_MYDIM_DOMAIN", "true");
+        reader.metadata.put("MYDIM_DOMAIN_DATATYPE", "java.lang.Double");
+        ReaderDimensionsAccessor accessor = new ReaderDimensionsAccessor(reader);
+        List<Object> converted = accessor.convertDimensionValue("MYDIM",
+                Arrays.asList("10/20"));
+        assertEquals(1, converted.size());
+        NumberRange<Double> expected = new NumberRange<Double>(Double.class, 10d, 20d);
+        assertEquals(expected, converted.get(0));
+    }
+
+    @Test
+    public void testCustomCloudCoverDimensionConvertion() throws IOException, ParseException {
+        MockDimensionReader reader = new MockDimensionReader();
+        reader.metadata.put("HAS_MYDIM_DOMAIN", "true");
+        reader.metadata.put("MYDIM_DOMAIN_DATATYPE", "java.lang.Integer");
+        ReaderDimensionsAccessor accessor = new ReaderDimensionsAccessor(reader);
+        List<Object> converted = accessor.convertDimensionValue("MYDIM",
+                Arrays.asList("75/100"));
+        assertEquals(1, converted.size());
+        NumberRange<Double> expected = new NumberRange<Double>(Double.class, 75d, 100d);
+        assertEquals(expected, converted.get(0));
+    }
+
 }

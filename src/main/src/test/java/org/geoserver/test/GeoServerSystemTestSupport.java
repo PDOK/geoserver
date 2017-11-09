@@ -88,6 +88,7 @@ import org.geoserver.platform.ContextLoadedEvent;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerExtensionsHelper;
 import org.geoserver.platform.GeoServerResourceLoader;
+import org.geoserver.platform.ServiceException;
 import org.geoserver.security.AccessMode;
 import org.geoserver.security.GeoServerRoleService;
 import org.geoserver.security.GeoServerRoleStore;
@@ -948,6 +949,29 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         MockHttpServletResponse response = getAsServletResponse(path);
         return new ByteArrayInputStream( response.getContentAsString().getBytes() );
     }
+    /**
+     * Executes an ows request using the GET method.
+     *
+     * @param path The porition of the request after hte context, 
+     *      example: 'wms?request=GetMap&version=1.1.1&..."
+     * 
+     * @param responseCode Expected HTTP code, will provide exception if not matched
+     * @return An input stream which is the result of the request.
+     */
+    protected InputStream get( String path, int responseCode ) throws Exception {
+        MockHttpServletResponse response = getAsServletResponse(path);
+        int status = response.getStatus();
+        if( responseCode != status ){
+            String content = response.getContentAsString();
+            if( content == null || content.length() == 0 ){
+                throw new ServiceException("expected status <"+responseCode+"> but was <"+status+">");
+            }
+            else {
+                throw new ServiceException("expected status <"+responseCode+"> but was <"+status+">:"+content);
+            }
+        }
+        return new ByteArrayInputStream( response.getContentAsString().getBytes() );
+    }
     
     /**
      * Executes an ows request using the GET method.
@@ -1065,7 +1089,6 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         request.setMethod("PUT");
         request.setContentType(contentType);
         request.setContent(body);
-        request.addHeader("Content-type", contentType);
 
         return dispatch(request);
     }
@@ -1077,9 +1100,8 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
      * </p>
      * @param path The porition of the request after the context ( no query string ), 
      *      example: 'wms'. 
-     * 
+     * @param xml The body content, often xml for OGC services
      * @return An input stream which is the result of the request.
-     * 
      */
     protected InputStream post( String path , String xml ) throws Exception {
         MockHttpServletResponse response = postAsServletResponse(path, xml);
@@ -1093,10 +1115,8 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
      * @param path
      *            The porition of the request after the context ( no query
      *            string ), example: 'wms'.
-     * @param xml The body content.
-     * 
+     * @param xml The body content, often xml for OGC services
      * @return the servlet response
-     * 
      */
     protected MockHttpServletResponse postAsServletResponse(String path, String xml)
             throws Exception {
@@ -1149,12 +1169,19 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         return new ByteArrayInputStream(response.getContentAsString().getBytes());
     }
     
+    /**
+     * Executes an ows request using the POST method, with xml as body content.
+     * 
+     * @param path The porition of the request after the context ( no query string ), example: 'wms'.
+     * @param xml The body content, often xml for OGC services
+     * @param contentType
+     * @return the servlet response
+     */
     protected MockHttpServletResponse postAsServletResponse(String path, String body, String contentType) throws Exception {
         MockHttpServletRequest request = createRequest(path);
         request.setMethod("POST");
         request.setContentType(contentType);
         request.setContent(body.getBytes("UTF-8"));
-        request.addHeader("Content-type", contentType);
 
         return dispatch(request);
     }
@@ -1164,7 +1191,6 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         request.setMethod("POST");
         request.setContentType(contentType);
         request.setContent(body.getBytes("UTF-8"));
-        request.addHeader("Content-type", contentType);
         return dispatch(request, charset);
     }
 
@@ -1175,7 +1201,6 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         request.setMethod("POST");
         request.setContentType(contentType);
         request.setContent(body);
-        request.addHeader("Content-type", contentType);
 
         return dispatch(request);
     }
@@ -1211,6 +1236,23 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
 
     /**
      * Executes an ows request using the GET method and returns the result as an 
+     * xml document.
+     * 
+     * @param path The portion of the request after the context, 
+     *      example: 'wms?request=GetMap&version=1.1.1&..."
+     * @param statusCode Expected status code
+     * 
+     * @return A result of the request parsed into a dom.
+     */
+    protected Document getAsDOM(final String path, int statusCode)
+            throws Exception {
+        InputStream responseContent = get(path,statusCode);
+        return dom(responseContent, true);
+    }
+    
+    
+    /**
+     * Executes an ows request using the GET method and returns the result as an 
      * xml document, with the ability to override the XML document encoding. 
      * 
      * @param path The portion of the request after the context, 
@@ -1223,6 +1265,49 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
     protected Document getAsDOM(final String path, String encoding) throws Exception {
         return getAsDOM(path, true, encoding);
     }
+    
+    /**
+     * Executes an ows request using the GET method and returns the result as an 
+     * JSON document.
+     * 
+     * @param path The portion of the request after the context, 
+     *      example: 'wms?request=GetMap&version=1.1.1&..."
+     * @param statusCode Expected status code
+     * 
+     * @return A result of the request parsed into a dom.
+     */
+    protected JSON getAsJSON(final String path, int statusCode)
+            throws Exception {
+        MockHttpServletResponse response = getAsServletResponse(path, statusCode);
+        int status = response.getStatus();
+        if( statusCode != status ){
+            String content = response.getContentAsString();
+            if( content == null || content.length() == 0 ){
+                throw new ServiceException("expected status <"+statusCode+"> but was <"+status+">");
+            }
+            else {
+                throw new ServiceException("expected status <"+statusCode+"> but was <"+status+">:"+content);
+            }
+        }
+        return json(response);
+    }
+    
+    
+    private MockHttpServletResponse getAsServletResponse(String path, int statusCode) throws Exception {
+        MockHttpServletResponse response = getAsServletResponse(path);
+        int status = response.getStatus();
+        if( statusCode != status ){
+            String content = response.getContentAsString();
+            if( content == null || content.length() == 0 ){
+                throw new ServiceException("expected status <"+statusCode+"> but was <"+status+">");
+            }
+            else {
+                throw new ServiceException("expected status <"+statusCode+"> but was <"+status+">:"+content);
+            }
+        }
+        return response;
+    }
+
     /**
      * Executes a request using the GET method and parses the result as a json object.
      * 
@@ -1289,7 +1374,8 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
      */
     protected Document getAsDOM(final String path, final boolean skipDTD)
     throws Exception {
-        return dom(get(path), skipDTD);
+        InputStream responseContent = get(path);
+        return dom(responseContent, skipDTD);
     }
 
     /**
@@ -1935,13 +2021,6 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
             myBody = body;
         }
         
-//        @Override
-//        public void setBodyContent(String body) {
-//            myBody = body.getBytes();
-//        }
-        
-        
-        
         @Override
         public BufferedReader getReader() {
             if (null == myBody)
@@ -1951,6 +2030,11 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         
         public ServletInputStream getInputStream() {
             return new GeoServerDelegatingServletInputStream(myBody);
+        }
+        
+        @Override
+        public String toString() {
+            return "GeoServerMockHttpServletRequest "+getMethod()+ " "+getRequestURI();
         }
     }
 
@@ -1974,7 +2058,12 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         }
         
         public void reset() {
-            if (myMark < 0 || myMark >= myBody.length){
+            
+            if (myBody==null ||myMark < 0 || myMark >= myBody.length){
+                if(myBody==null || myBody.length==0) {
+                    //This prevents an annoying error when the sting is empty or null
+                    return;
+                }
                 throw new IllegalStateException("Can't reset when no mark was set.");
             }
             
@@ -1996,7 +2085,7 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
             int realOffset = offset + myOffset;
             int i;
 
-            if ( realOffset >= myBody.length ) {
+            if (myBody==null || realOffset >= myBody.length ) {
                 return -1;
             }
             for (i = 0; (i < length) && (i + myOffset < myBody.length); i++){

@@ -35,11 +35,7 @@ public class DescriptionTest extends OSEOTestSupport {
             gs.save(service);
 
             // run a request that's going to fail
-            MockHttpServletResponse response = getAsServletResponse("oseo/description");
-            assertEquals(OSEOExceptionHandler.RSS_MIME, response.getContentType());
-            assertEquals(500, response.getStatus());
-
-            Document dom = dom(new ByteArrayInputStream(response.getContentAsByteArray()));
+            Document dom = getAsOpenSearchException("oseo/description", 500);
             // print(dom);
 
             assertThat(dom, hasXPath("/rss/channel/item/title", equalTo(
@@ -67,11 +63,7 @@ public class DescriptionTest extends OSEOTestSupport {
             gs.save(service);
 
             // run a request that's going to fail
-            MockHttpServletResponse response = getAsServletResponse("oseo/description");
-            assertEquals(OSEOExceptionHandler.RSS_MIME, response.getContentType());
-            assertEquals(500, response.getStatus());
-
-            Document dom = dom(new ByteArrayInputStream(response.getContentAsByteArray()));
+            Document dom = getAsOpenSearchException("oseo/description", 500);
             // print(dom);
 
             assertThat(dom, hasXPath("/rss/channel/item/title", equalTo(
@@ -92,12 +84,7 @@ public class DescriptionTest extends OSEOTestSupport {
     @Test
     public void testExceptionInvalidParentId() throws Exception {
         // run a request that's going to fail
-        MockHttpServletResponse response = getAsServletResponse(
-                "oseo/description?parentId=IAmNotThere");
-        assertEquals(OSEOExceptionHandler.RSS_MIME, response.getContentType());
-        assertEquals(400, response.getStatus());
-
-        Document dom = dom(new ByteArrayInputStream(response.getContentAsByteArray()));
+        Document dom = getAsOpenSearchException("oseo/description?parentId=IAmNotThere", 400);
         // print(dom);
 
         assertThat(dom,
@@ -111,7 +98,6 @@ public class DescriptionTest extends OSEOTestSupport {
         assertEquals(200, response.getStatus());
 
         Document dom = dom(new ByteArrayInputStream(response.getContentAsByteArray()));
-        // print(dom);
 
         // generic contents check
         assertThat(dom, hasXPath("/os:OpenSearchDescription"));
@@ -145,15 +131,15 @@ public class DescriptionTest extends OSEOTestSupport {
         assertThat(dom,
                 hasXPath(resultsBase + "/@template",
                         allOf(containsString("/oseo/search?"), //
-                                containsString("searchTerms={os:searchTerms?}"), //
+                                containsString("searchTerms={searchTerms?}"), //
                                 containsString("lat={geo:lat?}"), //
-                                containsString("start={time:start?}"))));
+                                containsString("timeStart={time:start?}"))));
         // check some parameters have been described
         String paramBase = resultsBase + "/param:Parameter";
         assertThat(dom, hasXPath(paramBase
-                + "[@name='searchTerms' and @value='{os:searchTerms}' and @minimum='0']"));
+                + "[@name='searchTerms' and @value='{searchTerms}' and @minimum='0']"));
         assertThat(dom, hasXPath(paramBase
-                + "[@name='count' and @value='{os:count}' and @minimum='0' and  @minInclusive='0' and @maxInclusive='100']"));
+                + "[@name='count' and @value='{count}' and @minimum='0' and  @minInclusive='0' and @maxInclusive='100']"));
 
         // check some EO parameter
         assertThat(dom, hasXPath(
@@ -168,7 +154,7 @@ public class DescriptionTest extends OSEOTestSupport {
     @Test
     public void testOpticalCollectionDescription() throws Exception {
         Document dom = getAsDOM("oseo/description?parentId=SENTINEL2");
-        // print(dom);
+        print(dom);
 
         // we got a opensearch descriptor
         assertThat(dom, hasXPath("/os:OpenSearchDescription"));
@@ -190,9 +176,9 @@ public class DescriptionTest extends OSEOTestSupport {
                 hasXPath(resultsBase + "/@template",
                         allOf(containsString("/oseo/search?"), //
                                 containsString("parentId=SENTINEL2"), //
-                                containsString("searchTerms={os:searchTerms?}"), //
+                                containsString("searchTerms={searchTerms?}"), //
                                 containsString("lat={geo:lat?}"), //
-                                containsString("start={time:start?}"))));
+                                containsString("timeStart={time:start?}"))));
         // ... and has generic EOP parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template",
@@ -202,19 +188,19 @@ public class DescriptionTest extends OSEOTestSupport {
         // ... and has OPT parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template",
-                        allOf(containsString("cloudCover={opt:cloudCover?}"), //
-                                containsString("snowCover={opt:snowCover?}"))));
+                        allOf(containsString("cloudCover={eo:cloudCover?}"), //
+                                containsString("snowCover={eo:snowCover?}"))));
         // ... but no SAR parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template", not(anyOf(
-                        containsString("polarisationMode={sar:polarisationMode?}"), //
-                        containsString("polarisationChannels={sar:polarisationChannels?}")))));
+                        containsString("polarisationMode={eo:polarisationMode?}"), //
+                        containsString("polarisationChannels={eo:polarisationChannels?}")))));
     }
 
     @Test
     public void testRadarCollectionDescription() throws Exception {
         Document dom = getAsDOM("oseo/description?parentId=SENTINEL1");
-        // print(dom);
+        print(dom);
 
         // we got a opensearch descriptor
         assertThat(dom, hasXPath("/os:OpenSearchDescription"));
@@ -236,9 +222,11 @@ public class DescriptionTest extends OSEOTestSupport {
                 hasXPath(resultsBase + "/@template",
                         allOf(containsString("/oseo/search?"), //
                                 containsString("parentId=SENTINEL1"), //
-                                containsString("searchTerms={os:searchTerms?}"), //
+                                containsString("searchTerms={searchTerms?}"), //
                                 containsString("lat={geo:lat?}"), //
-                                containsString("start={time:start?}"))));
+                                containsString("timeStart={time:start?}"), //
+                                containsString("timeEnd={time:end?}"), //
+                                containsString("timeRelation={time:relation?}"))));
         // ... and has generic EOP parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template",
@@ -248,13 +236,13 @@ public class DescriptionTest extends OSEOTestSupport {
         // ... and SAR parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template", allOf(
-                        containsString("polarisationMode={sar:polarisationMode?}"), //
-                        containsString("polarisationChannels={sar:polarisationChannels?}"))));
+                        containsString("polarisationMode={eo:polarisationMode?}"), //
+                        containsString("polarisationChannels={eo:polarisationChannels?}"))));
         // ... but no OPT parameters
         assertThat(dom,
                 hasXPath(resultsBase + "/@template",
-                        not(anyOf(containsString("cloudCover={opt:cloudCover?}"), //
-                                containsString("snowCover={opt:snowCover?}")))));
+                        not(anyOf(containsString("cloudCover={eo:cloudCover?}"), //
+                                containsString("snowCover={eo:snowCover?}")))));
     }
 
 }

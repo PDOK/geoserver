@@ -1,4 +1,4 @@
-/* (c) 2014 - 2016 Open Source Geospatial Foundation - all rights reserved
+/* (c) 2014 - 2017 Open Source Geospatial Foundation - all rights reserved
  * (c) 2001 - 2013 OpenPlans
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
@@ -46,6 +46,7 @@ import javax.measure.unit.Unit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.xsd.XSDElementDeclaration;
 import org.eclipse.xsd.XSDParticle;
 import org.eclipse.xsd.XSDSchema;
@@ -93,6 +94,8 @@ import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.data.store.ContentState;
 import org.geotools.data.wms.WebMapServer;
 import org.geotools.data.wms.xml.WMSSchema;
+import org.geotools.data.wmts.model.WMTSCapabilities;
+import org.geotools.data.wmts.WebMapTileServer;
 import org.geotools.factory.Hints;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.FeatureTypes;
@@ -104,6 +107,8 @@ import org.geotools.gml2.GML;
 import org.geotools.measure.Measure;
 import org.geotools.referencing.CRS;
 import org.geotools.styling.Style;
+import org.geotools.styling.StyleImpl;
+import org.geotools.styling.StyledLayerDescriptor;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
@@ -144,8 +149,8 @@ import org.xml.sax.EntityResolver;
  * <li>{@link #featureTypeCache} </li>
  * <li>{@link #featureTypeAttributeCache} </li>
  * <li>{@link #wmsCache} </li>
- * <li>{@link #coverageReaderCache} </li>
  * <li>{@link #hintCoverageReaderCache} </li>
+ * <li>{@link #sldCache} </li>
  * <li>{@link #styleCache} </li>
  * </p>
  * 
@@ -202,8 +207,9 @@ public class ResourcePool {
     Map<String, FeatureType> featureTypeCache;
     Map<String, List<AttributeTypeInfo>> featureTypeAttributeCache;
     Map<String, WebMapServer> wmsCache;
-    Map<String, GridCoverageReader>  coverageReaderCache;
+    Map<String, WebMapTileServer> wmtsCache;
     Map<CoverageHintReaderKey, GridCoverageReader> hintCoverageReaderCache;
+    Map<StyleInfo,StyledLayerDescriptor> sldCache;
     Map<StyleInfo,Style> styleCache;
     List<Listener> listeners;
     ThreadPoolExecutor coverageExecutor;
@@ -231,10 +237,11 @@ public class ResourcePool {
         featureTypeCache = createFeatureTypeCache(FEATURETYPE_CACHE_SIZE_DEFAULT);
         
         featureTypeAttributeCache = createFeatureTypeAttributeCache(FEATURETYPE_CACHE_SIZE_DEFAULT);
-        coverageReaderCache = createCoverageReaderCache();
         hintCoverageReaderCache = createHintCoverageReaderCache();
         
         wmsCache = createWmsCache();
+        wmtsCache = createWmtsCache();
+        sldCache = createSldCache();
         styleCache = createStyleCache();
 
         listeners = new CopyOnWriteArrayList<Listener>();
@@ -343,23 +350,6 @@ public class ResourcePool {
     }
 
     /**
-     * Returns the cache for {@link GridCoverageReader} objects for a particular coverage.
-     * <p>
-     * The cache key is the corresponding Coverage id ({@link CatalogInfo#getId()}.
-     * </p>
-     * <p>
-     * The concrete Map implementation is determined by {@link #createCoverageReaderCache()}
-     * </p>
-     */
-    public Map<String, GridCoverageReader> getCoverageReaderCache() {
-        return coverageReaderCache;
-    }
-
-    protected Map<String, GridCoverageReader> createCoverageReaderCache() {
-        return new CoverageReaderCache();
-    }
-
-    /**
      * Returns the cache for {@link GridCoverageReader} objects for a particular coverage hint.
      * <p>
      * The concrete Map implementation is determined by {@link #createHintCoverageReaderCache()}
@@ -371,6 +361,20 @@ public class ResourcePool {
     
     protected Map<CoverageHintReaderKey, GridCoverageReader> createHintCoverageReaderCache() {
         return new CoverageHintReaderCache();
+    }
+
+    /**
+     * Returns the cache for {@link StyledLayerDescriptor} objects for a particular style.
+     * <p>
+     * The concrete Map implementation is determined by {@link #createSldCache()}
+     * </p>
+     */
+    public Map<StyleInfo, StyledLayerDescriptor> getSldCache() {
+        return sldCache;
+    }
+
+    protected Map<StyleInfo, StyledLayerDescriptor> createSldCache() {
+        return new HashMap<StyleInfo, StyledLayerDescriptor>();
     }
 
     /**
@@ -400,10 +404,17 @@ public class ResourcePool {
         return wmsCache;
     }
 
+    public Map<String, WebMapTileServer> getWmtsCache() {
+        return wmtsCache;
+    }
+
     protected Map<String, WebMapServer> createWmsCache() {
         return new WMSCache();
     }
 
+    protected Map<String, WebMapTileServer> createWmtsCache() {
+        return new WMTSCache();
+    }
     /**
      * Sets the size of the feature type cache.
      * <p>
@@ -1461,42 +1472,26 @@ public class ResourcePool {
             throw new IOException("Could not find the raster plugin for format " + info.getType());
         }
         
-        // look into the cache
-        GridCoverageReader reader = null;
-        Object key;
-        if ( hints != null && info.getId() != null) {
-            // expand the hints if necessary
-            final String formatName = gridFormat.getName();
-            if (formatName.equalsIgnoreCase(IMAGE_MOSAIC) || formatName.equalsIgnoreCase(IMAGE_PYRAMID)){
-                if (coverageExecutor != null){
-                    if (hints != null) {
-                        // do not modify the caller hints
-                        hints = new Hints(hints);
-                        hints.add(new RenderingHints(Hints.EXECUTOR_SERVICE, coverageExecutor));
-                    } else {
-                        hints = new Hints(new RenderingHints(Hints.EXECUTOR_SERVICE, coverageExecutor));
-                    }
-                }
-            }
-            
-            key = new CoverageHintReaderKey(info.getId(), hints);
-            reader = hintCoverageReaderCache.get( key );
+        // we are going to add the repository anyways, but we don't want to modify the original hints
+        // and need to ensure they are not null
+        if (hints != null) {
+            hints = new Hints(hints);
         } else {
-            key = info.getId();
-            if(key != null) {
-                reader = coverageReaderCache.get( key );
-            }
+            hints = new Hints();
         }
+        hints.add(new RenderingHints(Hints.REPOSITORY, repository));
+        if (coverageExecutor != null){
+            hints.add(new RenderingHints(Hints.EXECUTOR_SERVICE, coverageExecutor));
+        }
+        // look into the cache
+        Object key = new CoverageHintReaderKey(info.getId(), hints);
+        GridCoverageReader reader = hintCoverageReaderCache.get( key );
         
         // if not found in cache, create it
-        if(reader == null) {
-            synchronized ( hints != null ? hintCoverageReaderCache : coverageReaderCache ) {
+        if (reader == null) {
+            synchronized ( hintCoverageReaderCache ) {
                 if (key != null) {
-                    if (hints != null) {
-                        reader = hintCoverageReaderCache.get(key);
-                    } else {
-                        reader = coverageReaderCache.get(key);
-                    }
+                    reader = hintCoverageReaderCache.get(key);
                 }
                 if (reader == null) {
                     /////////////////////////////////////////////////////////
@@ -1508,16 +1503,12 @@ public class ResourcePool {
                     Object readObject = getObjectToRead(urlString);
 
                     // readers might change the provided hints, pass down a defensive copy
-                    reader = gridFormat.getReader(readObject, new Hints(hints));
-                    if(reader == null) {
+                    reader = gridFormat.getReader(readObject, hints);
+                    if (reader == null) {
                         throw new IOException("Failed to create reader from " + urlString + " and hints " + hints);
                     }
-                    if(key != null) {
-                        if(hints != null) {
-                            hintCoverageReaderCache.put((CoverageHintReaderKey) key, reader);
-                        } else {
-                            coverageReaderCache.put((String) key, reader);
-                        }
+                    if (key != null) {
+                        hintCoverageReaderCache.put((CoverageHintReaderKey) key, reader);
                     }
                 }
             }
@@ -1600,7 +1591,6 @@ public class ResourcePool {
      */
     public void clear(CoverageStoreInfo info) {
         String storeId = info.getId();
-        coverageReaderCache.remove(storeId);
         HashSet<CoverageHintReaderKey> keys = new HashSet<CoverageHintReaderKey>(hintCoverageReaderCache.keySet());
         for (CoverageHintReaderKey key : keys) {
             if(key.id != null && key.id.equals(storeId)) {
@@ -1792,6 +1782,50 @@ public class ResourcePool {
     }
 
     /**
+     * Returns the {@link WebMapTileServer} for a {@link WMTSStoreInfo}  object
+     * @param info The WMTS configuration
+     * @throws IOException
+     */
+    public WebMapTileServer getWebMapTileServer(WMTSStoreInfo info) throws IOException {
+        WMTSStoreInfo expandedStore = (WMTSStoreInfo) clone(info, true);
+        
+        try {
+            EntityResolver entityResolver = getEntityResolver();
+            
+            String id = info.getId();
+            WebMapTileServer wmts = wmtsCache.get(id);
+            // if we have a hit but the resolver has been changed, clean and build again
+            if(wmts != null && wmts.getHints() != null && !Objects.equals(wmts.getHints().get(XMLHandlerHints.ENTITY_RESOLVER), entityResolver)) {
+                wmtsCache.remove(id);
+                wmts = null;
+            }
+            if (wmts == null) {
+                synchronized (wmtsCache) {
+                    wmts = (WebMapTileServer) wmtsCache.get(id);
+                    if (wmts == null) {
+                        HTTPClient client = getHTTPClient(expandedStore); 
+                        String capabilitiesURL = expandedStore.getCapabilitiesURL();
+                        URL serverURL = new URL(capabilitiesURL);
+                        wmts = new WebMapTileServer(serverURL, client, null);
+                        
+                        if(StringUtils.isNotEmpty(info.getHeaderName()) && StringUtils.isNotEmpty(info.getHeaderValue())) {
+                            wmts.getHeaders().put(info.getHeaderName(), info.getHeaderValue());
+                        }
+
+                        wmtsCache.put(id, wmts);
+                    }
+                }
+            }
+    
+            return wmts;
+        } catch (IOException ioe) {
+            throw ioe;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    /**
      * Returns the entity resolver from the {@link EntityResolverProvider}, or null if none is configured
      * @return
      */
@@ -1803,7 +1837,7 @@ public class ResourcePool {
         return entityResolver;
     }
     
-    private HTTPClient getHTTPClient(WMSStoreInfo info) {
+    private HTTPClient getHTTPClient(HTTPStoreInfo info) { 
         String capabilitiesURL = info.getCapabilitiesURL();
         
         // check for mock bindings. Since we are going to run this code in production as well,
@@ -1861,19 +1895,90 @@ public class ResourcePool {
     }
     
     /**
+     * Locates and returns a WTMS {@link Layer} based on the configuration stored in WMTSLayerInfo 
+     * @param info
+     * @throws IOException 
+     */
+    public Layer getWMTSLayer(WMTSLayerInfo info) throws IOException {
+        
+        String name = info.getName();
+        if (info.getNativeName() != null) {
+            name = info.getNativeName();
+        }
+    
+        WMTSCapabilities caps = null;
+        
+        caps = info.getStore().getWebMapTileServer(null).getCapabilities();
+        
+        for (Layer layer : caps.getLayerList()) {
+            if (name.equals(layer.getName())) {
+                return layer;
+            }
+        }
+    
+        throw new IOException("Could not find layer " + info.getName()
+                + " in the server capabilitiles document");
+    }
+
+    /**
      * Clears the cached resource for a web map server
      */
     public void clear( WMSStoreInfo info ) {
         wmsCache.remove( info.getId() );
     }
-    
+
+    /**
+     * Clears the cached resource for a web map server
+     */
+    public void clear( WMTSStoreInfo info ) {
+        wmtsCache.remove( info.getId() );
+    }
+
     /**
      * Returns a style resource, caching the result. Any associated images should
      * also be unpacked onto the local machine. ResourcePool will watch the style
      * for changes and invalidate the cache as needed.
      * <p>
+     * The resource is loaded by parsing {@link StyleInfo#getFilename()} as an
+     * SLD. The SLD is prepared for direct use by GeoTools, making use of absolute
+     * file paths where possible.
+     * </p>
+     * @param info The style metadata.
+     *
+     * @throws IOException Any parsing errors.
+     */
+    public StyledLayerDescriptor getSld( final StyleInfo info) throws IOException {
+        StyledLayerDescriptor sld = sldCache.get( info );
+        if ( sld== null ) {
+            synchronized (sldCache) {
+                sld = sldCache.get( info );
+                if ( sld == null ) {
+                    sld = dataDir().parsedSld(info);
+
+                    sldCache.put( info, sld );
+
+                    final Resource styleResource = dataDir().style(info);
+                    styleResource.addListener( new ResourceListener() {
+                        @Override
+                        public void changed(ResourceNotification notify) {
+                            sldCache.remove(info);
+                            styleResource.removeListener( this );
+                        }
+                    });
+
+                }
+            }
+        }
+
+        return sld;
+    }
+    /**
+     * Returns the first {@link Style} in a style resource, caching the result. Any associated images should
+     * also be unpacked onto the local machine. ResourcePool will watch the style
+     * for changes and invalidate the cache as needed.
+     * <p>
      * The resource is loaded by parsing {@link StyleInfo#getFilename()} as an 
-     * SLD. The SLD is prepaired for direct use by GeoTools, making use of absolute
+     * SLD. The SLD is prepared for direct use by GeoTools, making use of absolute
      * file paths where possible.
      * </p>
      * @param info The style metadata.
@@ -1892,7 +1997,10 @@ public class ResourcePool {
                         throw new ServiceException("Could not extract a UserStyle definition from "
                                 + info.getName());
                     }
-
+                    //Make sure we don't change the name of an object in sldCache
+                    if (style instanceof StyleImpl) {
+                        style = (Style)((StyleImpl)style).clone();
+                    }
                     // remove this when wms works off style info
                     style.setName( info.getName() );
                     styleCache.put( info, style );
@@ -1970,6 +2078,39 @@ public class ResourcePool {
             }
         }
     }
+
+    /**
+     * Serializes a style to configuration.
+     *
+     * @param info The configuration for the style.
+     * @param style The style object.
+     *
+     */
+    public void writeSLD( StyleInfo info, StyledLayerDescriptor style ) throws IOException {
+        writeSLD(info,style,false);
+    }
+
+    /**
+     * Serializes a style to configuration optionally formatting the style when writing it.
+     *
+     * @param info The configuration for the style.
+     * @param style The style object.
+     * @param format Whether to format the style
+     */
+    public void writeSLD( StyleInfo info, StyledLayerDescriptor style, boolean format) throws IOException {
+        synchronized ( sldCache ) {
+            Resource styleFile = dataDir().style(info);
+            BufferedOutputStream out = new BufferedOutputStream(styleFile.out());
+
+            try {
+                Styles.handler(info.getFormat()).encode(style, info.getFormatVersion(), format, out);
+                clear(info);
+            }
+            finally {
+                out.close();
+            }
+        }
+    }
     
     /**
      * Writes a raw style to configuration.
@@ -2033,9 +2174,9 @@ public class ResourcePool {
         dataStoreCache.clear();
         featureTypeCache.clear();
         featureTypeAttributeCache.clear();
-        coverageReaderCache.clear();
         hintCoverageReaderCache.clear();
         wmsCache.clear();
+        wmtsCache.clear();        
         styleCache.clear();
         listeners.clear();
     }
@@ -2271,6 +2412,26 @@ public class ResourcePool {
 
     }
     
+    class WMTSCache extends CatalogResourceCache<String, WebMapTileServer> {
+
+        @Override
+        protected void dispose(String key, WebMapTileServer server) {
+            HTTPClient client = server.getHTTPClient();
+            if (client instanceof Closeable) {
+                // dispose the client, and the connection pool hosted into it as a consequence
+                // the connection pool additionally holds a few threads that are also getting
+                // disposed with this call
+                Closeable closeable = (Closeable) client;
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    LOGGER.log(Level.FINE,
+                            "Failure while disposing the http client for a WMTS store", e);
+                }
+            }
+        }
+
+    }
     /**
      * Listens to catalog events clearing cache entires when resources are modified.
      */
@@ -2585,6 +2746,38 @@ public class ResourcePool {
         return target;
     }
     
+    public WMTSStoreInfo clone(final WMTSStoreInfo source, boolean allowEnvParametrization) {
+        WMTSStoreInfo target;
+        try {
+            target = (WMTSStoreInfo) SerializationUtils.clone(source);
+            if (target instanceof StoreInfoImpl && target.getCatalog() == null) {
+                ((StoreInfoImpl)target).setCatalog(catalog);
+            }
+        } catch (Exception e) {
+            target = catalog.getFactory().createWebMapTileServer();
+            target.setDescription(source.getDescription());
+            target.setEnabled(source.isEnabled());
+            target.setName(source.getName());
+            target.setType(source.getType());
+            target.setWorkspace(source.getWorkspace());            
+        }
+        
+        setConnectionParameters(source, target);            
+
+        if (allowEnvParametrization) {
+            // Resolve GeoServer Environment placeholders
+            final GeoServerEnvironment gsEnvironment = GeoServerExtensions.bean(GeoServerEnvironment.class);
+            
+            if (gsEnvironment != null && GeoServerEnvironment.ALLOW_ENV_PARAMETRIZATION) {
+                target.setCapabilitiesURL((String) gsEnvironment.resolveValue(source.getCapabilitiesURL()));
+                target.setUsername((String) gsEnvironment.resolveValue(source.getUsername()));
+                target.setPassword((String) gsEnvironment.resolveValue(source.getPassword()));
+            }
+        }
+        
+        return target;
+    }
+
     /**
      * @param source
      * @param target
@@ -2599,6 +2792,20 @@ public class ResourcePool {
         target.setReadTimeout(source.getReadTimeout());
     }
 
+    /**
+     * @param source
+     * @param target
+     */
+    private void setConnectionParameters(final WMTSStoreInfo source, WMTSStoreInfo target) {
+        target.setCapabilitiesURL(source.getCapabilitiesURL());
+        target.setUsername(source.getUsername());
+        target.setPassword(source.getPassword());
+        target.setUseConnectionPooling(source.isUseConnectionPooling());
+        target.setMaxConnections(source.getMaxConnections());
+        target.setConnectTimeout(source.getConnectTimeout());
+        target.setReadTimeout(source.getReadTimeout());
+    }
+    
     /**
      * Retrieve the proper {@link CoverageInfo} object from the specified {@link CoverageStoreInfo} 
      * using the specified coverageName (which may be the native one in some cases).

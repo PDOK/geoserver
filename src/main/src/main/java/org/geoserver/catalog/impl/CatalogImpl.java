@@ -19,6 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
+import org.geoserver.GeoServerConfigurationLock;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CatalogException;
@@ -36,6 +37,7 @@ import org.geoserver.catalog.KeywordInfo;
 import org.geoserver.catalog.LayerGroupHelper;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.LockingCatalogFacade;
 import org.geoserver.catalog.MapInfo;
 import org.geoserver.catalog.NamespaceInfo;
 import org.geoserver.catalog.PublishedInfo;
@@ -47,6 +49,8 @@ import org.geoserver.catalog.PublishedType;
 import org.geoserver.catalog.ValidationResult;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
+import org.geoserver.catalog.WMTSLayerInfo;
+import org.geoserver.catalog.WMTSStoreInfo;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.catalog.event.CatalogAddEvent;
 import org.geoserver.catalog.event.CatalogEvent;
@@ -59,6 +63,7 @@ import org.geoserver.catalog.event.impl.CatalogModifyEventImpl;
 import org.geoserver.catalog.event.impl.CatalogPostModifyEventImpl;
 import org.geoserver.catalog.event.impl.CatalogRemoveEventImpl;
 import org.geoserver.catalog.util.CloseableIterator;
+import org.geoserver.config.GeoServer;
 import org.geoserver.ows.util.OwsUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
@@ -107,6 +112,10 @@ public class CatalogImpl implements Catalog {
 
     public CatalogImpl() {
         facade = new DefaultCatalogFacade(this);
+        final GeoServerConfigurationLock configurationLock = GeoServerExtensions.bean(GeoServerConfigurationLock.class);
+        if(configurationLock != null) {
+            facade =  LockingCatalogFacade.create(facade, configurationLock);
+        }
         resourcePool = ResourcePool.create(this);
     }
     
@@ -627,6 +636,8 @@ public class CatalogImpl implements Catalog {
                 layer.setType( PublishedType.VECTOR );
             } else if ( layer.getResource() instanceof CoverageInfo ) {
                 layer.setType( PublishedType.RASTER );
+            } else if ( layer.getResource() instanceof WMTSLayerInfo ) {
+                layer.setType( PublishedType.WMTS );
             } else if ( layer.getResource() instanceof WMSLayerInfo ) {
                 layer.setType( PublishedType.WMS );
             } else {
@@ -827,7 +838,7 @@ public class CatalogImpl implements Catalog {
         List<PublishedInfo> layers = layerGroup.getLayers();
         List<StyleInfo> styles = layerGroup.getStyles();
         for (int i = 0; i < layers.size(); ) {
-            if(layers.get(i) == null) {
+            if(layers.get(i) == null && styles.get(i) == null) {
                 layers.remove(i);
                 styles.remove(i);
             } else {
@@ -894,7 +905,7 @@ public class CatalogImpl implements Catalog {
             for (PublishedInfo p : layerGroup.getLayers()) {
                 if (p instanceof LayerGroupInfo) {
                     checkLayerGroupResourceIsInWorkspace((LayerGroupInfo) p, ws);
-                } else {
+                } else if (p instanceof LayerInfo) {
                     checkLayerGroupResourceIsInWorkspace((LayerInfo) p, ws);                
                 }
             }
@@ -1383,6 +1394,21 @@ public class CatalogImpl implements Catalog {
             throw new IllegalArgumentException(msg); 
         }
 
+        if (!isNew) {
+            StyleInfo current = getStyle(style.getId());
+
+            //Default style validation
+            if (isDefaultStyle(current)) {
+
+                if (!current.getName().equals(style.getName())) {
+                    throw new IllegalArgumentException("Cannot rename default styles");
+                }
+                if (null != style.getWorkspace()) {
+                    throw new IllegalArgumentException("Cannot change the workspace of default styles");
+                }
+            }
+        }
+
         return postValidate(style, isNew);
     }
     
@@ -1398,9 +1424,19 @@ public class CatalogImpl implements Catalog {
                 throw new IllegalArgumentException( msg );
             }
         }
+
+        if (isDefaultStyle(style)) {
+            throw new IllegalArgumentException("Unable to delete a default style");
+        }
         
         facade.remove(style);
         removed(style);
+    }
+
+    private boolean isDefaultStyle(StyleInfo s) {
+        return s.getWorkspace() == null && (StyleInfo.DEFAULT_POINT.equals(s.getName())
+                || StyleInfo.DEFAULT_LINE.equals(s.getName()) || StyleInfo.DEFAULT_POLYGON.equals(s.getName())
+                || StyleInfo.DEFAULT_RASTER.equals(s.getName()) || StyleInfo.DEFAULT_GENERIC.equals(s.getName()));
     }
 
     public void save(StyleInfo style) {
@@ -1482,10 +1518,13 @@ public class CatalogImpl implements Catalog {
         event(event);
     }
 
-    public void firePostModified(CatalogInfo object) {
+    public void firePostModified(CatalogInfo object, List propertyNames, List oldValues,
+            List newValues) {
         CatalogPostModifyEventImpl event = new CatalogPostModifyEventImpl();
         event.setSource( object);
-        
+        event.setPropertyNames(propertyNames);
+        event.setOldValues(oldValues);
+        event.setNewValues(newValues);
         event(event);
     }
     
@@ -1598,6 +1637,9 @@ public class CatalogImpl implements Catalog {
         if(r instanceof WMSLayerInfo){
             resolve((WMSLayerInfo) resource);
         }
+        if(r instanceof WMTSLayerInfo){
+            resolve((WMTSLayerInfo) resource);
+        }
         
         return resource;
     }
@@ -1630,6 +1672,12 @@ public class CatalogImpl implements Catalog {
         WMSLayerInfoImpl impl = (WMSLayerInfoImpl) wmsLayer;
         resolveCollections(impl);
         return wmsLayer;
+    }
+
+    private WMTSLayerInfo resolve(WMTSLayerInfo wmtsLayer) {
+        WMTSLayerInfoImpl impl = (WMTSLayerInfoImpl) wmtsLayer;
+        resolveCollections(impl);
+        return wmtsLayer;
     }
 
     protected LayerInfo resolve(LayerInfo layer) {
@@ -1718,6 +1766,10 @@ public class CatalogImpl implements Catalog {
         public void visit(WMSStoreInfo wmsStore) {
             validator.validate(wmsStore, isNew);
         }
+        
+        public void visit(WMTSStoreInfo wmtsStore) {
+            validator.validate(wmtsStore, isNew);
+        }
 
         public void visit(FeatureTypeInfo featureType) {
             validator.validate(featureType, isNew);
@@ -1741,6 +1793,10 @@ public class CatalogImpl implements Catalog {
 
         public void visit(WMSLayerInfo wmsLayer) {
             validator.validate(wmsLayer, isNew);
+        }
+        @Override
+        public void visit(WMTSLayerInfo wmtsLayer) {
+            validator.validate(wmtsLayer, isNew);
         }
     }
     

@@ -8,14 +8,14 @@
   <parent>
     <groupId>org.geoserver.community</groupId>
     <artifactId>gs-oseo</artifactId>
-    <version>2.11.2</version>
+    <version>2.12.0</version>
   </parent>
 
   <groupId>org.geoserver.community</groupId>
   <artifactId>gs-oseo-core</artifactId>
   <name>OpenSearch for EO</name>
   <packaging>jar</packaging>
-  <version>2.11.2</version>
+  <version>2.12.0</version>
 
   <dependencies>
     <dependency>
@@ -83,6 +83,12 @@
       <groupId>org.geotools.jdbc</groupId>
       <artifactId>gt-jdbc-h2</artifactId>
       <version>${gt.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.10.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

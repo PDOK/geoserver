@@ -5,9 +5,11 @@
  */
 package org.geoserver.wfs.v2_0;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
@@ -1049,6 +1051,34 @@ public class GetFeatureTest extends WFS20TestSupport {
                 "count(//wfs:FeatureCollection/wfs:member/cdf:Fifteen)", doc);
         XMLAssert.assertXpathEvaluatesTo("Fifteen.2",
                 "//wfs:FeatureCollection/wfs:member/cdf:Fifteen/@gml:id", doc);
+    }
+
+    @Test
+    public void testGml32MimeType() throws Exception {
+        // test GET request
+        String url = "wfs?request=GetFeature&typeName=cdf:Fifteen&version=2.0" +
+                "&service=wfs&featureid=Fifteen.2&outputFormat=gml32";
+        MockHttpServletResponse response = getAsServletResponse(url);
+        assertThat(response.getContentType(), is("application/gml+xml; version=3.2"));
+        // override GML 3.2 MIME type with text / xml
+        setGmlMimeTypeOverride("text/xml");
+        response =  getAsServletResponse(url);
+        assertThat(response.getContentType(), is("text/xml"));
+        setGmlMimeTypeOverride(null);
+        // test POST request
+        String xml = "<wfs:GetFeature service='WFS' version='2.0.0'" +
+                "                xmlns:cdf='http://www.opengis.net/cite/data'" +
+                "                xmlns:wfs='http://www.opengis.net/wfs/2.0'>" +
+                "    <wfs:Query typeNames='cdf:Other'>" +
+                "        <wfs:PropertyName>cdf:string2</wfs:PropertyName>" +
+                "    </wfs:Query>" +
+                "</wfs:GetFeature>";
+        response = postAsServletResponse("wfs", xml);
+        assertThat(response.getContentType(), is("application/gml+xml; version=3.2"));
+        // override GML 3.2 MIME type with text / xml
+        setGmlMimeTypeOverride("text/xml");
+        response =  postAsServletResponse("wfs", xml);
+        assertThat(response.getContentType(), is("text/xml"));
     }
 
     /**

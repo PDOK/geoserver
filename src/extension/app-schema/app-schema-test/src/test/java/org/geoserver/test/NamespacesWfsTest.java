@@ -14,9 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
@@ -152,24 +150,11 @@ public final class NamespacesWfsTest extends AbstractAppSchemaTestSupport {
          */
         private static String resourceToString(String resourceName) {
             try (InputStream input = NamespacesWfsTest.class.getResourceAsStream(resourceName)) {
-                return inputToString(input);
+                return IOUtils.toString(input);
             } catch (Exception exception) {
                 throw new RuntimeException(String.format(
                         "Error reading resource '%s' content.", resourceName), exception);
             }
-        }
-    }
-
-    /**
-     * Helper method that just reads the content of an input
-     * stream to a string.
-     */
-    private static String inputToString(InputStream input) throws IOException {
-        try(ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            // read input stream content
-            IOUtils.copy(input, output);
-            // convert the read bytes to a string
-            return output.toString();
         }
     }
 

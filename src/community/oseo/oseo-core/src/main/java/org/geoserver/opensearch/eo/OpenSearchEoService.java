@@ -25,9 +25,18 @@ public interface OpenSearchEoService {
      * 
      * @param request
      * @return
-     * @throws IOException 
+     * @throws IOException
      */
     public SearchResults search(SearchRequest request) throws IOException;
+
+    /**
+     * Retrieves a product/collection metadata in a particular format
+     * 
+     * @param request
+     * @return
+     * @throws IOException
+     */
+    public MetadataResults metadata(MetadataRequest request) throws IOException;
 
     /**
      * Returns the search parameters applicable to collections
@@ -47,4 +56,10 @@ public interface OpenSearchEoService {
      * @throws IOException
      */
     Collection<Parameter<?>> getProductSearchParameters(String parentId) throws IOException;
+
+    /**
+     * Returns the quicklook of a product (a PNG or JPEG image normally)
+     */
+    QuicklookResults quicklook(QuicklookRequest request) throws IOException;
+
 }

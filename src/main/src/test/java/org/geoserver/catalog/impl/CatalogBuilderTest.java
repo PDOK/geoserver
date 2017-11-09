@@ -10,16 +10,22 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.*;
 
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
+import javax.media.jai.ImageLayout;
+
+import org.easymock.classextension.EasyMock;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CoverageDimensionInfo;
 import org.geoserver.catalog.CoverageInfo;
+import org.geoserver.catalog.CoverageStoreInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.Keyword;
@@ -27,27 +33,40 @@ import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.PublishedType;
+import org.geoserver.catalog.ResourcePool;
 import org.geoserver.catalog.TestHttpClientProvider;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
+import org.geoserver.catalog.WMTSLayerInfo;
+import org.geoserver.catalog.WMTSStoreInfo;
+import org.geoserver.catalog.testreader.CustomFormat;
 import org.geoserver.data.test.MockData;
 import org.geoserver.data.test.MockTestData;
 import org.geoserver.test.GeoServerMockTestSupport;
 import org.geoserver.test.RemoteOWSTestSupport;
 import org.geoserver.test.http.MockHttpClient;
 import org.geoserver.test.http.MockHttpResponse;
+import org.geotools.coverage.grid.GridEnvelope2D;
+import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
+import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
 import org.geotools.data.ResourceInfo;
+import org.geotools.factory.Hints;
 import org.geotools.feature.NameImpl;
+import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope3D;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.projection.MapProjection;
+import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.junit.Test;
 import org.opengis.feature.type.FeatureType;
+import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.datum.PixelInCell;
 
 import com.vividsolutions.jts.geom.Point;
 
@@ -325,6 +344,7 @@ public class CatalogBuilderTest extends GeoServerMockTestSupport {
         LayerGroupInfo group = cat.getFactory().createLayerGroup();
         group.setName("group");
         group.getLayers().add(layer);
+        group.getStyles().add(null);
         
         assertNull(group.getBounds());
 
@@ -407,7 +427,7 @@ public class CatalogBuilderTest extends GeoServerMockTestSupport {
         assertNotNull(wmsLayer.getLatLonBoundingBox());
         assertFalse(wmsLayer.getKeywords().isEmpty());
     }
-
+    
     @Test
     public void testLookupSRSDetached() throws Exception {
         Catalog cat = getCatalog();
@@ -593,7 +613,38 @@ public class CatalogBuilderTest extends GeoServerMockTestSupport {
             TestHttpClientProvider.endTest();
         }
     }
-    
+
+    @Test
+    public void testWMTSLayer100() throws Exception {
+        TestHttpClientProvider.startTest();
+        try {
+            String baseURL = TestHttpClientProvider.MOCKSERVER + "/wmts100";
+            MockHttpClient client = new MockHttpClient();
+            URL capsURL = new URL(baseURL + "?REQUEST=GetCapabilities&VERSION=1.0.0&SERVICE=WMTS");
+            client.expectGet(capsURL,
+                    new MockHttpResponse(getClass().getResource("nasa.getcapa.xml"), "text/xml"));
+            TestHttpClientProvider.bind(client, capsURL);
+
+            CatalogBuilder cb = new CatalogBuilder(getCatalog());
+            WMTSStoreInfo store = cb.buildWMTSStore("test-wmts-store");
+            store.setCapabilitiesURL(capsURL.toExternalForm());
+            cb.setStore(store);
+            WMTSLayerInfo layer = cb.buildWMTSLayer("AMSR2_Wind_Speed_Night");
+
+            // check the bbox has the proper axis order
+            assertEquals("Wind Speed (Night, AMSR2, GCOM-W1)", layer.getTitle());
+            assertEquals("EPSG:4326", layer.getSRS());
+
+            ReferencedEnvelope bbox = layer.getLatLonBoundingBox();
+            assertEquals(-180, bbox.getMinX(), 0d);
+            assertEquals(-90, bbox.getMinY(), 0d);
+            assertEquals(180, bbox.getMaxX(), 0d);
+            assertEquals(90, bbox.getMaxY(), 0d);
+        } finally {
+            TestHttpClientProvider.endTest();
+        }
+    }
+
     @Test
     public void testWgs84BoundsFromCompoundCRS() throws Exception {
         try {
@@ -607,5 +658,66 @@ public class CatalogBuilderTest extends GeoServerMockTestSupport {
         } finally {
             MapProjection.SKIP_SANITY_CHECKS = false;
         }
+    }
+    
+    @Test
+    public void testSetupCoverageOnEmptyRead() throws Exception {
+        // fake coverage info
+        ReferencedEnvelope envelope = MockTestData.DEFAULT_LATLON_ENVELOPE;
+        BufferedImage bi = new BufferedImage(360, 180, BufferedImage.TYPE_3BYTE_BGR);
+        ImageLayout layout = new ImageLayout(bi);
+        GridEnvelope2D gridRange = new GridEnvelope2D(0, 0, 360, 180);
+        GridToEnvelopeMapper mapper = new GridToEnvelopeMapper(gridRange, envelope);
+        AffineTransform gridToWorld = mapper.createAffineTransform();
+                
+        
+        final String rasterSource = "http://www.geoserver.org/foo";
+        // setup the format and the reader
+        AbstractGridCoverage2DReader reader = createMock(AbstractGridCoverage2DReader.class);
+        AbstractGridFormat format = createMock(AbstractGridFormat.class);
+        
+        expect(reader.getOriginalEnvelope()).andReturn(new GeneralEnvelope(envelope)).anyTimes();
+        expect(reader.getCoordinateReferenceSystem()).andReturn(envelope.getCoordinateReferenceSystem()).anyTimes();
+        expect(reader.getOriginalGridRange()).andReturn(gridRange).anyTimes();
+        expect(reader.getImageLayout()).andReturn(layout).anyTimes();
+        expect(reader.getFormat()).andReturn(format).anyTimes();
+        expect(reader.getGridCoverageCount()).andReturn(1);
+        expect(reader.getOriginalGridToWorld(EasyMock.anyObject(PixelInCell.class))).andReturn(new AffineTransform2D(gridToWorld)).anyTimes();
+        expect(reader.read(EasyMock.anyObject(GeneralParameterValue[].class))).andReturn(null);
+        expect(reader.getGridCoverageNames()).andReturn(new String[] {"TheCoverage"});
+        replay(reader);
+        expect(format.getReader(EasyMock.eq(rasterSource), EasyMock.anyObject(Hints.class))).andReturn(reader).anyTimes();
+        expect(format.getName()).andReturn("TheFormat").anyTimes();
+        expect(format.getReadParameters()).andReturn(new CustomFormat().getReadParameters()).anyTimes();
+        replay(format);
+        
+        CoverageStoreInfo csi = createMock(CoverageStoreInfo.class);
+        expect(csi.getURL()).andReturn(rasterSource).anyTimes();
+        expect(csi.getFormat()).andReturn(format).anyTimes();
+        expect(csi.getId()).andReturn("ThisIsMe").anyTimes();
+        expect(csi.getName()).andReturn("ThisIsMe").anyTimes();
+        expect(csi.getWorkspace()).andReturn(getCatalog().getDefaultWorkspace()).anyTimes();
+        replay(csi);
+        
+        // setup a non cloning resource pool and catalog
+        Catalog cat = new CatalogImpl();
+        ResourcePool rp = new ResourcePool(cat) {
+            public CoverageStoreInfo clone(CoverageStoreInfo source, boolean allowEnvParametrization) {
+                return source;
+            };
+        };
+        cat.setResourcePool(rp);
+        
+        // make it build the coverage info without access to a grid coverage 2d
+        CatalogBuilder cb = new CatalogBuilder(cat);
+        cb.setStore(csi);
+        CoverageInfo ci = cb.buildCoverage();
+        
+        assertEquals("TheCoverage", ci.getName());
+        List<CoverageDimensionInfo> dimensions = ci.getDimensions();
+        assertEquals(3, dimensions.size());
+        assertEquals("RED_BAND", dimensions.get(0).getName());
+        assertEquals("GREEN_BAND", dimensions.get(1).getName());
+        assertEquals("BLUE_BAND", dimensions.get(2).getName());
     }
 }

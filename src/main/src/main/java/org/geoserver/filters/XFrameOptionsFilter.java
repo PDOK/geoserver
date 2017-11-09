@@ -34,7 +34,7 @@ import org.geoserver.platform.GeoServerExtensions;
  */
 public class XFrameOptionsFilter implements Filter {
 
-    private static final boolean DEFAULT_SHOULD_SET_POLICY = false;
+    private static final boolean DEFAULT_SHOULD_SET_POLICY = true;
     private static final String DEFAULT_FRAME_POLICY = "SAMEORIGIN";
     private static final String X_FRAME_OPTIONS = "X-Frame-Options";
 

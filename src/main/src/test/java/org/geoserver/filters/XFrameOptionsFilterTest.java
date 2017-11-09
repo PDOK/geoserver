@@ -25,7 +25,7 @@ public class XFrameOptionsFilterTest {
     @Test
     public void doFilter() throws Exception {
         String header = getXStreamHeader();
-        assertEquals("Expect default XFrameOption to be null", null, header);
+        assertEquals("Expect default XFrameOption to be DENY", "SAMEORIGIN", header);
     }
 
     @Test
@@ -44,22 +44,15 @@ public class XFrameOptionsFilterTest {
 
     @Test
     public void testFilterWithSameOrigin() throws IOException, ServletException {
-        String currentPolicyProperty =
-            System.getProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_POLICY);
         String currentShouldSetProperty =
-            System.getProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_SHOULD_SET_POLICY);
+            System.getProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_POLICY);
         System.setProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_POLICY, "DENY");
-        System.setProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_SHOULD_SET_POLICY, "true");
         String header = getXStreamHeader();
 
         assertEquals("Expect default XFrameOption to be DENY", "DENY", header);
 
-        if (currentPolicyProperty != null) {
-            System.setProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_POLICY, currentPolicyProperty);
-        }
-
         if (currentShouldSetProperty != null) {
-            System.setProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_SHOULD_SET_POLICY, currentShouldSetProperty);
+            System.setProperty(XFrameOptionsFilter.GEOSERVER_XFRAME_POLICY, currentShouldSetProperty);
         }
     }
 

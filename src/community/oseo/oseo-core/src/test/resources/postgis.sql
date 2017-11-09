@@ -12,15 +12,15 @@ drop table if exists collection;
 
 -- the collections and the attributes describing them
 create table collection (
-  id serial primary key,
-  name varchar,
+  "id" serial primary key,
+  "name" varchar,
   "primary" boolean,
   "htmlDescription" text,
-  footprint geography(Polygon, 4326),
+  "footprint" geography(Polygon, 4326),
   "timeStart" timestamp,
   "timeEnd" timestamp,
-  productCqlFilter varchar,
-  masked boolean,
+  "productCqlFilter" varchar,
+  "masked" boolean,
   "eoIdentifier" varchar unique,
   "eoProductType" varchar,
   "eoPlatform" varchar,
@@ -38,8 +38,8 @@ create table collection (
 );
 -- index all (really, this is a search engine)
 -- manually generated indexes
-create index "idx_collection_footprint" on collection using GIST(footprint);
--- the following indexes have been generated adding
+create index "idx_collection_footprint" on collection using GIST("footprint");
+-- the following indexes have been generated calling
 -- SELECT 'CREATE INDEX "idx_' || table_name || '_' || column_name || '" ON ' || table_name || ' ("' || column_name || '");'   FROM information_schema.columns WHERE table_schema = current_schema() and table_name = 'collection' and (column_name like 'eo%' or column_name like 'opt%' or column_name like 'sar%' or column_name like 'time%');
 CREATE INDEX "idx_collection_timeStart" ON collection ("timeStart");
 CREATE INDEX "idx_collection_timeEnd" ON collection ("timeEnd");
@@ -58,24 +58,38 @@ CREATE INDEX "idx_collection_eoSecurityConstraints" ON collection ("eoSecurityCo
 CREATE INDEX "idx_collection_eoDissemination" ON collection ("eoDissemination");
 CREATE INDEX "idx_collection_eoAcquisitionStation" ON collection ("eoAcquisitionStation");
 
--- the iso metadata storage (large files, not used for search, thus separate table)
+-- the layer publishing information, if any
+create table collection_layer (
+  "cid" int primary key references collection("id") on delete cascade,
+  "workspace" varchar,
+  "layer" varchar,
+  "separateBands" boolean,
+  "bands" varchar,
+  "browseBands" varchar,
+  "heterogeneousCRS" boolean,
+  "mosaicCRS" varchar
+);
+
+-- the iso metadata storage (large text, not used for search, thus separate table)
 create table collection_metadata (
-  id int primary key references collection(id),
-  metadata text
+  "mid" int primary key references collection("id"),
+  "metadata" text
 );
 
 -- the products and attributes describing them
 create table product (
-  id serial primary key,
-  name varchar,
+  "id" serial primary key,
   "htmlDescription" text,
-  footprint geography(Polygon, 4326),
+  "footprint" geography(Polygon, 4326),
   "timeStart" timestamp,
   "timeEnd" timestamp,
   "originalPackageLocation" varchar,
+  "originalPackageType" varchar,
   "thumbnailURL" varchar,
   "quicklookURL" varchar,
-  "eoParentIdentifier" varchar references collection("eoIdentifier"),
+  "crs" varchar,
+  "eoIdentifier" varchar unique,
+  "eoParentIdentifier" varchar references collection("eoIdentifier") on delete cascade,
   "eoProductionStatus" varchar,
   "eoAcquisitionType" varchar check ("eoAcquisitionType" in ('NOMINAL', 'CALIBRATION', 'OTHER')),
   "eoOrbitNumber" int,
@@ -112,9 +126,10 @@ create table product (
   "sarIncidenceAngleVariation" float,
   "eoResolution" float
 );
+
 -- index all (really, this is a search engine)
 -- manually generated indexes
-create index "idx_product_footprint" on product using GIST(footprint);
+create index "idx_product_footprint" on product using GIST("footprint");
 -- the following indexes have been generated adding
 -- SELECT 'CREATE INDEX "idx_' || table_name || '_' || column_name || '" ON ' || table_name || ' ("' || column_name || '");'   FROM information_schema.columns WHERE table_name = 'product' and column_name like 'eo%' or column_name like 'opt%' or column_name like 'sar%' or column_name like 'time%';
  CREATE INDEX "idx_product_timeStart" ON product ("timeStart");
@@ -158,42 +173,43 @@ create index "idx_product_footprint" on product using GIST(footprint);
 
  -- the eo metadata storage (large files, not used for search, thus separate table)
 create table product_metadata (
-  id int primary key references product(id),
-  metadata text
+  "mid" int primary key references product("id") on delete cascade,
+  "metadata" text
 );
 
 -- the eo thumbs storage (small binary files, not used for search, thus separate table)
 create table product_thumb (
-	id int primary key references product(id),
-	thumb bytea
+	"tid" int primary key references product("id") on delete cascade,
+	"thumb" bytea
 );
 
 -- links for collections
 create table collection_ogclink (
-  id serial primary key,
-  collection_id int references collection(id),
-  offering varchar,
-  method varchar,
-  code varchar,
+  "lid" serial primary key,
+  "collection_id" int references collection("id") on delete cascade,
+  "offering" varchar,
+  "method" varchar,
+  "code" varchar,
   "type" varchar,
-  href varchar
+  "href" varchar
 );
 
 -- links for products
 create table product_ogclink (
-  id serial primary key,
-  product_id int references product(id),
-  offering varchar,
-  method varchar,
-  code varchar,
+  "lid" serial primary key,
+  "product_id" int references product("id") on delete cascade,
+  "offering" varchar,
+  "method" varchar,
+  "code" varchar,
   "type" varchar,
-  href varchar
+  "href" varchar
 ); 
 
 -- the granules table (might be abstract, and we can use partitioning)
 create table granule (
-  id serial primary key,
-  product_id int references product(id),
-  location varchar,
-  the_geom geometry(Polygon, 4326)
-)
+  "gid" serial primary key,
+  "product_id" int not null references product("id") on delete cascade,
+  "band" varchar,
+  "location" varchar not null,
+  "the_geom" geometry(Polygon, 4326) not null
+);

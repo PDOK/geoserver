@@ -1,5 +1,7 @@
 <img src="/doc/en/themes/geoserver/static/GeoServer_500.png" width="353">
 
+[![Gitter](https://badges.gitter.im/geoserver/geoserver.svg)](https://gitter.im/geoserver/geoserver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [GeoServer](http://geoserver.org) is an open source software server written in Java that 
 allows users to share and edit geospatial data. Designed for interoperability, it publishes data from 
 any major spatial data source using open standards.
@@ -15,11 +17,11 @@ GeoServer forms a core component of the Geospatial Web.
 
 ## License
 
-GeoServer licensed under the [GPL](http://docs.geoserver.org/latest/en/user/introduction/license.html).
+GeoServer licensed under the [GPL](http://docs.geoserver.org/2.12.x/en/user/introduction/license.html).
 
 ## Using
 
-Please refer to the [user guide](http://docs.geoserver.org/latest/en/user/) for information
+Please refer to the [user guide](http://docs.geoserver.org/2.12.x/en/user/) for information
 on how to install and use GeoServer.
 
 ## Building
@@ -27,9 +29,9 @@ on how to install and use GeoServer.
 GeoServer uses [Apache Maven](http://maven.apache.org/) for a build system. To 
 build the application run maven from the ```src``` directory.
 
-    % mvn clean install
+    mvn clean install
 
-See the [developer guide](http://docs.geoserver.org/latest/en/developer/) 
+See the [developer guide](http://docs.geoserver.org/2.12.x/en/developer/) 
 for more details.
 
 ## Bugs

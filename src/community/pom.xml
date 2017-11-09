@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>geoserver</artifactId>
-    <version>2.11.2</version>
+    <version>2.12.0</version>
   </parent>
 
   <groupId>org.geoserver</groupId>
@@ -37,8 +37,8 @@
       <configuration>
         <descriptors>
           <descriptor>release/ext-authkey.xml</descriptor>
-          <descriptor>release/ext-groovy.xml</descriptor>
-          <descriptor>release/ext-javascript.xml</descriptor>
+          <!-- <descriptor>release/ext-groovy.xml</descriptor> -->
+          <!-- <descriptor>release/ext-javascript.xml</descriptor> -->
           <descriptor>release/ext-spatialite.xml</descriptor>
           <descriptor>release/ext-jdbcconfig.xml</descriptor>
           <descriptor>release/ext-dds.xml</descriptor>
@@ -49,7 +49,7 @@
           <descriptor>release/ext-geopkg.xml</descriptor>
           <descriptor>release/ext-pgraster.xml</descriptor>
           <descriptor>release/ext-dyndimension.xml</descriptor>
-          <descriptor>release/ext-rest-ext.xml</descriptor>
+          <!-- <descriptor>release/ext-rest-ext.xml</descriptor> -->
           <descriptor>release/ext-kmlppio.xml</descriptor>
           <descriptor>release/ext-gpx.xml</descriptor>
           <descriptor>release/ext-wps-download.xml</descriptor>
@@ -58,11 +58,11 @@
           <descriptor>release/ext-activeMQ.xml</descriptor>	
           <descriptor>release/ext-solr.xml</descriptor>		  
           <descriptor>release/ext-geofence.xml</descriptor>
-          <descriptor>release/ext-sldservice.xml</descriptor>
-          <descriptor>release/ext-rest-upload.xml</descriptor>
+          <!-- <descriptor>release/ext-sldservice.xml</descriptor> -->
+          <!-- <descriptor>release/ext-rest-upload.xml</descriptor> -->
           <descriptor>release/ext-gwc-distributed.xml</descriptor>  
           <descriptor>release/ext-geofence-server.xml</descriptor>
-          <descriptor>release/ext-gwc-s3.xml</descriptor>	
+          <!-- <descriptor>release/ext-gwc-s3.xml</descriptor> -->
           <descriptor>release/ext-gdal-wcs.xml</descriptor>
           <descriptor>release/ext-gdal-wps.xml</descriptor>
           <descriptor>release/ext-wps-jdbc.xml</descriptor>
@@ -76,13 +76,15 @@
           <descriptor>release/ext-oauth2-google.xml</descriptor>
           <descriptor>release/ext-oauth2-github.xml</descriptor>
           <descriptor>release/ext-oauth2-geonode.xml</descriptor>
-          <descriptor>release/ext-backup-restore.xml</descriptor>
+          <!-- <descriptor>release/ext-backup-restore.xml</descriptor> -->
           <descriptor>release/ext-wmts-multi-dimensional.xml</descriptor> 
           <descriptor>release/ext-onelogin.xml</descriptor> 
-          <descriptor>release/ext-notification.xml</descriptor> 
+          <descriptor>release/ext-notification.xml</descriptor>
           <descriptor>release/ext-ows-simulate.xml</descriptor> 
           <descriptor>release/ext-jdbc-metrics.xml</descriptor>
-          <descriptor>release/ext-opensearch-eo.xml</descriptor>  
+          <descriptor>release/ext-opensearch-eo.xml</descriptor>
+          <descriptor>release/ext-mbstyle.xml</descriptor> 
+          <descriptor>release/ext-status-monitoring.xml</descriptor>
         </descriptors>
       </configuration>
      </plugin>
@@ -199,24 +201,24 @@
         <module>spatialite</module>
         <module>jdbcconfig</module>
         <module>feature-aggregate</module>
-        <module>script</module>
+        <!-- <module>script</module> -->
         <module>wms-eo</module>
         <module>colormap</module>
         <module>mbtiles</module>
         <module>geopkg</module>
         <module>pgraster</module>
         <module>dyndimension</module>
-        <module>rest-ext</module>
+        <!-- <module>rest-ext</module> -->
         <module>gpxppio</module>
         <module>kmlppio</module>
         <module>wps-download</module>
         <module>jms-cluster</module>
         <module>hz-cluster</module>
         <module>solr</module>
-        <module>rest-upload</module>
+        <!-- <module>rest-upload</module> -->
         <module>geofence</module>
         <module>geofence-server</module>
-        <module>sldService</module>
+        <!-- <module>sldService</module> -->
         <module>params-extractor</module>
         <module>wps-remote</module>
         <module>wps-jdbc</module>
@@ -225,8 +227,8 @@
         <module>gwc-distributed</module>
         <module>jdbcstore</module>
         <module>gdal</module>
-        <module>gwc-s3</module>
-        <module>backup-restore</module>
+        <!-- <module>gwc-s3</module> -->
+        <!-- <module>backup-restore</module> -->
         <module>ncwms</module>
         <module>web-resource</module>
         <module>gwc-sqlite</module>
@@ -242,6 +244,9 @@
         <module>ows-simulate</module>
         <module>jdbc-metrics</module>
         <module>oseo</module>
+        <module>mbstyle</module>
+        <module>s3-geotiff</module>
+        <module>status-monitoring</module>
       </modules>
     </profile>
     <profile>
@@ -456,12 +461,6 @@
       </modules>
     </profile>
     <profile>
-      <id>dem</id>
-      <modules>
-        <module>dem</module>
-      </modules>
-    </profile>
-    <profile>
       <id>backup-restore</id>
       <modules>
         <module>backup-restore</module>
@@ -537,5 +536,17 @@
         <module>jdbc-metrics</module>
       </modules>
     </profile>
-  </profiles>
+    <profile>
+      <id>s3-geotiff</id>
+      <modules>
+        <module>s3-geotiff</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>status-monitoring</id>
+      <modules>
+        <module>status-monitoring</module>
+      </modules>
+    </profile>
+  </profiles>  
 </project>

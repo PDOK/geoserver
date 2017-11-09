@@ -9,27 +9,75 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import org.geoserver.opensearch.eo.store.OpenSearchAccess;
 import org.geotools.data.Parameter;
+import org.geotools.feature.NameImpl;
 import org.geotools.referencing.CRS;
+import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.expression.PropertyName;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 /**
- * Container/provider for common OpenSearch parameters
+ * Container/provider for common OpenSearch parameters. Parameter keys are used as the Kvp keys in URLs,
+ * an optional prefix associates them to a namespace, an optional name can be used to build the fully
+ * qualified name of the parameter, otherwise the key will be used (the difference between the two
+ * is used to resolve some conflicts like "relation" used by both time and geo namespaces):
  *
  * @author Andrea Aime - GeoSolutions
  */
 public class OpenSearchParameters {
-    
+
     public static final CoordinateReferenceSystem OUTPUT_CRS;
+
+    public static enum GeometryRelation {
+        intersects, disjoint, contains
+    }
+    
+    /**
+     * Possible relationships between data time validity and query one
+     *
+     * @author Andrea Aime - GeoSolutions
+     */
+    public static enum DateRelation {
+        intersects, contains, during, disjoint, equals
+    };
 
     public static final String OS_PREFIX = "os";
 
     public static final String TIME_PREFIX = "time";
 
+    public static final Parameter<?> TIME_END = new ParameterBuilder("timeEnd", Date.class)
+            .prefix(TIME_PREFIX).name("end").build();
+
+    public static final Parameter<?> TIME_START = new ParameterBuilder("timeStart", Date.class)
+            .prefix(TIME_PREFIX).name("start").build();
+
+    public static final Parameter<?> TIME_RELATION = new ParameterBuilder("timeRelation",
+            DateRelation.class).prefix(TIME_PREFIX).name("relation").build();
+
     public static final String GEO_PREFIX = "geo";
+
+    public static final Parameter<?> GEO_RADIUS = new ParameterBuilder("radius", Double.class)
+            .prefix(GEO_PREFIX).minimumInclusive(0).build();
+    
+    public static final Parameter<?> GEO_RELATION = new ParameterBuilder("geoRelation",
+            DateRelation.class).prefix(GEO_PREFIX).name("relation").build();
+    
+    public static final Parameter<?> GEO_GEOMETRY = new ParameterBuilder("geometry", Geometry.class)
+            .prefix(GEO_PREFIX).build();
+
+    public static final Parameter<?> GEO_LON = new ParameterBuilder("lon", Double.class)
+            .prefix(GEO_PREFIX).minimumInclusive(-180).maximumInclusive(180).build();
+
+    public static final Parameter<?> GEO_LAT = new ParameterBuilder("lat", Double.class)
+            .prefix(GEO_PREFIX).minimumInclusive(-90).maximumInclusive(90).build();
+
+    public static final Parameter<?> GEO_NAME = new ParameterBuilder("name", String.class)
+            .prefix(GEO_PREFIX).build();
 
     public static final String EO_PREFIX = "eo";
 
@@ -38,10 +86,19 @@ public class OpenSearchParameters {
 
     public static final Parameter<?> START_INDEX = new ParameterBuilder("startIndex", Integer.class)
             .prefix(OS_PREFIX).build();
-    
-    public static final Parameter<?> GEO_UID = new ParameterBuilder("uid", String.class).prefix(GEO_PREFIX).build();
+
+    public static final Parameter<?> GEO_UID = new ParameterBuilder("uid", String.class)
+            .prefix(GEO_PREFIX).build();
+
+    public static final Parameter<?> GEO_BOX = new ParameterBuilder("box", Envelope.class)
+            .prefix(GEO_PREFIX).build();
 
     public static final String PARAM_PREFIX = "parameterPrefix";
+    
+    /**
+     * Name of the parameter in the URLs, if missing it's the same as key
+     */
+    public static final String PARAM_NAME = "parameterName";
 
     public static final String MIN_INCLUSIVE = "minInclusive";
 
@@ -68,17 +125,7 @@ public class OpenSearchParameters {
 
     private static List<Parameter<?>> geoTimeOpenSearchParameters() {
         return Arrays.asList( //
-                GEO_UID,
-                new ParameterBuilder("box", Envelope.class).prefix(GEO_PREFIX).build(),
-                new ParameterBuilder("name", String.class).prefix(GEO_PREFIX).build(),
-                new ParameterBuilder("lat", Double.class).prefix(GEO_PREFIX).minimumInclusive(-90)
-                        .maximumInclusive(90).build(),
-                new ParameterBuilder("lon", Double.class).prefix(GEO_PREFIX).minimumInclusive(-180)
-                        .maximumInclusive(180).build(),
-                new ParameterBuilder("radius", Double.class).prefix(GEO_PREFIX).minimumInclusive(0)
-                        .build(),
-                new ParameterBuilder("start", Date.class).prefix(TIME_PREFIX).build(),
-                new ParameterBuilder("end", Date.class).prefix(TIME_PREFIX).build());
+                GEO_UID, GEO_BOX, GEO_NAME, GEO_LAT, GEO_LON, GEO_RADIUS, GEO_GEOMETRY, GEO_RELATION, TIME_START, TIME_END, TIME_RELATION);
     }
 
     /**
@@ -125,11 +172,83 @@ public class OpenSearchParameters {
      * @return
      */
     public static String getQualifiedParamName(Parameter p, boolean qualifyOpenSearchNative) {
-        String prefix = p.metadata == null ? null : (String) p.metadata.get(PARAM_PREFIX);
-        if (prefix != null && (!OS_PREFIX.equals(prefix) || qualifyOpenSearchNative)) {
-            return prefix + ":" + p.key;
+        String name = getParameterName(p);
+        
+        String prefix = getParameterPrefix(p);
+        if (prefix != null) {
+            if((OS_PREFIX.equals(prefix))) {
+                if(qualifyOpenSearchNative) {
+                    return prefix + ":" + name;
+                } else {
+                    return name;
+                }
+            } else if(isProductClass(prefix)) {
+                // all the EO parameters should be put in the EO namespace
+                return "eo:" + name;
+            }
+            return prefix + ":" + name;
         } else {
-            return p.key;
+            return name;
         }
+    }
+
+    private static boolean isProductClass(String prefix) {
+        for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+            if(pc.getPrefix().equals(prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the PARAM_PREFIX entry found in the parameter metadata, if any
+     * 
+     * @param p
+     * @return
+     */
+    public static String getParameterPrefix(Parameter p) {
+        String prefix = p.metadata == null ? null : (String) p.metadata.get(PARAM_PREFIX);
+        return prefix;
+    }
+    
+    /**
+     * Returns the PARAM_NAME entry found in the parameter metadata, if any, or the key otherwise
+     * 
+     * @param p
+     * @return
+     */
+    public static String getParameterName(Parameter p) {
+        String name = p.metadata == null ? null : (String) p.metadata.get(PARAM_NAME);
+        if(name == null) {
+            name = p.key;
+        }
+        return name;
+    }
+
+    /**
+     * Builds the {@link PropertyName} for the given OpenSearch parameter
+     * 
+     * @param parameter
+     * @return
+     */
+    public static PropertyName getFilterPropertyFor(FilterFactory2 ff, Parameter<?> parameter) {
+        String prefix = getParameterPrefix(parameter);
+        String namespace = null;
+        
+        if(EO_PREFIX.equals(prefix)) {
+            namespace = OpenSearchAccess.EO_NAMESPACE;
+        } else {
+            // product parameter maybe?
+            for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+                if (pc.getPrefix().equals(prefix)) {
+                    namespace = pc.getNamespace();
+                }
+            }
+        }
+        
+        // the name
+        String name = getParameterName(parameter);
+        return ff.property(new NameImpl(namespace, name));
     }
 }

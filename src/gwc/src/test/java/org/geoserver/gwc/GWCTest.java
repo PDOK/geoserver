@@ -8,10 +8,10 @@ package org.geoserver.gwc;
 import static com.google.common.collect.Iterators.forEnumeration;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.union;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createMockBuilder;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
+import static org.easymock.classextension.EasyMock.createMock;
+import static org.easymock.classextension.EasyMock.createMockBuilder;
+import static org.easymock.classextension.EasyMock.expect;
+import static org.easymock.classextension.EasyMock.replay;
 import static org.geoserver.gwc.GWC.tileLayerName;
 import static org.geoserver.gwc.GWCTestHelpers.mockGroup;
 import static org.geoserver.gwc.GWCTestHelpers.mockLayer;
@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -46,11 +47,13 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.geoserver.catalog.Catalog;
@@ -97,6 +100,7 @@ import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.diskquota.DiskQuotaMonitor;
 import org.geowebcache.diskquota.QuotaStore;
 import org.geowebcache.diskquota.jdbc.JDBCConfiguration;
+import org.geowebcache.filter.parameters.StringParameterFilter;
 import org.geowebcache.grid.BoundingBox;
 import org.geowebcache.grid.GridSet;
 import org.geowebcache.grid.GridSetBroker;
@@ -106,6 +110,7 @@ import org.geowebcache.layer.TileLayer;
 import org.geowebcache.layer.TileLayerDispatcher;
 import org.geowebcache.mime.MimeType;
 import org.geowebcache.seed.GWCTask;
+import org.geowebcache.seed.SeedRequest;
 import org.geowebcache.seed.TileBreeder;
 import org.geowebcache.service.Service;
 import org.geowebcache.storage.CompositeBlobStore;
@@ -114,6 +119,7 @@ import org.geowebcache.storage.StorageBroker;
 import org.geowebcache.storage.StorageException;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -725,8 +731,17 @@ public class GWCTest {
 
     @Test
     public void testTruncateByBounds() throws Exception {
-
         String layerName = tileLayer.getName();
+        
+        when(tileBreeder.findTileLayer(layerName))
+            .thenReturn(tileLayer);
+        final Set<Map<String, String>> cachedParameters = tileLayer.getInfo().cachedStyles().stream()
+            .map(style->Collections.singletonMap("STYLES",style))
+            .collect(Collectors.toSet());
+        
+        when(storageBroker.getCachedParameters(layerName))
+            .thenReturn(cachedParameters);
+        
         ReferencedEnvelope bounds;
         // bounds outside layer bounds (which are -180,0,0,90)
         bounds = new ReferencedEnvelope(10, 20, 10, 20, DefaultGeographicCRS.WGS84);
@@ -749,22 +764,77 @@ public class GWCTest {
         int numFormats = tileLayer.getMimeTypes().size();
         int numStyles = 1/* default */ + tileLayer.getInfo().cachedStyles().size();
         final int expected = numGridsets * numFormats * numStyles;
-        verify(tileBreeder, times(expected)).dispatchTasks(any(GWCTask[].class));
+        verify(tileBreeder, times(expected)).seed(eq(layerName), any(SeedRequest.class));
 
         reset(tileBreeder);
+        when(tileBreeder.findTileLayer(layerName))
+            .thenReturn(tileLayer);
         bounds = bounds.transform(CRS.decode("EPSG:900913"), true);
         mediator.truncate(layerName, bounds);
-        verify(tileBreeder, times(expected)).dispatchTasks(any(GWCTask[].class));
+        verify(tileBreeder, times(expected)).seed(eq(layerName), any(SeedRequest.class));
 
         reset(tileBreeder);
-        bounds = mediator.getAreaOfValidity(CRS.decode("EPSG:2083"));// Terra del Fuego
+        when(tileBreeder.findTileLayer(layerName))
+            .thenReturn(tileLayer);
+        bounds = mediator.getAreaOfValidity(CRS.decode("EPSG:2083"));// Terra del Fuego Does not intersect subset
         mediator.truncate(layerName, bounds);
-        verify(tileBreeder, never()).dispatchTasks(any(GWCTask[].class));
+        verify(tileBreeder, times(0)).seed(eq(layerName), any(SeedRequest.class));
 
         reset(tileBreeder);
+        when(tileBreeder.findTileLayer(layerName))
+            .thenReturn(tileLayer);
         bounds = mediator.getAreaOfValidity(CRS.decode("EPSG:26986"));// Massachussets
         mediator.truncate(layerName, bounds);
-        verify(tileBreeder, times(expected)).dispatchTasks(any(GWCTask[].class));
+        verify(tileBreeder, times(expected)).seed(eq(layerName), any(SeedRequest.class));
+    }
+    
+    @Test
+    public void testTruncateByBoundsWithDimension() throws Exception {
+        TileLayerInfoUtil.updateAcceptAllRegExParameterFilter(tileLayerInfo, "TIME", true);
+        Collection <String> cachedTimes = Arrays.asList("time1", "time2");
+        String layerName = tileLayer.getName();
+        
+        when(tileBreeder.findTileLayer(layerName))
+            .thenReturn(tileLayer);
+        final Set<Map<String, String>> cachedParameters = tileLayer.getInfo().cachedStyles().stream()
+            .flatMap(style->cachedTimes.stream()
+                    .map(time->{
+                        Map<String, String> map = new HashMap();
+                        map.put("STYLE", style);
+                        map.put("TIME", time);
+                        return map;
+                    }))
+            .collect(Collectors.toSet());
+        
+        when(storageBroker.getCachedParameters(layerName))
+            .thenReturn(cachedParameters);
+        
+        ReferencedEnvelope bounds;
+        // bounds outside layer bounds (which are -180,0,0,90)
+        bounds = new ReferencedEnvelope(10, 20, 10, 20, DefaultGeographicCRS.WGS84);
+        BoundingBox layerBounds = tileLayer.getGridSubset("EPSG:4326").getGridSet()
+                .getOriginalExtent();
+
+        assertFalse(bounds.intersects(layerBounds.getMinX(), layerBounds.getMinY()));
+        assertFalse(bounds.intersects(layerBounds.getMaxX(), layerBounds.getMaxY()));
+
+        mediator.truncate(layerName, bounds);
+
+        verify(tileBreeder, never()).dispatchTasks(any(GWCTask[].class));
+
+        // bounds intersecting layer bounds
+        bounds = new ReferencedEnvelope(-10, -10, 10, 10, DefaultGeographicCRS.WGS84);
+
+        mediator.truncate(layerName, bounds);
+
+        int numGridsets = tileLayer.getGridSubsets().size();
+        int numFormats = tileLayer.getMimeTypes().size();
+        int numStyles = tileLayer.getInfo().cachedStyles().size();
+        int numTimes = cachedTimes.size();
+        int numParameters = numStyles * numTimes +1;
+        final int expected = numGridsets * numFormats * numParameters;
+        verify(tileBreeder, times(expected)).seed(eq(layerName), any(SeedRequest.class));
+        
     }
 
     @Test
@@ -1393,38 +1463,6 @@ public class GWCTest {
         }
     }
     
-    @Test
-    public void testVerifyAccessTiledLayerOutside() throws Exception {
-        Envelope filterBox = new Envelope(10, 11, 20, 21);
-        BoundingBox bounds = new BoundingBox(42.0, 33.0, 84.0, 66.0);
-        final String layerName = "testLayer";
-        final String gridName = "testGridSet";
-        final int zoom=0;
-        final long col=0;
-        final long row=0;
-        
-        mockCachedSecureLayer(filterBox, bounds, layerName, gridName, zoom, col,
-                row);
-        
-        expected.expect(org.geotools.ows.ServiceException.class);
-        expected.expect(hasProperty("code", equalTo("AccessDenied")));
-        mediator.verifyAccessTiledLayer(layerName, gridName, zoom, col, row);
-    }
-    
-    @Test
-    public void testVerifyAccessTiledLayerInside() throws Exception {
-        Envelope filterBox = new Envelope(10, 11, 20, 21);
-        BoundingBox bounds = new BoundingBox(10.1, 20.1, 10.2, 20.2);
-        final String layerName = "testLayer";
-        final String gridName = "testGridSet";
-        final int zoom=0;
-        final long col=0;
-        final long row=0;
-        
-        mockCachedSecureLayer(filterBox, bounds, layerName, gridName, zoom, col,
-                row);
-        mediator.verifyAccessTiledLayer(layerName, gridName, zoom, col, row);
-    }
 
     private void mockCachedSecureLayer(Envelope filterBox, BoundingBox bounds,
             final String layerName, final String gridName, final long zoom,

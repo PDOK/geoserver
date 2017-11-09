@@ -773,9 +773,7 @@ public class TransactionTest extends WFSTestSupport {
        Document dom = postAsDOM("wfs", xml);
        assertEquals("wfs:TransactionResponse", dom.getDocumentElement().getNodeName());
        XMLAssert.assertXpathExists("//ogc:FeatureId[@fid = 'bar.1234']", dom);
-        print(dom);
        dom = getAsDOM("wfs?request=GetFeature&version=1.1.0&service=wfs&featureId=bar.1234");
-        print(dom);
        XMLAssert.assertXpathExists("//gs:bar[@gml:id = 'bar.1234']",dom);
     }
 

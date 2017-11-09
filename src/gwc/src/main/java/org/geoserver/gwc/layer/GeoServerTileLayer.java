@@ -5,48 +5,17 @@
  */
 package org.geoserver.gwc.layer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Throwables.propagate;
-import static org.geoserver.gwc.GWC.tileLayerName;
-import static org.geoserver.ows.util.ResponseUtils.buildURL;
-import static org.geoserver.ows.util.ResponseUtils.params;
-
-import java.awt.*;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
-import org.geoserver.catalog.Catalog;
-import org.geoserver.catalog.KeywordInfo;
-import org.geoserver.catalog.LayerGroupInfo;
-import org.geoserver.catalog.LayerInfo;
-import org.geoserver.catalog.MetadataLinkInfo;
-import org.geoserver.catalog.MetadataMap;
-import org.geoserver.catalog.PublishedInfo;
-import org.geoserver.catalog.ResourceInfo;
-import org.geoserver.catalog.StyleInfo;
-import org.geoserver.catalog.WorkspaceInfo;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import org.geoserver.catalog.*;
 import org.geoserver.gwc.GWC;
 import org.geoserver.gwc.config.GWCConfig;
+import org.geoserver.gwc.controller.DispatcherController;
 import org.geoserver.gwc.dispatch.GwcServiceDispatcherCallback;
-import org.geoserver.ows.LocalWorkspace;
 import org.geoserver.ows.Dispatcher;
+import org.geoserver.ows.LocalWorkspace;
 import org.geoserver.ows.URLMangler;
 import org.geoserver.ows.util.RequestUtils;
 import org.geoserver.platform.GeoServerExtensions;
@@ -61,23 +30,14 @@ import org.geotools.util.logging.Logging;
 import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.config.ConfigurationException;
 import org.geowebcache.config.XMLGridSubset;
+import org.geowebcache.config.legends.LegendInfoBuilder;
 import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.filter.parameters.ParameterException;
 import org.geowebcache.filter.parameters.ParameterFilter;
 import org.geowebcache.filter.request.RequestFilter;
-import org.geowebcache.grid.BoundingBox;
-import org.geowebcache.grid.GridSet;
-import org.geowebcache.grid.GridSetBroker;
-import org.geowebcache.grid.GridSubset;
-import org.geowebcache.grid.OutsideCoverageException;
-import org.geowebcache.grid.SRS;
+import org.geowebcache.grid.*;
 import org.geowebcache.io.Resource;
-import org.geowebcache.layer.ExpirationRule;
-import org.geowebcache.layer.LayerListenerList;
-import org.geowebcache.layer.MetaTile;
-import org.geowebcache.layer.ProxyLayer;
-import org.geowebcache.layer.TileLayer;
-import org.geowebcache.layer.TileLayerListener;
+import org.geowebcache.layer.*;
 import org.geowebcache.layer.meta.ContactInformation;
 import org.geowebcache.layer.meta.LayerMetaInformation;
 import org.geowebcache.layer.meta.MetadataURL;
@@ -89,11 +49,25 @@ import org.geowebcache.mime.MimeType;
 import org.geowebcache.util.GWCVars;
 import org.geowebcache.util.ServletUtils;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import com.google.common.base.Throwables;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
 import org.vfny.geoserver.util.ResponseUtils;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import java.awt.*;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Throwables.propagate;
+import static org.geoserver.gwc.GWC.tileLayerName;
+import static org.geoserver.ows.util.ResponseUtils.buildURL;
+import static org.geoserver.ows.util.ResponseUtils.params;
 
 public class GeoServerTileLayer extends TileLayer implements ProxyLayer {
 
@@ -1271,38 +1245,38 @@ public class GeoServerTileLayer extends TileLayer implements ProxyLayer {
     }
 
     @Override
-    public Map<String, LegendInfo> getLegendsInfo() {
+    public Map<String, org.geowebcache.config.legends.LegendInfo> getLayerLegendsInfo() {
         LayerInfo layerInfo = getLayerInfo();
         if (layerInfo == null) {
             return Collections.emptyMap();
         }
-        Map<String, LegendInfo> legends = new HashMap<>();
+        Map<String, org.geowebcache.config.legends.LegendInfo> legends = new HashMap<>();
         Set<StyleInfo> styles = new HashSet<>(layerInfo.getStyles());
         styles.add(layerInfo.getDefaultStyle());
         for (StyleInfo styleInfo : styles) {
             org.geoserver.catalog.LegendInfo legendInfo = styleInfo.getLegend();
-            LegendInfo gwcLegendInfo = new LegendInfo();
+            LegendInfoBuilder gwcLegendInfo = new LegendInfoBuilder();
             if (legendInfo != null) {
-                gwcLegendInfo.id = legendInfo.getId();
-                gwcLegendInfo.width = legendInfo.getWidth();
-                gwcLegendInfo.height = legendInfo.getHeight();
-                gwcLegendInfo.format = legendInfo.getFormat();
-                gwcLegendInfo.legendUrl = buildURL(RequestUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest()),
-                        legendInfo.getOnlineResource(), null, URLMangler.URLType.RESOURCE);
-                legends.put(styleInfo.prefixedName(), gwcLegendInfo);
+                gwcLegendInfo.withStyleName(styleInfo.getName())
+                        .withWidth(legendInfo.getWidth())
+                        .withHeight(legendInfo.getHeight())
+                        .withFormat(legendInfo.getFormat())
+                        .withCompleteUrl(buildURL(RequestUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest()),
+                                legendInfo.getOnlineResource(), null, URLMangler.URLType.RESOURCE));
+                legends.put(styleInfo.prefixedName(), gwcLegendInfo.build());
             } else {
+                int finalWidth = GetLegendGraphicRequest.DEFAULT_WIDTH;
+                int finalHeight = GetLegendGraphicRequest.DEFAULT_HEIGHT;
+                String finalFormat = GetLegendGraphicRequest.DEFAULT_FORMAT;
                 try {
-                    gwcLegendInfo.width = GetLegendGraphicRequest.DEFAULT_WIDTH;
-                    gwcLegendInfo.height = GetLegendGraphicRequest.DEFAULT_HEIGHT;
                     Dimension dimension = getLegendSample().getLegendURLSize(styleInfo);
                     if (dimension != null) {
-                        gwcLegendInfo.width = (int) dimension.getWidth();
-                        gwcLegendInfo.height = (int) dimension.getHeight();
+                        finalWidth = (int) dimension.getWidth();
+                        finalHeight = (int) dimension.getHeight();
                     }
-                    gwcLegendInfo.format = GetLegendGraphicRequest.DEFAULT_FORMAT;
-                    if (null == getWms().getLegendGraphicOutputFormat(gwcLegendInfo.format)) {
+                    if (null == getWms().getLegendGraphicOutputFormat(finalFormat)) {
                         if (LOGGER.isLoggable(Level.WARNING)) {
-                            LOGGER.warning("Default legend format (" + gwcLegendInfo.format +
+                            LOGGER.warning("Default legend format (" + finalFormat +
                                     ")is not supported (jai not available?), can't add LegendURL element");
                         }
                         continue;
@@ -1312,15 +1286,19 @@ public class GeoServerTileLayer extends TileLayer implements ProxyLayer {
                 }
                 String layerName = layerInfo.prefixedName();
                 Map<String, String> params = params("service", "WMS", "request",
-                        "GetLegendGraphic", "format", gwcLegendInfo.format, "width",
-                        String.valueOf(gwcLegendInfo.width), "height",
-                        String.valueOf(gwcLegendInfo.height), "layer", layerName);
+                        "GetLegendGraphic", "format", finalFormat, "width",
+                        String.valueOf(finalWidth), "height",
+                        String.valueOf(finalHeight), "layer", layerName);
                 if (!styleInfo.getName().equals(layerInfo.getDefaultStyle().getName())) {
                     params.put("style", styleInfo.getName());
                 }
-                gwcLegendInfo.legendUrl = buildURL(RequestUtils.baseURL(Dispatcher.REQUEST.get().getHttpRequest()),
-                        "ows", params, URLMangler.URLType.SERVICE);
-                legends.put(styleInfo.prefixedName(), gwcLegendInfo);
+                gwcLegendInfo.withStyleName(styleInfo.getName())
+                        .withWidth(finalWidth)
+                        .withHeight(finalHeight)
+                        .withFormat(finalFormat)
+                        .withCompleteUrl(buildURL(RequestUtils.baseURL(
+                                Dispatcher.REQUEST.get().getHttpRequest()), "ows", params, URLMangler.URLType.SERVICE));
+                legends.put(styleInfo.prefixedName(), gwcLegendInfo.build());
             }
         }
         return legends;
