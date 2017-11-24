@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>geoserver</artifactId>
-    <version>2.12.0</version>
+    <version>2.12.1</version>
   </parent>
 
   <groupId>org.geoserver</groupId>
@@ -62,7 +62,7 @@
           <!-- <descriptor>release/ext-rest-upload.xml</descriptor> -->
           <descriptor>release/ext-gwc-distributed.xml</descriptor>  
           <descriptor>release/ext-geofence-server.xml</descriptor>
-          <!-- <descriptor>release/ext-gwc-s3.xml</descriptor> -->
+          <descriptor>release/ext-gwc-s3.xml</descriptor>
           <descriptor>release/ext-gdal-wcs.xml</descriptor>
           <descriptor>release/ext-gdal-wps.xml</descriptor>
           <descriptor>release/ext-wps-jdbc.xml</descriptor>
@@ -201,7 +201,7 @@
         <module>spatialite</module>
         <module>jdbcconfig</module>
         <module>feature-aggregate</module>
-        <!-- <module>script</module> -->
+        <module>script</module>
         <module>wms-eo</module>
         <module>colormap</module>
         <module>mbtiles</module>
@@ -227,7 +227,7 @@
         <module>gwc-distributed</module>
         <module>jdbcstore</module>
         <module>gdal</module>
-        <!-- <module>gwc-s3</module> -->
+        <module>gwc-s3</module>
         <!-- <module>backup-restore</module> -->
         <module>ncwms</module>
         <module>web-resource</module>

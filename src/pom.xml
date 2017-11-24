@@ -13,7 +13,7 @@
  <groupId>org.geoserver</groupId>
  <artifactId>geoserver</artifactId>
  <packaging>pom</packaging>
- <version>2.12.0</version>
+ <version>2.12.1</version>
  <name>GeoServer</name>
 
  <scm>
@@ -1256,6 +1256,11 @@
      <artifactId>oshi-core</artifactId>
      <version>3.4.3</version>
     </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.jdbc.version}</version>
+    </dependency>
   </dependencies>
  </dependencyManagement>
 
@@ -1487,7 +1492,7 @@
       <descriptor>release/ext-vectortiles.xml</descriptor>
       <descriptor>release/ext-ysld.xml</descriptor>
      </descriptors>
-     <finalName>geoserver-2.12.0</finalName>
+     <finalName>geoserver-2.12.1</finalName>
      <outputDirectory>${project.build.directory}/release</outputDirectory>
     </configuration>
    </plugin>
@@ -1838,9 +1843,9 @@
  </modules>
 
  <properties>
-  <gs.version>2.12.0</gs.version>
-  <gt.version>18.0</gt.version>
-  <gwc.version>1.12.0</gwc.version>
+  <gs.version>2.12.1</gs.version>
+  <gt.version>18.1</gt.version>
+  <gwc.version>1.12.1</gwc.version>
   <spring.version>4.3.7.RELEASE</spring.version>
   <spring.security.version>4.0.4.RELEASE</spring.security.version> 
   <servlet-api.version>3.0.1</servlet-api.version>
@@ -1883,6 +1888,7 @@
   <jackson2.version>2.5.0</jackson2.version>
   <compress-lzf.version>1.0.3</compress-lzf.version>
   <marlin.version>0.7.5-Unsafe</marlin.version>
+  <postgresql.jdbc.version>42.1.1</postgresql.jdbc.version>
  </properties>
 
  <profiles>
