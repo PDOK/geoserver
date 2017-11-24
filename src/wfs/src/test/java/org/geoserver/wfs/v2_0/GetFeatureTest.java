@@ -21,8 +21,10 @@ import javax.xml.namespace.QName;
 
 import org.custommonkey.xmlunit.XMLAssert;
 import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.config.GeoServer;
 import org.geoserver.data.test.MockData;
 import org.geoserver.data.test.SystemTestData;
+import org.geoserver.platform.ServiceException;
 import org.geoserver.wfs.GMLInfo;
 import org.geoserver.wfs.StoredQuery;
 import org.geoserver.wfs.WFSInfo;
@@ -76,6 +78,13 @@ public class GetFeatureTest extends WFS20TestSupport {
     public void testGet() throws Exception {
     	testGetFifteenAll("wfs?request=GetFeature&typenames=cdf:Fifteen&version=2.0.0&service=wfs");
     	testGetFifteenAll("wfs?request=GetFeature&typenames=(cdf:Fifteen)&version=2.0.0&service=wfs");
+    }
+
+    @Test
+    public void testAlternatePrefix() throws Exception {
+        testGetFifteenAll("wfs?request=GetFeature&typenames=abc:Fifteen&version=2.0.0&service=wfs&namespaces=xmlns(abc," + MockData.CDF_URI + ")");
+        testGetFifteenAll("wfs?request=GetFeature&typenames=abc:Fifteen&version=2.0.0&service=wfs&namespaces=xmlns(abc," + MockData.CDF_URI + "),xmlns(wfs," + WFS.NAMESPACE + ")");
+        testGetFifteenAll("wfs?request=GetFeature&typenames=Fifteen&version=2.0.0&service=wfs&namespaces=xmlns(" + MockData.CDF_URI + "),xmlns(wfs," + WFS.NAMESPACE + ")");
     }
     
     @Test
@@ -203,6 +212,25 @@ public class GetFeatureTest extends WFS20TestSupport {
                 doc);
         XMLAssert.assertXpathEvaluatesTo("NamedPlaces.1107531895891",
                 "//wfs:FeatureCollection/wfs:member/cite:NamedPlaces/@gml:id", doc);
+    }
+
+    @Test
+    public void testGetWithInconsistentResourceId() throws Exception {
+        GeoServer gs = getGeoServer();
+        WFSInfo wfs = gs.getService(WFSInfo.class);
+        wfs.setCiteCompliant(true);
+        gs.save(wfs);
+        
+        try {
+            // ask for a typename but with a reosurceid of another one 
+            Document doc =
+                    getAsDOM("wfs?request=GetFeature&typeNames=sf:AggregateGeoFeature&version=2.0.0&service=wfs&resourceid=Fifteen.2");
+            checkOws11Exception(doc, "2.0.0", ServiceException.INVALID_PARAMETER_VALUE, "RESOURCEID");
+        } finally {
+            wfs.setCiteCompliant(false);
+            gs.save(wfs);
+        }
+        
     }
 
     @Test
@@ -699,8 +727,7 @@ public class GetFeatureTest extends WFS20TestSupport {
     @Test
     public void testUserSuppliedNamespacePrefix() throws Exception {
         testGetFifteenAll("wfs?request=GetFeature&typename=myPrefix:Fifteen&version=2.0.0&service=wfs&"
-                + "namespace=xmlns(myPrefix%3D" // the '=' sign shall be encoded, hence '%3D'
-                + URLEncoder.encode(MockData.FIFTEEN.getNamespaceURI(), "UTF-8") + ")");
+                + "namespaces=xmlns(myPrefix," + URLEncoder.encode(MockData.FIFTEEN.getNamespaceURI(), "UTF-8") + ")");
     }
 
     @Test

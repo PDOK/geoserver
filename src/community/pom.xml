@@ -76,7 +76,7 @@
           <descriptor>release/ext-oauth2-google.xml</descriptor>
           <descriptor>release/ext-oauth2-github.xml</descriptor>
           <descriptor>release/ext-oauth2-geonode.xml</descriptor>
-          <!-- <descriptor>release/ext-backup-restore.xml</descriptor> -->
+          <descriptor>release/ext-backup-restore.xml</descriptor>
           <descriptor>release/ext-wmts-multi-dimensional.xml</descriptor> 
           <descriptor>release/ext-onelogin.xml</descriptor> 
           <descriptor>release/ext-notification.xml</descriptor>
@@ -85,6 +85,7 @@
           <descriptor>release/ext-opensearch-eo.xml</descriptor>
           <descriptor>release/ext-mbstyle.xml</descriptor> 
           <descriptor>release/ext-status-monitoring.xml</descriptor>
+          <descriptor>release/ext-nsg-wmts-profile.xml</descriptor>
         </descriptors>
       </configuration>
      </plugin>
@@ -228,7 +229,7 @@
         <module>jdbcstore</module>
         <module>gdal</module>
         <module>gwc-s3</module>
-        <!-- <module>backup-restore</module> -->
+        <module>backup-restore</module>
         <module>ncwms</module>
         <module>web-resource</module>
         <module>gwc-sqlite</module>
@@ -247,7 +248,8 @@
         <module>mbstyle</module>
         <module>s3-geotiff</module>
         <module>status-monitoring</module>
-        <module>nsg-profile</module>
+        <module>nsg-profiles/nsg-wfs-profile</module>
+        <module>nsg-profiles/nsg-wmts-profile</module>
       </modules>
     </profile>
     <profile>
@@ -550,10 +552,16 @@
       </modules>
     </profile>
     <profile>
-      <id>nsg-profile</id>
+      <id>nsg-wfs-profile</id>
       <modules>
-        <module>nsg-profile</module>
+        <module>nsg-profiles/nsg-wfs-profile</module>
       </modules>
     </profile>
-  </profiles>
+    <profile>
+      <id>nsg-wmts-profile</id>
+      <modules>
+        <module>nsg-profiles/nsg-wmts-profile</module>
+      </modules>
+    </profile>
+  </profiles>  
 </project>
