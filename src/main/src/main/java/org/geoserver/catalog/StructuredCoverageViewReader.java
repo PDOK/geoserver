@@ -7,47 +7,83 @@ package org.geoserver.catalog;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.stream.Collectors;
 import org.geoserver.catalog.CoverageView.CoverageBand;
 import org.geoserver.feature.CompositeFeatureCollection;
+import org.geoserver.feature.RetypingFeatureCollection;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
 import org.geotools.coverage.grid.io.GranuleStore;
 import org.geotools.coverage.grid.io.HarvestedSource;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
-import org.geotools.data.DataUtilities;
 import org.geotools.data.Query;
 import org.geotools.data.Transaction;
-import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.factory.Hints;
-import org.geotools.feature.SchemaException;
-import org.geotools.feature.collection.AbstractFeatureVisitor;
-import org.geotools.gce.imagemosaic.Utils;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.filter.visitor.DuplicatingFilterVisitor;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.util.DefaultProgressListener;
-import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.Name;
 import org.opengis.filter.Filter;
+import org.opengis.filter.Id;
+import org.opengis.filter.identity.Identifier;
 
 /**
  * A coverageView reader using a structured coverage readers implementation
- * 
+ *
  * @author Daniele Romagnoli - GeoSolutions
  */
-public class StructuredCoverageViewReader extends CoverageViewReader implements
-        StructuredGridCoverage2DReader {
+public class StructuredCoverageViewReader extends CoverageViewReader
+        implements StructuredGridCoverage2DReader {
 
-    private final static Logger LOGGER = org.geotools.util.logging.Logging
-            .getLogger(StructuredCoverageViewReader.class);
+    private static final Logger LOGGER =
+            org.geotools.util.logging.Logging.getLogger(StructuredCoverageViewReader.class);
+
+    /**
+     * Pass this hint to {@link #getGranules(String, boolean)} in order to get back information from
+     * a single band of the coverage view
+     */
+    public static Hints.Key QUERY_FIRST_BAND = new Hints.Key(Boolean.class);
+
+    /** Unmaps the view prefix in the id names */
+    static class GranuleStoreViewFilterVisitor extends DuplicatingFilterVisitor {
+
+        static Filter unmapIdentifiers(Filter filter, String viewName) {
+            GranuleStoreViewFilterVisitor visitor = new GranuleStoreViewFilterVisitor(viewName);
+            return (Filter) filter.accept(visitor, null);
+        }
+
+        String prefix;
+
+        public GranuleStoreViewFilterVisitor(String viewName) {
+            this.prefix = viewName + ".";
+        }
+
+        @Override
+        public Object visit(Id filter, Object extraData) {
+            Set<Identifier> identifiers = filter.getIdentifiers();
+            Set<Identifier> renamedIdentifiers =
+                    identifiers
+                            .stream()
+                            .map(
+                                    id -> {
+                                        String name = id.getID().toString();
+                                        if (name.startsWith(prefix)) {
+                                            name = name.substring(prefix.length());
+                                        }
+                                        return getFactory(extraData).featureId(name);
+                                    })
+                            .collect(Collectors.toSet());
+            return getFactory(extraData).id(renamedIdentifiers);
+        }
+    }
 
     static class GranuleStoreView implements GranuleStore {
 
@@ -59,8 +95,11 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
 
         private boolean readOnly;
 
-        public GranuleStoreView(StructuredGridCoverage2DReader structuredDelegate,
-                String referenceName, CoverageView coverageView, boolean readOnly)
+        public GranuleStoreView(
+                StructuredGridCoverage2DReader structuredDelegate,
+                String referenceName,
+                CoverageView coverageView,
+                boolean readOnly)
                 throws UnsupportedOperationException, IOException {
             this.reader = structuredDelegate;
             this.coverageView = coverageView;
@@ -68,24 +107,62 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
             this.readOnly = readOnly;
         }
 
-        @Override 
+        @Override
         public SimpleFeatureCollection getGranules(Query q) throws IOException {
             List<CoverageBand> bands = coverageView.getCoverageBands();
             Query renamedQuery = q != null ? new Query(q) : new Query();
+            if (q != null && q.getFilter() != null) {
+                Filter unmapped =
+                        GranuleStoreViewFilterVisitor.unmapIdentifiers(
+                                q.getFilter(), coverageView.getName());
+                renamedQuery.setFilter(unmapped);
+            }
             List<SimpleFeatureCollection> collections = new ArrayList<>();
+            boolean returnOnlyFirst =
+                    Boolean.TRUE.equals(
+                            renamedQuery.getHints().getOrDefault(QUERY_FIRST_BAND, false));
+            Set<String> queriesCoverages = new HashSet<>();
             for (CoverageBand band : bands) {
                 String coverageName = band.getInputCoverageBands().get(0).getCoverageName();
-                renamedQuery.setTypeName(coverageName);
-                SimpleFeatureCollection collection = reader.getGranules(coverageName, readOnly).getGranules(renamedQuery);
-                collections.add(collection);
+                // do not query the same source multiple times
+                if (queriesCoverages.add(coverageName)) {
+                    renamedQuery.setTypeName(coverageName);
+                    SimpleFeatureCollection collection =
+                            reader.getGranules(coverageName, readOnly).getGranules(renamedQuery);
+                    collections.add(collection);
+                }
+
+                if (returnOnlyFirst) {
+                    break;
+                }
             }
             // aggregate and return
+            SimpleFeatureCollection result;
             if (collections.size() == 0) {
-                throw new IllegalStateException("Unexpected, there is not a single band in the definition?");
-            } else if (collections.size() == 1) {
-                return collections.get(0);
+                throw new IllegalStateException(
+                        "Unexpected, there is not a single band in the definition?");
             } else {
-                return new CompositeFeatureCollection(collections);
+                // need to composite the collections
+                SimpleFeatureType schema = collections.get(0).getSchema();
+                result = new CompositeFeatureCollection(collections, schema);
+                // cannot use a simple retyper here, all features need a unique feature id
+                SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
+                tb.init(schema);
+                tb.setName(coverageView.getName());
+                return new RetypingFeatureCollection(result, tb.buildFeatureType()) {
+                    @Override
+                    public SimpleFeatureIterator features() {
+                        return new RetypingIterator(delegate.features(), target) {
+                            @Override
+                            public SimpleFeature next() {
+                                SimpleFeature next = delegate.next();
+                                builder.init(next);
+                                String newId = coverageView.getName() + "." + next.getID();
+                                return builder.buildFeature(newId);
+                            }
+                        };
+                    }
+                };
             }
         }
 
@@ -120,6 +197,10 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
 
         @Override
         public int removeGranules(Filter filter) {
+            // unmap the feature identifiers
+            Filter unmapped =
+                    GranuleStoreViewFilterVisitor.unmapIdentifiers(filter, coverageView.getName());
+
             List<CoverageBand> bands = coverageView.getCoverageBands();
             int removed = 0;
             for (CoverageBand band : bands) {
@@ -130,7 +211,7 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
                     // TODO: We may revisit the #removed granules computation to take into
                     // account cases where we remove different number of records across different
                     // input coverages
-                    removed = granuleStore.removeGranules(filter);
+                    removed = granuleStore.removeGranules(unmapped);
                 } catch (UnsupportedOperationException e) {
                     LOGGER.log(Level.FINER, e.getMessage(), e);
                 } catch (IOException e) {
@@ -141,7 +222,8 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
         }
 
         @Override
-        public void updateGranules(String[] attributeNames, Object[] attributeValues, Filter filter) {
+        public void updateGranules(
+                String[] attributeNames, Object[] attributeValues, Filter filter) {
             throw new UnsupportedOperationException();
         }
 
@@ -151,22 +233,23 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
         }
 
         @Override
-        public void setTransaction(Transaction transaction) {
-
-        }
+        public void setTransaction(Transaction transaction) {}
     }
 
     private StructuredGridCoverage2DReader structuredDelegate;
 
-    public StructuredCoverageViewReader(StructuredGridCoverage2DReader delegate,
-            CoverageView coverageView, CoverageInfo coverageInfo, Hints hints) {
+    public StructuredCoverageViewReader(
+            StructuredGridCoverage2DReader delegate,
+            CoverageView coverageView,
+            CoverageInfo coverageInfo,
+            Hints hints) {
         super(delegate, coverageView, coverageInfo, hints);
         structuredDelegate = delegate;
     }
 
     @Override
-    public GranuleSource getGranules(String coverageName, boolean readOnly) throws IOException,
-            UnsupportedOperationException {
+    public GranuleSource getGranules(String coverageName, boolean readOnly)
+            throws IOException, UnsupportedOperationException {
         return new GranuleStoreView(structuredDelegate, referenceName, coverageView, readOnly);
     }
 
@@ -176,20 +259,20 @@ public class StructuredCoverageViewReader extends CoverageViewReader implements
     }
 
     @Override
-    public void createCoverage(String coverageName, SimpleFeatureType schema) throws IOException,
-            UnsupportedOperationException {
+    public void createCoverage(String coverageName, SimpleFeatureType schema)
+            throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("Operation unavailable for Coverage Views");
     }
 
     @Override
-    public boolean removeCoverage(String coverageName) throws IOException,
-            UnsupportedOperationException {
+    public boolean removeCoverage(String coverageName)
+            throws IOException, UnsupportedOperationException {
         return removeCoverage(referenceName, false);
     }
 
     @Override
-    public boolean removeCoverage(String coverageName, boolean delete) throws IOException,
-            UnsupportedOperationException {
+    public boolean removeCoverage(String coverageName, boolean delete)
+            throws IOException, UnsupportedOperationException {
         throw new UnsupportedOperationException("Operation unavailable for Coverage Views");
     }
 

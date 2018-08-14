@@ -10,14 +10,12 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.geoserver.sldservice.utils.classifier.ColorRamp;
 
 /**
  * Custom Color Ramp Implementation
- * 
- * @author Alessio Fabiani, GeoSolutions SAS
  *
+ * @author Alessio Fabiani, GeoSolutions SAS
  */
 public class CustomColorRamp implements ColorRamp {
 
@@ -31,13 +29,14 @@ public class CustomColorRamp implements ColorRamp {
 
     private Color midColor = null;
 
+    private List<Color> inputColors = null;
+
     public int getNumClasses() {
         return classNum;
     }
 
     public List<Color> getRamp() throws Exception {
-        if (colors == null)
-            throw new Exception("Class num not setted, color ramp null");
+        if (colors == null) throw new Exception("Class num not setted, color ramp null");
         return colors;
     }
 
@@ -46,7 +45,7 @@ public class CustomColorRamp implements ColorRamp {
     }
 
     public void setNumClasses(int numClass) {
-        classNum = numClass + 1;// +1 for transparent
+        classNum = numClass + 1; // +1 for transparent
         try {
             createRamp();
         } catch (Exception e) {
@@ -66,49 +65,81 @@ public class CustomColorRamp implements ColorRamp {
         midColor = mid;
     }
 
-    protected void createRamp() throws Exception {
-        int red, green, blue;
-        double sRed, sGreen, sBlue;
-        int mid;
-        if (startColor == null || endColor == null)
-            throw new Exception("Start or end color not setted unable to build color ramp");
+    public void setInputColors(List<Color> inputColors) {
+        this.inputColors = inputColors;
+    }
 
-        if (midColor == null) {
-            sRed = ((double) endColor.getRed() - startColor.getRed()) / (double) (classNum - 1);
-            sGreen = ((double) endColor.getGreen() - startColor.getGreen())
-                    / (double) (classNum - 1);
-            sBlue = ((double) endColor.getBlue() - startColor.getBlue()) / (double) (classNum - 1);
-            for (int i = 0; i < classNum - 1; i++) {
-                red = (int) (sRed * i + startColor.getRed());
-                green = (int) (sGreen * i + startColor.getGreen());
-                blue = (int) (sBlue * i + startColor.getBlue());
-                colors.add(new Color(red, green, blue));
+    protected void createRamp() throws Exception {
+        int classes = classNum - 1;
+        if (inputColors != null) {
+            if (classes == inputColors.size()) {
+                colors = inputColors;
+            } else if (classes > inputColors.size()) {
+                int slices = inputColors.size() - 1;
+                int sliceSize = classes / slices;
+                colors = new ArrayList<Color>();
+                int total = 0;
+                for (int i = 0; i < slices - 1; i++) {
+                    total += sliceSize - 1;
+                    interpolate(
+                            colors, inputColors.get(i), inputColors.get(i + 1), sliceSize, i > 0);
+                }
+                interpolate(
+                        colors,
+                        inputColors.get(inputColors.size() - 2),
+                        inputColors.get(inputColors.size() - 1),
+                        classes - total,
+                        true);
+            } else {
+                colors = inputColors.subList(0, classes);
             }
         } else {
-            mid = (classNum - 1) / 2;
-            int rest = (classNum - 1) % 2;
-            sRed = ((double) midColor.getRed() - startColor.getRed()) / (double) (mid);
-            sGreen = ((double) midColor.getGreen() - startColor.getGreen()) / (double) (mid);
-            sBlue = ((double) midColor.getBlue() - startColor.getBlue()) / (double) (mid);
-            for (int i = 0; i < mid; i++) {
-                red = (int) (sRed * i + startColor.getRed());
-                green = (int) (sGreen * i + startColor.getGreen());
-                blue = (int) (sBlue * i + startColor.getBlue());
-                colors.add(new Color(red, green, blue));
-            }
-            int count = mid;
-            sRed = ((double) endColor.getRed() - midColor.getRed()) / (double) (mid + rest - 1);
-            sGreen = ((double) endColor.getGreen() - midColor.getGreen())
-                    / (double) (mid + rest - 1);
-            sBlue = ((double) endColor.getBlue() - midColor.getBlue()) / (double) (mid + rest - 1);
-            for (int i = 0; i < (mid + rest); i++) {
-                red = (int) (sRed * i + midColor.getRed());
-                green = (int) (sGreen * i + midColor.getGreen());
-                blue = (int) (sBlue * i + midColor.getBlue());
-                colors.add(new Color(red, green, blue));
-                count++;
+            int mid;
+            if (startColor == null || endColor == null)
+                throw new Exception("Start or end color not setted unable to build color ramp");
+
+            if (midColor == null) {
+                interpolate(colors, startColor, endColor, classNum - 1);
+            } else {
+                mid = classes / 2;
+                int rest = classes - mid;
+                interpolate(colors, startColor, midColor, mid);
+                interpolate(colors, midColor, endColor, rest, true);
             }
         }
     }
 
+    private void interpolate(
+            List<Color> result, Color start, Color end, int samples, boolean offset) {
+        if (offset) {
+            double sRed = ((double) end.getRed() - start.getRed()) / (double) (samples);
+            double sGreen = ((double) end.getGreen() - start.getGreen()) / (double) (samples);
+            double sBlue = ((double) end.getBlue() - start.getBlue()) / (double) (samples);
+
+            start =
+                    new Color(
+                            (int) (start.getRed() + sRed),
+                            (int) (start.getGreen() + sGreen),
+                            (int) (start.getBlue() + sBlue));
+        }
+        interpolate(colors, start, end, samples);
+    }
+
+    private void interpolate(List<Color> result, Color start, Color end, int samples) {
+        int red;
+        int green;
+        int blue;
+        double sRed;
+        double sGreen;
+        double sBlue;
+        sRed = ((double) end.getRed() - start.getRed()) / (double) (samples - 1);
+        sGreen = ((double) end.getGreen() - start.getGreen()) / (double) (samples - 1);
+        sBlue = ((double) end.getBlue() - start.getBlue()) / (double) (samples - 1);
+        for (int i = 0; i < samples; i++) {
+            red = (int) (sRed * i + start.getRed());
+            green = (int) (sGreen * i + start.getGreen());
+            blue = (int) (sBlue * i + start.getBlue());
+            result.add(new Color(red, green, blue));
+        }
+    }
 }

@@ -5,7 +5,7 @@ Community modules
 
 This section is devoted to GeoServer community modules. Community modules are considered "pending" in that they are not
 officially part of the GeoServer releases. They are however built along with the
-`nightly builds <http://ares.boundlessgeo.com/geoserver/>`_, so you can download and play with them.
+`nightly builds <https://build.geoserver.org/geoserver/>`_, so you can download and play with them.
 
 .. warning::
 
@@ -17,6 +17,7 @@ officially part of the GeoServer releases. They are however built along with the
 
    authkey/index
    oauth2/index
+   keycloak/index
    dds/index
    scripting/index
    spatialite/index
@@ -33,6 +34,7 @@ officially part of the GeoServer releases. They are however built along with the
    rest-upload/index
    geomesa/index
    gwc-distributed/index
+   geofence/index
    geofence-server/index
    gdal/index
    gwc-s3/index
@@ -49,3 +51,7 @@ officially part of the GeoServer releases. They are however built along with the
    s3-geotiff/index
    status-monitoring/index
    nsg-profile/index
+   netcdf-ghrsst/index
+   monitor-hibernate/index
+   taskmanager/index
+

@@ -17,14 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-
 import javax.xml.namespace.QName;
-
-import com.vividsolutions.jts.geom.Envelope;
 import org.geoserver.config.GeoServerInfo;
 import org.geoserver.opensearch.eo.MetadataRequest;
 import org.geoserver.opensearch.eo.OSEOInfo;
 import org.geoserver.opensearch.eo.OpenSearchParameters;
+import org.geoserver.opensearch.eo.ProductClass;
 import org.geoserver.opensearch.eo.SearchRequest;
 import org.geoserver.opensearch.eo.SearchResults;
 import org.geoserver.opensearch.eo.store.JDBCOpenSearchAccess;
@@ -42,6 +40,10 @@ import org.geotools.gml3.GMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.xml.Encoder;
 import org.geotools.xml.transform.Translator;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -55,10 +57,6 @@ import org.springframework.http.MediaType;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.Polygon;
 
 /**
  * Transforms results into ATOM documents
@@ -123,7 +121,7 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             mapNamespacePrefix("sch", "http://www.ascc.net/xml/schematron");
             mapNamespacePrefix("owc", "http://www.opengis.net/owc/1.0");
             mapNamespacePrefix("media", "http://search.yahoo.com/mrss/");
-            for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+            for (ProductClass pc : info.getProductClasses()) {
                 mapNamespacePrefix(pc.getPrefix(), pc.getNamespace());
             }
 
@@ -149,9 +147,11 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             element("os:Query", NO_CONTENTS, getQueryAttributes(request));
             String organization = gs.getSettings().getContact().getContactOrganization();
             if (organization != null) {
-                element("author", () -> {
-                    element("name", organization);
-                });
+                element(
+                        "author",
+                        () -> {
+                            element("name", organization);
+                        });
             }
             String title = info.getTitle();
             if (title != null) {
@@ -166,13 +166,22 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
 
         private void buildSearchLink(SearchRequest request) {
             Map<String, String> kvp = null;
-            if(request.getParentId() != null) {
+            if (request.getParentId() != null) {
                 kvp = Collections.singletonMap("parentId", request.getParentId());
             }
-            String href = ResponseUtils.buildURL(request.getBaseUrl(), "oseo/search/description", kvp, URLType.SERVICE);
-            element("link", NO_CONTENTS,
-                    attributes("rel", "search", "href", href, "type", DescriptionResponse.OS_DESCRIPTION_MIME));
-            
+            String href =
+                    ResponseUtils.buildURL(
+                            request.getBaseUrl(), "oseo/search/description", kvp, URLType.SERVICE);
+            element(
+                    "link",
+                    NO_CONTENTS,
+                    attributes(
+                            "rel",
+                            "search",
+                            "href",
+                            href,
+                            "type",
+                            DescriptionResponse.OS_DESCRIPTION_MIME));
         }
 
         private int getQueryStartIndex(SearchResults results) {
@@ -193,14 +202,14 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             encodePaginationLink("self", startIndex, itemsPerPage, request);
             encodePaginationLink("first", 1, itemsPerPage, request);
             if (startIndex > 1) {
-                encodePaginationLink("previous", Math.max(startIndex - itemsPerPage, 1),
-                        itemsPerPage, request);
+                encodePaginationLink(
+                        "previous", Math.max(startIndex - itemsPerPage, 1), itemsPerPage, request);
             }
             if (startIndex + itemsPerPage <= total) {
                 encodePaginationLink("next", startIndex + itemsPerPage, itemsPerPage, request);
             }
-            encodePaginationLink("last", getLastPageStart(total, itemsPerPage), itemsPerPage,
-                    request);
+            encodePaginationLink(
+                    "last", getLastPageStart(total, itemsPerPage), itemsPerPage, request);
         }
 
         private void encodeEntries(FeatureCollection results, SearchRequest request) {
@@ -229,42 +238,73 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             // build links and description replacement variables
             String identifierLink = buildCollectionIdentifierLink(identifier, request);
             String osddLink = buildOsddLink(identifier, request);
-            String metadataLink = buildMetadataLink(null, identifier, MetadataRequest.ISO_METADATA,
-                    request);
+            String metadataLink =
+                    buildMetadataLink(null, identifier, MetadataRequest.ISO_METADATA, request);
             Map<String, String> descriptionVariables = new HashMap<>();
             descriptionVariables.put(ISO_METADATA_KEY, metadataLink);
             descriptionVariables.put(ATOM_URL_KEY, identifierLink);
 
             // generic contents
-            encodeGenericEntryContents(feature, identifier, identifierLink, descriptionVariables, request);
+            encodeGenericEntryContents(
+                    feature, identifier, identifierLink, descriptionVariables, request);
 
             // build links to the metadata
-            element("link", NO_CONTENTS, attributes("rel", "alternate", "href", metadataLink,
-                    "type", MetadataRequest.ISO_METADATA, "title", "ISO metadata"));
+            element(
+                    "link",
+                    NO_CONTENTS,
+                    attributes(
+                            "rel",
+                            "alternate",
+                            "href",
+                            metadataLink,
+                            "type",
+                            MetadataRequest.ISO_METADATA,
+                            "title",
+                            "ISO metadata"));
 
             // build link to the collection specific OSDD
-            element("link", NO_CONTENTS, attributes("rel", "search", "href", osddLink,
-                    "type", DescriptionResponse.OS_DESCRIPTION_MIME, "title", "Collection OSDD"));
-
+            element(
+                    "link",
+                    NO_CONTENTS,
+                    attributes(
+                            "rel",
+                            "search",
+                            "href",
+                            osddLink,
+                            "type",
+                            DescriptionResponse.OS_DESCRIPTION_MIME,
+                            "title",
+                            "Collection OSDD"));
 
             // OGC links
             encodeOgcLinksFromFeature(feature, request);
         }
 
         private void mediaContent(String quicklookLink) {
-            element("media:content", () -> {
-                element("media:category", "THUMBNAIL", attributes("scheme", "http://www.opengis.net/spec/EOMPOM/1.0"));
-            }, attributes("medium", "image", "type", "image/jpeg", "url", quicklookLink));
+            element(
+                    "media:content",
+                    () -> {
+                        element(
+                                "media:category",
+                                "THUMBNAIL",
+                                attributes("scheme", "http://www.opengis.net/spec/EOMPOM/1.0"));
+                    },
+                    attributes("medium", "image", "type", "image/jpeg", "url", quicklookLink));
         }
 
         private void encodeOgcLinksFromFeature(Feature feature, SearchRequest request) {
             // build ogc links if available
-            Collection<Property> linkProperties = feature
-                    .getProperties(OpenSearchAccess.OGC_LINKS_PROPERTY_NAME);
+            Collection<Property> linkProperties =
+                    feature.getProperties(OpenSearchAccess.OGC_LINKS_PROPERTY_NAME);
             if (linkProperties != null) {
-                Map<String, List<SimpleFeature>> linksByOffering = linkProperties.stream()
-                        .map(p -> (SimpleFeature) p).sorted(LinkFeatureComparator.INSTANCE)
-                        .collect(Collectors.groupingBy(f -> (String) f.getAttribute("offering")));
+                Map<String, List<SimpleFeature>> linksByOffering =
+                        linkProperties
+                                .stream()
+                                .map(p -> (SimpleFeature) p)
+                                .sorted(LinkFeatureComparator.INSTANCE)
+                                .collect(
+                                        Collectors.groupingBy(
+                                                f -> (String) f.getAttribute("offering")));
                 String hrefBase = getHRefBase(request);
                 encodeOgcLinks(linksByOffering, hrefBase);
             }
@@ -279,16 +319,19 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             return hrefBase;
         }
 
-        private void encodeOgcLinks(Map<String, List<SimpleFeature>> linksByOffering,
-                String hrefBase) {
-            linksByOffering.forEach((offering, links) -> {
-                element("owc:offering", () -> {
-                    for (SimpleFeature link : links) {
-                        encodeOgcLink(link, hrefBase);
-                    }
-                }, attributes("code", offering));
-            });
-
+        private void encodeOgcLinks(
+                Map<String, List<SimpleFeature>> linksByOffering, String hrefBase) {
+            linksByOffering.forEach(
+                    (offering, links) -> {
+                        element(
+                                "owc:offering",
+                                () -> {
+                                    for (SimpleFeature link : links) {
+                                        encodeOgcLink(link, hrefBase);
+                                    }
+                                },
+                                attributes("code", offering));
+                    });
         }
 
         private void encodeOgcLink(SimpleFeature link, String hrefBase) {
@@ -296,68 +339,111 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             String code = (String) link.getAttribute("code");
             String type = (String) link.getAttribute("type");
             String href = (String) link.getAttribute("href");
-            String hrefExpanded = QuickTemplate.replaceVariables(href,
-                    Collections.singletonMap(BASE_URL_KEY, hrefBase));
-            element("owc:operation", NO_CONTENTS,
+            String hrefExpanded =
+                    QuickTemplate.replaceVariables(
+                            href, Collections.singletonMap(BASE_URL_KEY, hrefBase));
+            element(
+                    "owc:operation",
+                    NO_CONTENTS,
                     attributes("method", method, "code", code, "href", hrefExpanded, "type", type));
         }
 
         private void encodeProductEntry(Feature feature, SearchRequest request) {
-            final String identifier = (String) value(feature,
-                    OpenSearchAccess.ProductClass.EOP_GENERIC.getNamespace(), "identifier");
+            final String identifier =
+                    (String) value(feature, ProductClass.GENERIC.getNamespace(), "identifier");
 
             // encode the generic contents
             String productIdentifierLink = buildProductIdentifierLink(identifier, request);
-            String metadataLink = buildMetadataLink(request.getParentId(), identifier,
-                    MetadataRequest.OM_METADATA, request);
+            String metadataLink =
+                    buildMetadataLink(
+                            request.getParentId(),
+                            identifier,
+                            MetadataRequest.OM_METADATA,
+                            request);
             String quicklookLink = buildQuicklookLink(identifier, request);
             Map<String, String> descriptionVariables = new HashMap<>();
             descriptionVariables.put(QUICKLOOK_URL_KEY, quicklookLink);
             descriptionVariables.put(THUMB_URL_KEY, quicklookLink);
             descriptionVariables.put(ATOM_URL_KEY, productIdentifierLink);
             descriptionVariables.put(OM_METADATA_KEY, metadataLink);
-            encodeGenericEntryContents(feature, identifier, productIdentifierLink,
-                    descriptionVariables, request);
+            encodeGenericEntryContents(
+                    feature, identifier, productIdentifierLink, descriptionVariables, request);
 
             // build links to the metadata
-            element("link", NO_CONTENTS, attributes("rel", "alternate", "href", metadataLink,
-                    "type", MetadataRequest.OM_METADATA, "title", "O&M metadata"));
+            element(
+                    "link",
+                    NO_CONTENTS,
+                    attributes(
+                            "rel",
+                            "alternate",
+                            "href",
+                            metadataLink,
+                            "type",
+                            MetadataRequest.OM_METADATA,
+                            "title",
+                            "O&M metadata"));
 
             // and a quicklook as a link and as media
-            if(quicklookLink != null) {
-                element("link", NO_CONTENTS, attributes("rel", "icon", "href", quicklookLink,
-                        "type", "image/jpeg", "title", "Quicklook"));
+            if (quicklookLink != null) {
+                element(
+                        "link",
+                        NO_CONTENTS,
+                        attributes(
+                                "rel",
+                                "icon",
+                                "href",
+                                quicklookLink,
+                                "type",
+                                "image/jpeg",
+                                "title",
+                                "Quicklook"));
                 element("media:group", () -> mediaContent(quicklookLink));
             }
-            
+
             encodeOgcLinksFromFeature(feature, request);
-            
+
             encodeDownloadLink(feature, request);
         }
 
         private void encodeDownloadLink(Feature feature, SearchRequest request) {
-            String location  = (String) value(feature, null, OpenSearchAccess.ORIGINAL_PACKAGE_LOCATION);
-            if(location != null) {
+            String location =
+                    (String) value(feature, null, OpenSearchAccess.ORIGINAL_PACKAGE_LOCATION);
+            if (location != null) {
                 String type = (String) value(feature, null, OpenSearchAccess.ORIGINAL_PACKAGE_TYPE);
-                if(type == null) {
+                if (type == null) {
                     type = MediaType.APPLICATION_OCTET_STREAM_VALUE;
                 }
                 String hrefBase = getHRefBase(request);
-                String locationExpanded = QuickTemplate.replaceVariables(location,
-                        Collections.singletonMap(BASE_URL_KEY, hrefBase));
-                element("link", NO_CONTENTS, attributes("rel", "enclosure", "href", locationExpanded,
-                        "type", type, "title", "Source package download"));
+                String locationExpanded =
+                        QuickTemplate.replaceVariables(
+                                location, Collections.singletonMap(BASE_URL_KEY, hrefBase));
+                element(
+                        "link",
+                        NO_CONTENTS,
+                        attributes(
+                                "rel",
+                                "enclosure",
+                                "href",
+                                locationExpanded,
+                                "type",
+                                type,
+                                "title",
+                                "Source package download"));
             }
         }
 
-        private void encodeGenericEntryContents(Feature feature, String name,
-                final String identifierLink, Map<String, String> descriptionVariables, SearchRequest request) {
+        private void encodeGenericEntryContents(
+                Feature feature,
+                String name,
+                final String identifierLink,
+                Map<String, String> descriptionVariables,
+                SearchRequest request) {
             element("id", identifierLink);
             element("title", name);
             element("dc:identifier", name);
             Date start = (Date) value(feature, "timeStart");
             Date end = (Date) value(feature, "timeEnd");
-            if(start != null || end != null) {
+            if (start != null || end != null) {
                 // TODO: need an actual update column
                 Date updated = end == null ? start : end;
                 String formattedUpdated = DateTimeFormatter.ISO_INSTANT.format(updated.toInstant());
@@ -365,12 +451,18 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
 
                 // dc:date, can be a range
                 String spec;
-                if(start != null && end != null && start.equals(end)) {
+                if (start != null && end != null && start.equals(end)) {
                     spec = DateTimeFormatter.ISO_INSTANT.format(start.toInstant());
                 } else {
-                    spec = start != null ? DateTimeFormatter.ISO_INSTANT.format(start.toInstant()) : "";
+                    spec =
+                            start != null
+                                    ? DateTimeFormatter.ISO_INSTANT.format(start.toInstant())
+                                    : "";
                     spec += "/";
-                    spec += end != null ? DateTimeFormatter.ISO_INSTANT.format(end.toInstant()) : "";
+                    spec +=
+                            end != null
+                                    ? DateTimeFormatter.ISO_INSTANT.format(end.toInstant())
+                                    : "";
                 }
                 element("dc:date", spec);
             }
@@ -379,55 +471,81 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
                 // geometry is already in lat/lon order here
                 Envelope envelope = footprint.getEnvelopeInternal();
                 element("georss:where", () -> encodeGmlRssGeometry(footprint));
-                element("georss:box", envelope.getMinX() + " " + envelope.getMinY()
-                        + " " + envelope.getMaxX() + " " + envelope.getMaxY());
+                element(
+                        "georss:box",
+                        envelope.getMinX()
+                                + " "
+                                + envelope.getMinY()
+                                + " "
+                                + envelope.getMaxX()
+                                + " "
+                                + envelope.getMaxY());
             }
             String htmlDescription = (String) value(feature, "htmlDescription");
             if (htmlDescription != null) {
-                String expanded = QuickTemplate.replaceVariables(htmlDescription,
-                        descriptionVariables);
+                String expanded =
+                        QuickTemplate.replaceVariables(htmlDescription, descriptionVariables);
                 String expandedWithLinks = expanded + "\n" + encodeOGCLinksAsHTML(feature, request);
                 element("summary", () -> cdata(expandedWithLinks), attributes("type", "html"));
             }
             // self link
-            element("link", NO_CONTENTS, attributes("rel", "self", "href", identifierLink, "type",
-                    AtomSearchResponse.MIME, "title", "self"));
+            element(
+                    "link",
+                    NO_CONTENTS,
+                    attributes(
+                            "rel",
+                            "self",
+                            "href",
+                            identifierLink,
+                            "type",
+                            AtomSearchResponse.MIME,
+                            "title",
+                            "self"));
         }
 
         private String encodeOGCLinksAsHTML(Feature feature, SearchRequest request) {
-            Collection<Property> linkProperties = feature
-                    .getProperties(OpenSearchAccess.OGC_LINKS_PROPERTY_NAME);
+            Collection<Property> linkProperties =
+                    feature.getProperties(OpenSearchAccess.OGC_LINKS_PROPERTY_NAME);
             StringBuilder sb = new StringBuilder();
             if (linkProperties != null) {
-                Map<String, List<SimpleFeature>> linksByOffering = linkProperties.stream()
-                        .map(p -> (SimpleFeature) p).sorted(LinkFeatureComparator.INSTANCE)
-                        .collect(Collectors.groupingBy(f -> (String) f.getAttribute("offering")));
+                Map<String, List<SimpleFeature>> linksByOffering =
+                        linkProperties
+                                .stream()
+                                .map(p -> (SimpleFeature) p)
+                                .sorted(LinkFeatureComparator.INSTANCE)
+                                .collect(
+                                        Collectors.groupingBy(
+                                                f -> (String) f.getAttribute("offering")));
                 String hrefBase = getHRefBase(request);
-                if(linkProperties.size() > 0) {
+                if (linkProperties.size() > 0) {
                     sb.append("<h3>OGC cross links</h3>\n<ul>\n");
-                    for (Map.Entry<String, List<SimpleFeature>> entry: linksByOffering.entrySet()) {
+                    for (Map.Entry<String, List<SimpleFeature>> entry :
+                            linksByOffering.entrySet()) {
                         final String key = entry.getKey();
                         int idx = key.lastIndexOf('/');
                         String service = key;
-                        if(idx > 0 && idx < key.length() - 1) {
+                        if (idx > 0 && idx < key.length() - 1) {
                             service = key.substring(idx + 1).toUpperCase();
                         }
                         sb.append("  <li><b>").append(service).append("</b>\n<ul>");
                         for (SimpleFeature link : entry.getValue()) {
                             String code = (String) link.getAttribute("code");
                             String href = (String) link.getAttribute("href");
-                            String hrefExpanded = QuickTemplate.replaceVariables(href,
-                                    Collections.singletonMap(BASE_URL_KEY, hrefBase));
-                            sb.append("\n    <li><a href=\"").append(hrefExpanded).append("\">").append(code).append("</a></li>");
+                            String hrefExpanded =
+                                    QuickTemplate.replaceVariables(
+                                            href, Collections.singletonMap(BASE_URL_KEY, hrefBase));
+                            sb.append("\n    <li><a href=\"")
+                                    .append(hrefExpanded)
+                                    .append("\">")
+                                    .append(code)
+                                    .append("</a></li>");
                         }
                         sb.append("</ul></li>\n");
                     }
                     sb.append("</ul>");
                 }
-                
-                
             }
-            
+
             return sb.toString();
         }
 
@@ -481,8 +599,11 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             return href;
         }
 
-        private String buildMetadataLink(String parentIdentifier, Object identifier,
-                String mimeType, SearchRequest request) {
+        private String buildMetadataLink(
+                String parentIdentifier,
+                Object identifier,
+                String mimeType,
+                SearchRequest request) {
             String baseURL = request.getBaseUrl();
             Map<String, String> kvp = new LinkedHashMap<String, String>();
             if (parentIdentifier != null) {
@@ -512,8 +633,8 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
         }
 
         private Object value(Feature feature, String prefix, String attribute) {
-            Property property; 
-            if(prefix != null) {
+            Property property;
+            if (prefix != null) {
                 property = feature.getProperty(new NameImpl(prefix, attribute));
             } else {
                 property = feature.getProperty(attribute);
@@ -525,15 +646,20 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
                 if (value instanceof Geometry) {
                     // cheap reprojection support since there is no reprojecting collection
                     // wrapper for complex features
-                    CoordinateReferenceSystem nativeCRS = ((GeometryDescriptor) property
-                            .getDescriptor()).getCoordinateReferenceSystem();
-                    if (nativeCRS != null && !CRS.equalsIgnoreMetadata(nativeCRS,
-                            OpenSearchParameters.OUTPUT_CRS)) {
+                    CoordinateReferenceSystem nativeCRS =
+                            ((GeometryDescriptor) property.getDescriptor())
+                                    .getCoordinateReferenceSystem();
+                    if (nativeCRS != null
+                            && !CRS.equalsIgnoreMetadata(
+                                    nativeCRS, OpenSearchParameters.OUTPUT_CRS)) {
                         Geometry g = (Geometry) value;
                         try {
-                            return JTS.transform(g, CRS.findMathTransform(nativeCRS,
-                                    OpenSearchParameters.OUTPUT_CRS));
-                        } catch (MismatchedDimensionException | TransformException
+                            return JTS.transform(
+                                    g,
+                                    CRS.findMathTransform(
+                                            nativeCRS, OpenSearchParameters.OUTPUT_CRS));
+                        } catch (MismatchedDimensionException
+                                | TransformException
                                 | FactoryException e) {
                             throw new OWS20Exception(
                                     "Failed to reproject geometry to EPSG:4326 lat/lon", e);
@@ -557,21 +683,23 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             return total - lastPageItems + 1;
         }
 
-        private void encodePaginationLink(String rel, int startIndex, int itemsPerPage,
-                SearchRequest request) {
+        private void encodePaginationLink(
+                String rel, int startIndex, int itemsPerPage, SearchRequest request) {
             String baseURL = request.getBaseUrl();
             Map<String, String> kvp = new LinkedHashMap<String, String>();
             for (Map.Entry<Parameter, String> entry : request.getSearchParameters().entrySet()) {
                 Parameter parameter = entry.getKey();
                 String value = entry.getValue();
-                String key = OpenSearchParameters.getQualifiedParamName(parameter, false);
+                String key = OpenSearchParameters.getQualifiedParamName(info, parameter, false);
                 kvp.put(key, value);
             }
             kvp.put("startIndex", "" + startIndex);
             kvp.put("count", "" + itemsPerPage);
             kvp.put("httpAccept", AtomSearchResponse.MIME);
             String href = ResponseUtils.buildURL(baseURL, "oseo/search", kvp, URLType.SERVICE);
-            element("link", NO_CONTENTS,
+            element(
+                    "link",
+                    NO_CONTENTS,
                     attributes("rel", rel, "href", href, "type", AtomSearchResponse.MIME));
         }
 
@@ -581,7 +709,7 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             for (Map.Entry<Parameter, String> entry : request.getSearchParameters().entrySet()) {
                 Parameter parameter = entry.getKey();
                 String value = entry.getValue();
-                String key = OpenSearchParameters.getQualifiedParamName(parameter, false);
+                String key = OpenSearchParameters.getQualifiedParamName(info, parameter, false);
                 parameters.put(key, value);
             }
             // fill in defaults
@@ -599,7 +727,5 @@ public class AtomResultsTransformer extends LambdaTransformerBase {
             parameters.put("role", "request");
             return attributes(parameters);
         }
-
     }
-
 }

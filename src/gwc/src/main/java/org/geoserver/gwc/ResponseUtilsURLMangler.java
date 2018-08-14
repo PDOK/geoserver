@@ -1,3 +1,7 @@
+/* (c) 2017 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.gwc;
 
 import org.apache.commons.lang.StringUtils;
@@ -14,5 +18,4 @@ public class ResponseUtilsURLMangler implements URLMangler {
         String rest = cp + "/" + StringUtils.stripStart(path, "/");
         return ResponseUtils.buildURL(base, rest, null, URLType.RESOURCE);
     }
-
 }

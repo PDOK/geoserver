@@ -11,7 +11,7 @@
  <parent>
   <groupId>org.geoserver</groupId>
   <artifactId>geoserver</artifactId>
-  <version>2.13-SNAPSHOT</version>
+  <version>2.14-SNAPSHOT</version>
  </parent>
  <groupId>org.geoserver</groupId>
  <artifactId>gs-release</artifactId>
@@ -234,11 +234,6 @@
    <version>${project.version}</version>
   </dependency>
   <dependency>
-   <groupId>org.geoserver.extension</groupId>
-   <artifactId>gs-monitor-hibernate</artifactId>
-   <version>${project.version}</version>
-  </dependency>
-  <dependency>
    <groupId>org.geoserver.security</groupId>
    <artifactId>gs-sec-cas</artifactId>
    <version>${project.version}</version>
@@ -346,6 +341,11 @@
    <dependency>
      <groupId>org.geoserver.extension</groupId>
      <artifactId>gs-ysld</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.extension</groupId>
+     <artifactId>gs-mongodb</artifactId>
      <version>${project.version}</version>
    </dependency>
  </dependencies>

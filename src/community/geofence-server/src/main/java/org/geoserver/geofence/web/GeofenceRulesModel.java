@@ -9,36 +9,31 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import com.vividsolutions.jts.geom.MultiPolygon;
-
 import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortParam;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.PropertyModel;
+import org.geoserver.geofence.core.model.LayerDetails;
 import org.geoserver.geofence.core.model.Rule;
 import org.geoserver.geofence.core.model.RuleLimits;
+import org.geoserver.geofence.core.model.enums.CatalogMode;
 import org.geoserver.geofence.core.model.enums.GrantType;
 import org.geoserver.geofence.services.RuleAdminService;
 import org.geoserver.geofence.services.dto.ShortRule;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.wicket.GeoServerDataProvider;
+import org.locationtech.jts.geom.MultiPolygon;
 
 /**
- * 
  * Functions as between webgui and internal geofence db
- * 
- * @author Niels Charlier
  *
+ * @author Niels Charlier
  */
 public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
 
     private static final long serialVersionUID = 478867886089304835L;
 
-    /**
-     * Makes columns that are unsortable and display "*" instead of empty when null
-     * 
-     */
+    /** Makes columns that are unsortable and display "*" instead of empty when null */
     public static class RuleBeanProperty<T> extends BeanProperty<T> {
         private static final long serialVersionUID = 483799722644223445L;
 
@@ -51,7 +46,7 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
             return null;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public IModel getModel(IModel<T> itemModel) { // replace null by *
             return new PropertyModel<Object>(itemModel, getPropertyPath()) {
                 private static final long serialVersionUID = 1L;
@@ -65,29 +60,29 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
         }
     }
 
-    public static final Property<ShortRule> PRIORITY = new BeanProperty<ShortRule>("priority",
-            "priority");
+    public static final Property<ShortRule> PRIORITY =
+            new BeanProperty<ShortRule>("priority", "priority");
 
-    public static final Property<ShortRule> ROLE = new RuleBeanProperty<ShortRule>("roleName",
-            "roleName");
+    public static final Property<ShortRule> ROLE =
+            new RuleBeanProperty<ShortRule>("roleName", "roleName");
 
-    public static final Property<ShortRule> USER = new RuleBeanProperty<ShortRule>("userName",
-            "userName");
+    public static final Property<ShortRule> USER =
+            new RuleBeanProperty<ShortRule>("userName", "userName");
 
-    public static final Property<ShortRule> SERVICE = new RuleBeanProperty<ShortRule>("service",
-            "service");
+    public static final Property<ShortRule> SERVICE =
+            new RuleBeanProperty<ShortRule>("service", "service");
 
-    public static final Property<ShortRule> REQUEST = new RuleBeanProperty<ShortRule>("request",
-            "request");
+    public static final Property<ShortRule> REQUEST =
+            new RuleBeanProperty<ShortRule>("request", "request");
 
-    public static final Property<ShortRule> WORKSPACE = new RuleBeanProperty<ShortRule>("workspace",
-            "workspace");
+    public static final Property<ShortRule> WORKSPACE =
+            new RuleBeanProperty<ShortRule>("workspace", "workspace");
 
-    public static final Property<ShortRule> LAYER = new RuleBeanProperty<ShortRule>("layer",
-            "layer");
+    public static final Property<ShortRule> LAYER =
+            new RuleBeanProperty<ShortRule>("layer", "layer");
 
-    public static final Property<ShortRule> ACCESS = new RuleBeanProperty<ShortRule>("access",
-            "access");
+    public static final Property<ShortRule> ACCESS =
+            new RuleBeanProperty<ShortRule>("access", "access");
 
     public static final Property<ShortRule> BUTTONS = new PropertyPlaceholder<ShortRule>("buttons");
 
@@ -113,7 +108,8 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
     @Override
     public void setSort(Object property, SortOrder order) {
         super.setSort(property, order);
-        Collections.sort(rules,
+        Collections.sort(
+                rules,
                 super.getComparator(new SortParam<>(property, order == SortOrder.ASCENDING)));
     }
 
@@ -125,9 +121,10 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
     }
 
     @Override
-    protected List<org.geoserver.web.wicket.GeoServerDataProvider.Property<ShortRule>> getProperties() {
-        return Arrays.asList(PRIORITY, ROLE, USER, SERVICE, REQUEST, WORKSPACE, LAYER, ACCESS,
-                BUTTONS);
+    protected List<org.geoserver.web.wicket.GeoServerDataProvider.Property<ShortRule>>
+            getProperties() {
+        return Arrays.asList(
+                PRIORITY, ROLE, USER, SERVICE, REQUEST, WORKSPACE, LAYER, ACCESS, BUTTONS);
     }
 
     @Override
@@ -238,7 +235,7 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
         return rule;
     }
 
-    public void save(Long ruleId, MultiPolygon allowedArea) {
+    public void save(Long ruleId, MultiPolygon allowedArea, CatalogMode catalogMode) {
         Rule rule = adminService().get(ruleId);
         RuleLimits ruleLimits = rule.getRuleLimits();
         if (ruleLimits == null) {
@@ -246,7 +243,12 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
             ruleLimits.setRule(rule);
         }
         ruleLimits.setAllowedArea(allowedArea);
+        ruleLimits.setCatalogMode(catalogMode);
         adminService().setLimits(ruleId, ruleLimits);
+    }
+
+    public void save(Long ruleId, LayerDetails layerDetails) {
+        adminService().setDetails(ruleId, layerDetails);
     }
 
     public RuleLimits getRulesLimits(Long ruleId) {
@@ -270,4 +272,13 @@ public class GeofenceRulesModel extends GeoServerDataProvider<ShortRule> {
         rule.setAccess(shortRule.getAccess());
     }
 
+    public LayerDetails getDetails(Long ruleId) {
+        if (ruleId != null) {
+            Rule rule = adminService().get(ruleId);
+            if (rule != null) {
+                return rule.getLayerDetails();
+            }
+        }
+        return null;
+    }
 }

@@ -2,6 +2,9 @@
 <head></head>
 <body>
     <wicket:panel>
+        <ul>
+            <li>
+                <fieldset>
         <legend>
             <span>
                 <wicket:message key="NetCDFOut.title">NetCDF Output Settings</wicket:message>
@@ -52,7 +55,13 @@
                 <li class="choiceItem">
                     <input id="copyAttributes" type="checkbox" wicket:id="copyAttributes" />
                     <label for="copyAttributes" class="checkbox">
-                        <wicket:message key="NetCDFOut.copyAttributes">Copy Attributes</wicket:message>
+                        <wicket:message key="NetCDFOut.copyAttributes">Copy Variable Attributes</wicket:message>
+                    </label>
+                </li>
+                <li class="choiceItem">
+                    <input id="copyGlobalAttributes" type="checkbox" wicket:id="copyGlobalAttributes" />
+                    <label for="copyGlobalAttributes" class="checkbox">
+                        <wicket:message key="NetCDFOut.copyGlobalAttributes">Copy Global Attributes</wicket:message>
                     </label>
                 </li>
                 <li>
@@ -171,6 +180,12 @@
                 </li>
             </ul>
         </div>
+                </fieldset>
+            </li>
+            <li wicket:id="extensions">
+            <div wicket:id="content"></div>
+            </li>
+        </ul>
     </wicket:panel>
 </body>
 </html>

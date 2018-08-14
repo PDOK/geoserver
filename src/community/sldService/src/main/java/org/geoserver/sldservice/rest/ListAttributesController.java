@@ -6,14 +6,21 @@
  */
 package org.geoserver.sldservice.rest;
 
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
+import javax.servlet.http.HttpServletResponse;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
@@ -26,29 +33,22 @@ import org.geotools.util.logging.Logging;
 import org.opengis.feature.type.PropertyDescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-
 /**
  * ListAttributesController.
- * 
+ *
  * @author kappu
- * 
- *         Should get all Attributes related to a featureType we have internal Style add external SLD
- * 
+ *     <p>Should get all Attributes related to a featureType we have internal Style add external SLD
  */
 @RestController
 @ControllerAdvice
@@ -63,7 +63,7 @@ public class ListAttributesController extends AbstractCatalogController {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.geoserver.rest.RestBaseController#configurePersister(org.geoserver.config.util.XStreamPersister,
      * org.geoserver.rest.converters.XStreamMessageConverter)
      */
@@ -72,13 +72,29 @@ public class ListAttributesController extends AbstractCatalogController {
         XStream xstream = persister.getXStream();
         xstream.alias("Attributes", LayerAttributesList.class);
         xstream.registerConverter(new LayerAttributesListConverter());
-        xstream.allowTypes(new Class[] { LayerAttributesList.class });
+        xstream.allowTypes(new Class[] {LayerAttributesList.class});
     }
 
-    @GetMapping(path = "/{layerName}/attributes", produces = { MediaType.APPLICATION_JSON_VALUE,
-            MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_HTML_VALUE })
-    public Object attributes(@PathVariable String layerName) {
+    @GetMapping(
+        path = "/{layerName}/attributes",
+        produces = {
+            MediaType.APPLICATION_JSON_VALUE,
+            MediaType.APPLICATION_XML_VALUE,
+            MediaType.TEXT_HTML_VALUE
+        }
+    )
+    public Object attributes(
+            @PathVariable String layerName,
+            @RequestParam(value = "cache", required = false, defaultValue = "600") long cachingTime,
+            final HttpServletResponse response) {
         LayerInfo layerInfo = catalog.getLayerByName(layerName);
+        if (cachingTime > 0) {
+            response.setHeader(
+                    "cache-control",
+                    CacheControl.maxAge(cachingTime, TimeUnit.SECONDS)
+                            .cachePublic()
+                            .getHeaderValue());
+        }
         if (layerInfo == null) {
             return wrapObject(new ArrayList(), ArrayList.class);
         }
@@ -95,7 +111,8 @@ public class ListAttributesController extends AbstractCatalogController {
                 try {
                     attributes = fTpInfo.getFeatureType().getDescriptors();
                     for (PropertyDescriptor attr : attributes) {
-                        out.addAttribute(attr.getName().getLocalPart(),
+                        out.addAttribute(
+                                attr.getName().getLocalPart(),
                                 attr.getType().getBinding().getSimpleName());
                     }
                 } catch (IOException e) {
@@ -113,11 +130,7 @@ public class ListAttributesController extends AbstractCatalogController {
         private static final long serialVersionUID = 7641473348901661113L;
     }
 
-    /**
-     * 
-     * @author Fabiani
-     * 
-     */
+    /** @author Fabiani */
     public class LayerAttributesList {
         private String layerName;
 
@@ -146,13 +159,11 @@ public class ListAttributesController extends AbstractCatalogController {
         }
 
         public String getAttributeName(final int index) {
-            if (index >= getAttributesCount())
-                return null;
+            if (index >= getAttributesCount()) return null;
 
             int cnt = 0;
             for (String key : attributes.keySet()) {
-                if (index == cnt)
-                    return key;
+                if (index == cnt) return key;
                 cnt++;
             }
 
@@ -163,23 +174,16 @@ public class ListAttributesController extends AbstractCatalogController {
             return attributes.get(name);
         }
 
-        /**
-         * @return the layerName
-         */
+        /** @return the layerName */
         public String getLayerName() {
             return layerName;
         }
     }
 
-    /**
-     * 
-     * @author Fabiani
-     * 
-     */
+    /** @author Fabiani */
     public class LayerAttributesListConverter implements Converter {
 
         /**
-         * 
          * @see com.thoughtworks.xstream.converters.ConverterMatcher#canConvert(java .lang.Class)
          */
         public boolean canConvert(Class clazz) {
@@ -187,12 +191,12 @@ public class ListAttributesController extends AbstractCatalogController {
         }
 
         /**
-         * 
-         * @see com.thoughtworks.xstream.converters.Converter#marshal(java.lang.Object , com.thoughtworks.xstream.io.HierarchicalStreamWriter,
-         *      com.thoughtworks.xstream.converters.MarshallingContext)
+         * @see com.thoughtworks.xstream.converters.Converter#marshal(java.lang.Object ,
+         *     com.thoughtworks.xstream.io.HierarchicalStreamWriter,
+         *     com.thoughtworks.xstream.converters.MarshallingContext)
          */
-        public void marshal(Object value, HierarchicalStreamWriter writer,
-                MarshallingContext context) {
+        public void marshal(
+                Object value, HierarchicalStreamWriter writer, MarshallingContext context) {
             final LayerAttributesList obj = (LayerAttributesList) value;
 
             writer.addAttribute("layer", obj.getLayerName());
@@ -214,13 +218,13 @@ public class ListAttributesController extends AbstractCatalogController {
         }
 
         /**
-         * @see com.thoughtworks.xstream.converters.Converter#unmarshal(com.thoughtworks .xstream.io.HierarchicalStreamReader,
-         *      com.thoughtworks.xstream.converters.UnmarshallingContext)
+         * @see com.thoughtworks.xstream.converters.Converter#unmarshal(com.thoughtworks
+         *     .xstream.io.HierarchicalStreamReader,
+         *     com.thoughtworks.xstream.converters.UnmarshallingContext)
          */
         public Object unmarshal(HierarchicalStreamReader arg0, UnmarshallingContext arg1) {
             // TODO Auto-generated method stub
             return null;
         }
-
     }
 }

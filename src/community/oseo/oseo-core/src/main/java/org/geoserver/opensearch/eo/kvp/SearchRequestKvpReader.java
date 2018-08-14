@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.geoserver.catalog.Predicates;
 import org.geoserver.config.GeoServer;
 import org.geoserver.opensearch.eo.OSEOInfo;
@@ -39,6 +38,7 @@ import org.geoserver.opensearch.eo.OpenSearchEoService;
 import org.geoserver.opensearch.eo.OpenSearchParameters;
 import org.geoserver.opensearch.eo.OpenSearchParameters.DateRelation;
 import org.geoserver.opensearch.eo.OpenSearchParameters.GeometryRelation;
+import org.geoserver.opensearch.eo.ProductClass;
 import org.geoserver.opensearch.eo.SearchRequest;
 import org.geoserver.opensearch.eo.store.OpenSearchAccess;
 import org.geoserver.ows.KvpRequestReader;
@@ -52,6 +52,11 @@ import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.ConverterFactory;
 import org.geotools.util.Converters;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.MultiValuedFilter.MatchAction;
@@ -62,12 +67,6 @@ import org.opengis.filter.spatial.BBOX;
 import org.opengis.filter.spatial.DWithin;
 import org.springframework.util.StringUtils;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.io.WKTReader;
-
 /**
  * Reads a "description" request
  *
@@ -75,8 +74,8 @@ import com.vividsolutions.jts.io.WKTReader;
  */
 public class SearchRequestKvpReader extends KvpRequestReader {
 
-    static final Pattern FULL_RANGE_PATTERN = Pattern
-            .compile("^(\\[|\\])([^,\\[\\]]+),([^,\\\\[\\\\]]+)(\\[|\\])$");
+    static final Pattern FULL_RANGE_PATTERN =
+            Pattern.compile("^(\\[|\\])([^,\\[\\]]+),([^,\\\\[\\\\]]+)(\\[|\\])$");
 
     static final Pattern LEFT_RANGE_PATTERN = Pattern.compile("^(\\[|\\])([^,\\[\\]]+)$");
 
@@ -84,8 +83,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
 
     static final Pattern COMMA_SEPARATED = Pattern.compile("\\s*,\\s*");
 
-    private static final Hints SAFE_CONVERSION_HINTS = new Hints(ConverterFactory.SAFE_CONVERSION,
-            true);
+    private static final Hints SAFE_CONVERSION_HINTS =
+            new Hints(ConverterFactory.SAFE_CONVERSION, true);
 
     private static final GeometryFactory GF = new GeometryFactory();
 
@@ -102,13 +101,14 @@ public class SearchRequestKvpReader extends KvpRequestReader {
     private OpenSearchEoService oseo;
 
     private GeoServer gs;
-    
+
     OpenSearchBBoxKvpParser bboxParser = new OpenSearchBBoxKvpParser();
 
     public SearchRequestKvpReader(GeoServer gs, OpenSearchEoService service) {
         super(SearchRequest.class);
         this.oseo = service;
         this.gs = gs;
+        setRepeatedParameters(true);
     }
 
     @Override
@@ -133,13 +133,16 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         if (count != null) {
             int ic = count.intValue();
             if (ic < 0) {
-                throw new OWS20Exception("Invalid 'count' value, should be positive or zero",
+                throw new OWS20Exception(
+                        "Invalid 'count' value, should be positive or zero",
                         OWSExceptionCode.InvalidParameterValue);
             }
             int configuredMaxFeatures = getConfiguredMaxFeatures();
             if (ic > configuredMaxFeatures) {
-                throw new OWS20Exception("Invalid 'count' value, should not be greater than "
-                        + configuredMaxFeatures, OWSExceptionCode.InvalidParameterValue);
+                throw new OWS20Exception(
+                        "Invalid 'count' value, should not be greater than "
+                                + configuredMaxFeatures,
+                        OWSExceptionCode.InvalidParameterValue);
             }
             query.setMaxFeatures(ic);
         } else {
@@ -149,7 +152,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         if (startIndex != null) {
             int is = startIndex.intValue();
             if (is <= 0) {
-                throw new OWS20Exception("Invalid 'startIndex' value, should be positive or zero",
+                throw new OWS20Exception(
+                        "Invalid 'startIndex' value, should be positive or zero",
                         OWSExceptionCode.InvalidParameterValue);
             }
             query.setStartIndex(is - 1); // OS is 1 based, GeoTools is 0 based
@@ -176,8 +180,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         }
     }
 
-    private Map<Parameter, String> getSearchParameterValues(Map rawKvp,
-            Collection<Parameter<?>> parameters) {
+    private Map<Parameter, String> getSearchParameterValues(
+            Map rawKvp, Collection<Parameter<?>> parameters) {
         Map<Parameter, String> result = new LinkedHashMap<>();
         for (Parameter<?> parameter : parameters) {
             Object value = rawKvp.get(parameter.key);
@@ -219,10 +223,10 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         if (timeFilter != null) {
             filters.add(timeFilter);
         }
-        
+
         // handle geometry filter (2 params)
         Filter geoFilter = buildGeometryFilter(rawKvp);
-        if(geoFilter != null) {
+        if (geoFilter != null) {
             filters.add(geoFilter);
         }
 
@@ -240,22 +244,27 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         // some validation
         DateRelation relation = Converters.convert(rawRelation, DateRelation.class);
         if (relation == null && rawRelation != null) {
-            final List<String> dateRelationNames = Arrays.stream(DateRelation.values())
-                    .map(k -> k.name()).collect(Collectors.toList());
+            final List<String> dateRelationNames =
+                    Arrays.stream(DateRelation.values())
+                            .map(k -> k.name())
+                            .collect(Collectors.toList());
             throw new OWS20Exception(
                     "Invalid value for relation, possible values are " + dateRelationNames,
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, TIME_RELATION.key);
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    TIME_RELATION.key);
         }
         if (start == null && rawStart != null) {
             throw new OWS20Exception(
                     "Invalid expression for start time, use a ISO time or date instead: "
                             + rawStart,
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, TIME_START.key);
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    TIME_START.key);
         }
         if (end == null && rawEnd != null) {
             throw new OWS20Exception(
                     "Invalid expression for end time, use a ISO time or date instead: " + rawStart,
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, TIME_END.key);
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    TIME_END.key);
         }
         if (start == null && end == null) {
             if (relation == null) {
@@ -264,7 +273,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
             } else {
                 throw new OWS20Exception(
                         "Time relation specified, but start and end time values are missing",
-                        OWS20Exception.OWSExceptionCode.InvalidParameterValue, TIME_RELATION.key);
+                        OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                        TIME_RELATION.key);
             }
         }
 
@@ -277,76 +287,82 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         final PropertyName startProperty = FF.property("timeStart");
         final PropertyName endProperty = FF.property("timeEnd");
         switch (relation) {
-        case contains:
-            // the resource contains the specified range
-            Filter fStart;
-            if (start == null) {
-                fStart = FF.isNull(startProperty);
-            } else {
-                fStart = FF.lessOrEqual(startProperty, FF.literal(start));
-            }
-            Filter fEnd;
-            if (end == null) {
-                fEnd = FF.isNull(endProperty);
-            } else {
-                fEnd = FF.greaterOrEqual(endProperty, FF.literal(end));
-            }
+            case contains:
+                // the resource contains the specified range
+                Filter fStart;
+                if (start == null) {
+                    fStart = FF.isNull(startProperty);
+                } else {
+                    fStart = FF.lessOrEqual(startProperty, FF.literal(start));
+                }
+                Filter fEnd;
+                if (end == null) {
+                    fEnd = FF.isNull(endProperty);
+                } else {
+                    fEnd = FF.greaterOrEqual(endProperty, FF.literal(end));
+                }
 
-            return FF.and(fStart, fEnd);
-        case during:
-            // the resource is contained in the specified range
-            fStart = FF.greaterOrEqual(startProperty, FF.literal(start));
-            fEnd = FF.lessOrEqual(endProperty, FF.literal(end));
-            if (start == null) {
-                return fEnd;
-            } else if (end == null) {
-                return fStart;
-            } else {
                 return FF.and(fStart, fEnd);
-            }
+            case during:
+                // the resource is contained in the specified range
+                fStart = FF.greaterOrEqual(startProperty, FF.literal(start));
+                fEnd = FF.lessOrEqual(endProperty, FF.literal(end));
+                if (start == null) {
+                    return fEnd;
+                } else if (end == null) {
+                    return fStart;
+                } else {
+                    return FF.and(fStart, fEnd);
+                }
 
-        case disjoint:
-            // the resource is not overlapping the specified range
-            fStart = FF.less(endProperty, FF.literal(start));
-            fEnd = FF.greater(startProperty, FF.literal(end));
-            if (start == null) {
-                return fEnd;
-            } else if (end == null) {
-                return fStart;
-            } else {
-                return FF.or(fStart, fEnd);
-            }
+            case disjoint:
+                // the resource is not overlapping the specified range
+                fStart = FF.less(endProperty, FF.literal(start));
+                fEnd = FF.greater(startProperty, FF.literal(end));
+                if (start == null) {
+                    return fEnd;
+                } else if (end == null) {
+                    return fStart;
+                } else {
+                    return FF.or(fStart, fEnd);
+                }
 
-        case intersects:
-            // the resource overlaps the specified range
-            fStart = FF.or(FF.greaterOrEqual(endProperty, FF.literal(start)),
-                    FF.isNull(endProperty));
-            fEnd = FF.or(FF.lessOrEqual(startProperty, FF.literal(end)), FF.isNull(startProperty));
+            case intersects:
+                // the resource overlaps the specified range
+                fStart =
+                        FF.or(
+                                FF.greaterOrEqual(endProperty, FF.literal(start)),
+                                FF.isNull(endProperty));
+                fEnd =
+                        FF.or(
+                                FF.lessOrEqual(startProperty, FF.literal(end)),
+                                FF.isNull(startProperty));
 
-            if (start == null) {
-                return fEnd;
-            } else if (end == null) {
-                return fStart;
-            } else {
+                if (start == null) {
+                    return fEnd;
+                } else if (end == null) {
+                    return fStart;
+                } else {
+                    return FF.and(fStart, fEnd);
+                }
+
+            case equals:
+                // the resource has the same range as requested
+                if (start == null) {
+                    fStart = FF.isNull(startProperty);
+                } else {
+                    fStart = FF.equals(startProperty, FF.literal(start));
+                }
+                if (end == null) {
+                    fEnd = FF.isNull(endProperty);
+                } else {
+                    fEnd = FF.equals(endProperty, FF.literal(end));
+                }
                 return FF.and(fStart, fEnd);
-            }
 
-        case equals:
-            // the resource has the same range as requested
-            if (start == null) {
-                fStart = FF.isNull(startProperty);
-            } else {
-                fStart = FF.equals(startProperty, FF.literal(start));
-            }
-            if (end == null) {
-                fEnd = FF.isNull(endProperty);
-            } else {
-                fEnd = FF.equals(endProperty, FF.literal(end));
-            }
-            return FF.and(fStart, fEnd);
-
-        default:
-            throw new RuntimeException("Time relation of type " + relation + " not covered yet");
+            default:
+                throw new RuntimeException(
+                        "Time relation of type " + relation + " not covered yet");
         }
     }
 
@@ -380,8 +396,10 @@ public class SearchRequestKvpReader extends KvpRequestReader {
 
     private Filter buildDistanceWithin(double lon, double lat, double radius) {
         if (radius <= 0) {
-            throw new OWS20Exception("Search radius must be positive",
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, "radius");
+            throw new OWS20Exception(
+                    "Search radius must be positive",
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    "radius");
         }
         final Point point = GF.createPoint(new Coordinate(lon, lat));
         DWithin dwithin = FF.dwithin(DEFAULT_GEOMETRY, FF.literal(point), radius, "m");
@@ -391,9 +409,9 @@ public class SearchRequestKvpReader extends KvpRequestReader {
     private Filter buildBoundingBoxFilter(Object value) throws Exception {
         Filter filter;
         Object parsed = bboxParser.parse((String) value);
-        if(parsed instanceof ReferencedEnvelope) {
+        if (parsed instanceof ReferencedEnvelope) {
             filter = FF.bbox(DEFAULT_GEOMETRY, (ReferencedEnvelope) parsed, MatchAction.ANY);
-        } else if(parsed instanceof ReferencedEnvelope[]) {
+        } else if (parsed instanceof ReferencedEnvelope[]) {
             ReferencedEnvelope[] envelopes = (ReferencedEnvelope[]) parsed;
             BBOX bbox1 = FF.bbox(DEFAULT_GEOMETRY, envelopes[0], MatchAction.ANY);
             BBOX bbox2 = FF.bbox(DEFAULT_GEOMETRY, envelopes[1], MatchAction.ANY);
@@ -403,53 +421,60 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         }
         return filter;
     }
-    
+
     private Filter buildGeometryFilter(Map rawKvp) {
         String rawGeometry = (String) rawKvp.get(GEO_GEOMETRY.key);
         String rawRelation = Converters.convert(rawKvp.get(GEO_RELATION.key), String.class);
-        
-        if(rawGeometry == null && rawRelation == null) {
+
+        if (rawGeometry == null && rawRelation == null) {
             return null;
         }
-        
+
         Geometry geometry;
         try {
             geometry = new WKTReader().read(rawGeometry);
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new OWS20Exception(
-                    "Could not parse geometry parameter, expecting valid WKT syntax: " + e.getMessage(), e,
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, "geometry");
+                    "Could not parse geometry parameter, expecting valid WKT syntax: "
+                            + e.getMessage(),
+                    e,
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    "geometry");
         }
 
         // handle relation
         GeometryRelation relation = Converters.convert(rawRelation, GeometryRelation.class);
         if (relation == null && rawRelation != null) {
-            final List<String> geoRelationNames = Arrays.stream(GeometryRelation.values())
-                    .map(k -> k.name()).collect(Collectors.toList());
+            final List<String> geoRelationNames =
+                    Arrays.stream(GeometryRelation.values())
+                            .map(k -> k.name())
+                            .collect(Collectors.toList());
             throw new OWS20Exception(
                     "Invalid value for relation, possible values are " + geoRelationNames,
-                    OWS20Exception.OWSExceptionCode.InvalidParameterValue, GEO_RELATION.key);
+                    OWS20Exception.OWSExceptionCode.InvalidParameterValue,
+                    GEO_RELATION.key);
         }
-        if(relation == null) {
+        if (relation == null) {
             relation = GeometryRelation.intersects;
         }
 
         // build the filter
-        switch(relation) {
-        case intersects:
-            return FF.intersects(DEFAULT_GEOMETRY, FF.literal(geometry));
-        case contains:
-            return FF.contains(FF.literal(geometry), DEFAULT_GEOMETRY);
-        case disjoint:
-            return FF.disjoint(DEFAULT_GEOMETRY, FF.literal(geometry));
-        default:
-            throw new RuntimeException("Geometry relation of type " + relation + " not covered yet"); 
+        switch (relation) {
+            case intersects:
+                return FF.intersects(DEFAULT_GEOMETRY, FF.literal(geometry));
+            case contains:
+                return FF.contains(FF.literal(geometry), DEFAULT_GEOMETRY);
+            case disjoint:
+                return FF.disjoint(DEFAULT_GEOMETRY, FF.literal(geometry));
+            default:
+                throw new RuntimeException(
+                        "Geometry relation of type " + relation + " not covered yet");
         }
-        
     }
 
     private PropertyIsEqualTo buildUidFilter(Object value) {
-        return FF.equals(FF.property(new NameImpl(OpenSearchAccess.EO_NAMESPACE, "identifier")),
+        return FF.equals(
+                FF.property(new NameImpl(OpenSearchAccess.EO_NAMESPACE, "identifier")),
                 FF.literal(value));
     }
 
@@ -468,9 +493,10 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         }
         // turn into a list of Like filters
         // TODO: actually implement a full text search function
-        List<Filter> filters = keywords.stream()
-                .map(s -> FF.like(FF.property("htmlDescription"), "%" + s + "%"))
-                .collect(Collectors.toList());
+        List<Filter> filters =
+                keywords.stream()
+                        .map(s -> FF.like(FF.property("htmlDescription"), "%" + s + "%"))
+                        .collect(Collectors.toList());
         // combine and return
         Filter result = Predicates.or(filters);
         return result;
@@ -490,7 +516,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         if (converted == null) {
             throw new OWS20Exception(
                     key + " cannot be converted to a " + targetClass.getSimpleName(),
-                    OWSExceptionCode.InvalidParameterValue, key);
+                    OWSExceptionCode.InvalidParameterValue,
+                    key);
         }
         return converted;
     }
@@ -507,7 +534,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         }
 
         // product parameter?
-        for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+        OSEOInfo info = gs.getService(OSEOInfo.class);
+        for (ProductClass pc : info.getProductClasses()) {
             if (pc.getPrefix().equals(prefix)) {
                 return true;
             }
@@ -520,11 +548,32 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         // support two types of filters, equality and range filters
         Class<?> type = parameter.getType();
 
-        PropertyName pn = OpenSearchParameters.getFilterPropertyFor(FF, parameter);
+        PropertyName pn =
+                OpenSearchParameters.getFilterPropertyFor(
+                        gs.getService(OSEOInfo.class), FF, parameter);
 
+        if (value instanceof String[]) {
+            String[] values = (String[]) value;
+            List<Filter> filters = new ArrayList<>();
+            for (String v : values) {
+                Filter filter = buildEOFilterForSingleValue(parameter, v, type, pn);
+                filters.add(filter);
+            }
+            return FF.and(filters);
+        } else {
+            return buildEOFilterForSingleValue(parameter, (String) value, type, pn);
+        }
+    }
+
+    private Filter buildEOFilterForSingleValue(
+            Parameter<?> parameter, String value, Class<?> type, PropertyName pn) {
         // for numeric and range parameters check the range syntax
-        String input = (String) value;
-        if (Date.class.isAssignableFrom(type) || Number.class.isAssignableFrom(type)) {
+        String input = value;
+        Class target = type;
+        if (type != null && type.isArray()) {
+            target = target.getComponentType();
+        }
+        if (Date.class.isAssignableFrom(target) || Number.class.isAssignableFrom(target)) {
             Matcher matcher;
             if ((matcher = FULL_RANGE_PATTERN.matcher(input)).matches()) {
                 String opening = matcher.group(1);
@@ -536,21 +585,27 @@ public class SearchRequestKvpReader extends KvpRequestReader {
                 Object v1 = parseParameter(parameter, s1);
                 Object v2 = parseParameter(parameter, s2);
 
-                Filter f1, f2;
-                Literal l1 = FF.literal(v1);
-                Literal l2 = FF.literal(v2);
-                if ("[".equals(opening)) {
-                    f1 = FF.greaterOrEqual(pn, l1);
+                if (type.isArray()) {
+                    // cannot express that the same element in the array must be
+                    // at the same time greater than and lower than, fall back on using
+                    // a between filter
+                    return FF.between(pn, FF.literal(v1), FF.literal(v2), MatchAction.ANY);
                 } else {
-                    f1 = FF.greater(pn, l1);
+                    Filter f1, f2;
+                    Literal l1 = FF.literal(v1);
+                    Literal l2 = FF.literal(v2);
+                    if ("[".equals(opening)) {
+                        f1 = FF.greaterOrEqual(pn, l1);
+                    } else {
+                        f1 = FF.greater(pn, l1);
+                    }
+                    if ("]".equals(closing)) {
+                        f2 = FF.lessOrEqual(pn, l2);
+                    } else {
+                        f2 = FF.less(pn, l2);
+                    }
+                    return FF.and(f1, f2);
                 }
-                if ("]".equals(closing)) {
-                    f2 = FF.lessOrEqual(pn, l2);
-                } else {
-                    f2 = FF.less(pn, l2);
-                }
-
-                return FF.and(f1, f2);
             } else if ((matcher = LEFT_RANGE_PATTERN.matcher(input)).matches()) {
                 String opening = matcher.group(1);
                 String s1 = matcher.group(2);
@@ -580,7 +635,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
             }
         }
 
-        // we got here, it's not a valid range, see if it's a comma separated list vs single value then
+        // we got here, it's not a valid range, see if it's a comma separated list vs single value
+        // then
         if (input.contains(",")) {
             String[] splits = COMMA_SEPARATED.split(input);
             List<Filter> filters = new ArrayList<>();
@@ -603,12 +659,22 @@ public class SearchRequestKvpReader extends KvpRequestReader {
     }
 
     private Object parseParameter(Parameter<?> parameter, String value) {
-        Object converted = Converters.convert(value, parameter.getType(), SAFE_CONVERSION_HINTS);
+        Class target = parameter.getType();
+        // for searches on array types
+        if (target != null && target.isArray()) {
+            target = target.getComponentType();
+        }
+        Object converted = Converters.convert(value, target, SAFE_CONVERSION_HINTS);
         if (converted == null) {
             throw new OWS20Exception(
-                    "Value '" + value + "' of key " + parameter.key + " cannot be converted to a "
+                    "Value '"
+                            + value
+                            + "' of key "
+                            + parameter.key
+                            + " cannot be converted to a "
                             + parameter.getType().getSimpleName(),
-                    OWSExceptionCode.InvalidParameterValue, parameter.key);
+                    OWSExceptionCode.InvalidParameterValue,
+                    parameter.key);
         }
         return converted;
     }
@@ -621,5 +687,4 @@ public class SearchRequestKvpReader extends KvpRequestReader {
             return oseo.getProductSearchParameters(parentId);
         }
     }
-
 }

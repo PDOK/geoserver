@@ -64,6 +64,12 @@
     </description>
     <constructor-arg ref="gwcGridSetBroker"/>
   </bean>
+
+  <bean id="gwcBlobStoreAggregator" class="org.geowebcache.storage.BlobStoreAggregator">
+    <description>
+      BlobStoreAggregator serves up BlobStoreInfos from the available Configurations in the application context
+    </description>
+  </bean>
   
   <bean id="gwcDefaultStorageFinder" class="org.geowebcache.storage.DefaultStorageFinder">
   	<constructor-arg ref="gwcAppCtx" />
@@ -131,6 +137,7 @@
     <constructor-arg ref="gwcTLDispatcher"/>
     <constructor-arg ref="gwcGridSetBroker"/>
     <constructor-arg ref="gwcStorageBroker"/>
+    <constructor-arg ref="gwcBlobStoreAggregator"/>
     <constructor-arg ref="gwcXmlConfig"/>
     <constructor-arg ref="gwcRuntimeStats"/>
     <property name="defaultStorageFinder" ref="gwcDefaultStorageFinder"/>

@@ -5,19 +5,18 @@
  */
 package org.geoserver.security.password;
 
-import org.apache.commons.io.IOUtils;
-import org.geoserver.security.GeoServerSecurityTestSupport;
-import org.geoserver.test.SystemTest;
-import org.geotools.data.DataUtilities;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Arrays;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.io.IOUtils;
+import org.geoserver.security.GeoServerSecurityTestSupport;
+import org.geoserver.test.SystemTest;
+import org.geotools.util.URLs;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 @Category(SystemTest.class)
 public class URLMasterPasswordProviderTest extends GeoServerSecurityTestSupport {
@@ -31,7 +30,7 @@ public class URLMasterPasswordProviderTest extends GeoServerSecurityTestSupport 
         config.setName("test");
         config.setReadOnly(false);
         config.setClassName(URLMasterPasswordProvider.class.getCanonicalName());
-        config.setURL(DataUtilities.fileToURL(tmp));
+        config.setURL(URLs.fileToUrl(tmp));
         config.setEncrypting(true);
 
         URLMasterPasswordProvider mpp = new URLMasterPasswordProvider();

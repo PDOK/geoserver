@@ -28,7 +28,9 @@ public interface TileLayerCatalog {
     public boolean exists(String layerId);
 
     public void initialize();
-    
+
     public void reset();
 
+    /** Used as a status/debugging aid. */
+    public String getPersistenceLocation();
 }

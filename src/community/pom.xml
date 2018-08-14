@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>geoserver</artifactId>
-    <version>2.13-SNAPSHOT</version>
+    <version>2.14-SNAPSHOT</version>
   </parent>
 
   <groupId>org.geoserver</groupId>
@@ -42,7 +42,6 @@
           <descriptor>release/ext-spatialite.xml</descriptor>
           <descriptor>release/ext-jdbcconfig.xml</descriptor>
           <descriptor>release/ext-dds.xml</descriptor>
-          <descriptor>release/ext-aggregate.xml</descriptor>
           <descriptor>release/ext-wms-eo.xml</descriptor>
           <descriptor>release/ext-colormap.xml</descriptor>
           <descriptor>release/ext-mbtiles.xml</descriptor>
@@ -58,7 +57,7 @@
           <descriptor>release/ext-activeMQ.xml</descriptor>	
           <descriptor>release/ext-solr.xml</descriptor>		  
           <descriptor>release/ext-geofence.xml</descriptor>
-          <!-- <descriptor>release/ext-sldservice.xml</descriptor> -->
+          <descriptor>release/ext-sldservice.xml</descriptor>
           <!-- <descriptor>release/ext-rest-upload.xml</descriptor> -->
           <descriptor>release/ext-gwc-distributed.xml</descriptor>  
           <descriptor>release/ext-geofence-server.xml</descriptor>
@@ -76,6 +75,8 @@
           <descriptor>release/ext-oauth2-google.xml</descriptor>
           <descriptor>release/ext-oauth2-github.xml</descriptor>
           <descriptor>release/ext-oauth2-geonode.xml</descriptor>
+          <descriptor>release/ext-oauth2-openid-connect.xml</descriptor>
+          <descriptor>release/ext-keycloak.xml</descriptor>
           <descriptor>release/ext-backup-restore.xml</descriptor>
           <descriptor>release/ext-wmts-multi-dimensional.xml</descriptor> 
           <descriptor>release/ext-onelogin.xml</descriptor> 
@@ -86,6 +87,12 @@
           <descriptor>release/ext-mbstyle.xml</descriptor> 
           <descriptor>release/ext-status-monitoring.xml</descriptor>
           <descriptor>release/ext-nsg-wmts-profile.xml</descriptor>
+          <descriptor>release/ext-nsg-wfs-profile.xml</descriptor>
+          <descriptor>release/ext-taskmanager-core.xml</descriptor>
+          <descriptor>release/ext-taskmanager-s3.xml</descriptor>
+          <descriptor>release/ext-netcdf-ghrsst.xml</descriptor>
+          <descriptor>release/ext-wfs3.xml</descriptor>
+          <descriptor>release/ext-monitor-hibernate.xml</descriptor>
         </descriptors>
       </configuration>
      </plugin>
@@ -201,8 +208,7 @@
         <module>dds</module>
         <module>spatialite</module>
         <module>jdbcconfig</module>
-        <module>feature-aggregate</module>
-        <module>script</module>
+        <!--module>script</module-->
         <module>wms-eo</module>
         <module>colormap</module>
         <module>mbtiles</module>
@@ -219,7 +225,7 @@
         <!-- <module>rest-upload</module> -->
         <module>geofence</module>
         <module>geofence-server</module>
-        <!-- <module>sldService</module> -->
+        <module>sldService</module>
         <module>params-extractor</module>
         <module>wps-remote</module>
         <module>wps-jdbc</module>
@@ -233,10 +239,12 @@
         <module>ncwms</module>
         <module>web-resource</module>
         <module>gwc-sqlite</module>
-        <module>security/oauth2</module>
+        <module>security</module>
+        <module>security/oauth2-core</module>
         <module>security/oauth2-google</module>
         <module>security/oauth2-github</module>
         <module>security/oauth2-geonode</module>
+        <module>security/oauth2-openid-connect</module>
         <module>wmts-multi-dimensional</module>
         <module>onelogin</module>
         <module>notification</module>
@@ -248,8 +256,11 @@
         <module>mbstyle</module>
         <module>s3-geotiff</module>
         <module>status-monitoring</module>
-        <module>nsg-profiles/nsg-wfs-profile</module>
-        <module>nsg-profiles/nsg-wmts-profile</module>
+        <module>nsg-profiles</module>
+        <module>netcdf-ghrsst</module>
+        <module>taskmanager</module>
+        <module>wfs3</module>
+        <module>monitor-hibernate</module>
       </modules>
     </profile>
     <profile>
@@ -262,12 +273,6 @@
       <id>sextante</id>
       <modules>
         <module>wps-sextante</module>
-      </modules>
-    </profile>
-    <profile>      
-      <id>feature-aggregate</id>
-      <modules>
-        <module>feature-aggregate</module>
       </modules>
     </profile>
     <profile>      
@@ -497,22 +502,29 @@
     <profile>
       <id>oauth2-google</id>
       <modules>
-        <module>security/oauth2</module>
+        <module>security/oauth2-core</module>
         <module>security/oauth2-google</module>
       </modules>
     </profile>
     <profile>
       <id>oauth2-github</id>
       <modules>
-        <module>security/oauth2</module>
+        <module>security/oauth2-core</module>
         <module>security/oauth2-github</module>
       </modules>
     </profile>
     <profile>
       <id>oauth2-geonode</id>
       <modules>
-        <module>security/oauth2</module>
+        <module>security/oauth2-core</module>
         <module>security/oauth2-geonode</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>oauth2-openid-connect</id>
+      <modules>
+        <module>security/oauth2-core</module>
+        <module>security/oauth2-openid-connect</module>
       </modules>
     </profile>
     <profile>
@@ -554,13 +566,43 @@
     <profile>
       <id>nsg-wfs-profile</id>
       <modules>
-        <module>nsg-profiles/nsg-wfs-profile</module>
+        <module>nsg-profiles</module>
       </modules>
     </profile>
     <profile>
       <id>nsg-wmts-profile</id>
       <modules>
-        <module>nsg-profiles/nsg-wmts-profile</module>
+        <module>nsg-profiles</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>ghrsst</id>
+      <modules>
+        <module>netcdf-ghrsst</module>
+      </modules>
+    </profile>    
+    <profile>
+      <id>taskmanager</id>
+      <modules>
+        <module>taskmanager</module>
+     </modules>
+    </profile>
+    <profile>
+      <id>taskmanager-s3</id>
+      <modules>
+        <module>taskmanager</module>
+     </modules>
+    </profile>
+    <profile>
+      <id>wfs3</id>
+      <modules>
+        <module>wfs3</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>monitor-hibernate</id>
+      <modules>
+        <module>monitor-hibernate</module>
       </modules>
     </profile>
   </profiles>  

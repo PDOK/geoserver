@@ -266,11 +266,13 @@
  		<constructor-arg value="buffer"/>
  	</bean>
  	<bean id="paletteKvpParser" class="org.geoserver.wms.kvp.PaletteKvpParser"/>
-  <bean id="timeKvpParser" class="org.geoserver.ows.kvp.TimeKvpParser">
+  <bean id="timeKvpParser" class="org.geoserver.wms.kvp.TimeKvpParser">
       <constructor-arg value="time"/>
+      <constructor-arg ref="wms"/>
   </bean>
- 	<bean id="elevationKvpParser" class="org.geoserver.ows.kvp.ElevationKvpParser">
+ 	<bean id="elevationKvpParser" class="org.geoserver.wms.kvp.ElevationKvpParser">
 		<constructor-arg value="elevation"/>
+    <constructor-arg ref="wms"/>
  	</bean>
  	<bean id="validateSldKvpParser" class="org.geoserver.ows.kvp.BooleanKvpParser">
  		<constructor-arg value="validateschema"/>
@@ -806,5 +808,7 @@
   <bean id="UTFGridMapProducer" class="org.geoserver.wms.utfgrid.UTFGridMapOutputFormat">
     <constructor-arg ref="wms"/>
   </bean>
+  
+  <bean id="wmsNearestMatchWarningAppender" class="org.geoserver.wms.NearestMatchWarningAppender"/>
   
 </beans>

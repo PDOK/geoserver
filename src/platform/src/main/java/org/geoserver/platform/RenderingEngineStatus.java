@@ -7,9 +7,7 @@ package org.geoserver.platform;
 import java.util.Optional;
 import sun.java2d.pipe.RenderingEngine;
 
-/**
- * @author Morgan Thompson - Boundless
- */
+/** @author Morgan Thompson - Boundless */
 public class RenderingEngineStatus implements ModuleStatus {
 
     private static final String UNKNOWN = "unknown";
@@ -22,8 +20,9 @@ public class RenderingEngineStatus implements ModuleStatus {
 
         Class<RenderingEngine> renderer;
         try {
-            renderer = (Class<RenderingEngine>) sun.java2d.pipe.RenderingEngine.getInstance()
-                    .getClass();
+            renderer =
+                    (Class<RenderingEngine>)
+                            sun.java2d.pipe.RenderingEngine.getInstance().getClass();
         } catch (Throwable e) {
             engine = UNKNOWN;
             provider = UNKNOWN;
@@ -60,11 +59,7 @@ public class RenderingEngineStatus implements ModuleStatus {
 
     @Override
     public Optional<String> getVersion() {
-        if (provider.contains("OracleJDK")) {
-            return Optional.ofNullable(System.getProperty("java.version"));
-        } else {
-            return Optional.empty();
-        }
+        return Optional.ofNullable(System.getProperty("java.version"));
     }
 
     @Override
@@ -102,5 +97,4 @@ public class RenderingEngineStatus implements ModuleStatus {
         // TODO Auto-generated method stub
         return Optional.empty();
     }
-
 }

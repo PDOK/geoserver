@@ -5,14 +5,30 @@
  */
 package org.geoserver.rest.catalog;
 
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import freemarker.template.ObjectWrapper;
+import freemarker.template.SimpleHash;
+import freemarker.template.TemplateModelException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CatalogFacade;
 import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.PublishedInfo;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.config.util.XStreamPersister;
+import org.geoserver.rest.ObjectToMapWrapper;
 import org.geoserver.rest.ResourceNotFoundException;
 import org.geoserver.rest.RestBaseController;
 import org.geoserver.rest.RestException;
@@ -35,27 +51,20 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-
-import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
-
-/**
- * Layer group controller
- */
+/** Layer group controller */
 @RestController
 @ControllerAdvice
 @RequestMapping(
-        path = {
-                RestBaseController.ROOT_PATH + "/layergroups",
-                RestBaseController.ROOT_PATH + "/workspaces/{workspaceName}/layergroups"},
-        produces = {
-                MediaType.APPLICATION_JSON_VALUE,
-                MediaType.APPLICATION_XML_VALUE,
-                MediaType.TEXT_HTML_VALUE})
+    path = {
+        RestBaseController.ROOT_PATH + "/layergroups",
+        RestBaseController.ROOT_PATH + "/workspaces/{workspaceName}/layergroups"
+    },
+    produces = {
+        MediaType.APPLICATION_JSON_VALUE,
+        MediaType.APPLICATION_XML_VALUE,
+        MediaType.TEXT_HTML_VALUE
+    }
+)
 public class LayerGroupController extends AbstractCatalogController {
     private static final Logger LOGGER = Logging.getLogger(LayerGroupController.class);
 
@@ -67,11 +76,13 @@ public class LayerGroupController extends AbstractCatalogController {
     @GetMapping
     public RestWrapper<?> getLayerGroups(@PathVariable(required = false) String workspaceName) {
 
-        if(workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
+        if (workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
             throw new ResourceNotFoundException("Workspace " + workspaceName + " not found");
         }
-        List<LayerGroupInfo> layerGroupInfos = workspaceName != null ?
-                catalog.getLayerGroupsByWorkspace(workspaceName) : catalog.getLayerGroupsByWorkspace(CatalogFacade.NO_WORKSPACE);
+        List<LayerGroupInfo> layerGroupInfos =
+                workspaceName != null
+                        ? catalog.getLayerGroupsByWorkspace(workspaceName)
+                        : catalog.getLayerGroupsByWorkspace(CatalogFacade.NO_WORKSPACE);
         return wrapList(layerGroupInfos, LayerGroupInfo.class);
     }
 
@@ -80,42 +91,50 @@ public class LayerGroupController extends AbstractCatalogController {
             @PathVariable String layerGroupName,
             @PathVariable(required = false) String workspaceName) {
 
-        if(workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
+        if (workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
             throw new ResourceNotFoundException("Workspace " + workspaceName + " not found");
         }
 
-        LayerGroupInfo layerGroupInfo = workspaceName != null ?
-            catalog.getLayerGroupByName(workspaceName, layerGroupName) : catalog.getLayerGroupByName(layerGroupName);
+        LayerGroupInfo layerGroupInfo =
+                workspaceName != null
+                        ? catalog.getLayerGroupByName(workspaceName, layerGroupName)
+                        : catalog.getLayerGroupByName(layerGroupName);
 
         if (layerGroupInfo == null) {
-            throw new ResourceNotFoundException("No such layer group " + layerGroupName +
-                    (workspaceName == null ? "" : " in workspace " + workspaceName));
+            throw new ResourceNotFoundException(
+                    "No such layer group "
+                            + layerGroupName
+                            + (workspaceName == null ? "" : " in workspace " + workspaceName));
         }
         return wrapObject(layerGroupInfo, LayerGroupInfo.class);
     }
 
-    @PostMapping(consumes = {
+    @PostMapping(
+        consumes = {
             MediaType.APPLICATION_JSON_VALUE,
             MediaTypeExtensions.TEXT_JSON_VALUE,
             MediaType.APPLICATION_XML_VALUE,
-            MediaType.TEXT_XML_VALUE})
+            MediaType.TEXT_XML_VALUE
+        }
+    )
     public ResponseEntity<String> layerGroupPost(
             @RequestBody LayerGroupInfo lg,
             @PathVariable(required = false) String workspaceName,
-            UriComponentsBuilder builder) throws Exception {
+            UriComponentsBuilder builder)
+            throws Exception {
 
-        if(workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
+        if (workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
             throw new ResourceNotFoundException("Workspace " + workspaceName + " not found");
         }
         checkFullAdminRequired(workspaceName);
-        
-        if ( lg.getLayers().isEmpty() ) {
-            throw new  RestException( "layer group must not be empty", HttpStatus.BAD_REQUEST );
+
+        if (lg.getLayers().isEmpty()) {
+            throw new RestException("layer group must not be empty", HttpStatus.BAD_REQUEST);
         }
 
-        if ( lg.getBounds() == null ) {
-            LOGGER.fine( "Auto calculating layer group bounds");
-            new CatalogBuilder( catalog ).calculateLayerGroupBounds(lg);
+        if (lg.getBounds() == null) {
+            LOGGER.fine("Auto calculating layer group bounds");
+            new CatalogBuilder(catalog).calculateLayerGroupBounds(lg);
         }
 
         if (workspaceName != null) {
@@ -132,49 +151,60 @@ public class LayerGroupController extends AbstractCatalogController {
 
         String layerGroupName = lg.getName();
         LOGGER.info("POST layer group " + layerGroupName);
-        UriComponents uriComponents = builder.path("/layergroups/{layerGroupName}")
-                .buildAndExpand(layerGroupName);
+        UriComponents uriComponents =
+                builder.path("/layergroups/{layerGroupName}").buildAndExpand(layerGroupName);
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(uriComponents.toUri());
 
         return new ResponseEntity<>(layerGroupName, httpHeaders, HttpStatus.CREATED);
     }
 
-    @PutMapping(value = "{layerGroupName}", consumes = {
+    @PutMapping(
+        value = "{layerGroupName}",
+        consumes = {
             MediaType.APPLICATION_JSON_VALUE,
             MediaTypeExtensions.TEXT_JSON_VALUE,
             MediaType.APPLICATION_XML_VALUE,
-            MediaType.TEXT_XML_VALUE})
+            MediaType.TEXT_XML_VALUE
+        }
+    )
     public void layerGroupPut(
             @RequestBody LayerGroupInfo lg,
             @PathVariable(required = false) String workspaceName,
-            @PathVariable String layerGroupName) throws Exception {
+            @PathVariable String layerGroupName)
+            throws Exception {
 
-        if(workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
+        if (workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
             throw new ResourceNotFoundException("Workspace " + workspaceName + " not found");
         }
         checkFullAdminRequired(workspaceName);
-        
-        LOGGER.info( "PUT layer group " + layerGroupName
-                + (workspaceName != null ? ", workspace " + workspaceName : ""));
-        LayerGroupInfo original = workspaceName != null ?
-                catalog.getLayerGroupByName(workspaceName, layerGroupName) : catalog.getLayerGroupByName(layerGroupName);
 
-        //ensure not a name change
-        if ( lg.getName() != null && !lg.getName().equals( original.getName() ) ) {
-            throw new RestException( "Can't change name of a layer group", HttpStatus.FORBIDDEN );
+        LOGGER.info(
+                "PUT layer group "
+                        + layerGroupName
+                        + (workspaceName != null ? ", workspace " + workspaceName : ""));
+        LayerGroupInfo original =
+                workspaceName != null
+                        ? catalog.getLayerGroupByName(workspaceName, layerGroupName)
+                        : catalog.getLayerGroupByName(layerGroupName);
+
+        // ensure not a name change
+        if (lg.getName() != null && !lg.getName().equals(original.getName())) {
+            throw new RestException("Can't change name of a layer group", HttpStatus.FORBIDDEN);
         }
 
-        //ensure not a workspace change
+        // ensure not a workspace change
         if (lg.getWorkspace() != null) {
             if (!lg.getWorkspace().equals(original.getWorkspace())) {
-                throw new RestException( "Can't change the workspace of a layer group, instead " +
-                        "DELETE from existing workspace and POST to new workspace", HttpStatus.FORBIDDEN );
+                throw new RestException(
+                        "Can't change the workspace of a layer group, instead "
+                                + "DELETE from existing workspace and POST to new workspace",
+                        HttpStatus.FORBIDDEN);
             }
         }
 
-        new CatalogBuilder( catalog ).updateLayerGroup( original, lg );
-        catalog.save( original );
+        new CatalogBuilder(catalog).updateLayerGroup(original, lg);
+        catalog.save(original);
     }
 
     @DeleteMapping(value = "{layerGroupName}")
@@ -182,63 +212,137 @@ public class LayerGroupController extends AbstractCatalogController {
             @PathVariable(required = false) String workspaceName,
             @PathVariable String layerGroupName) {
 
-        if(workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
+        if (workspaceName != null && catalog.getWorkspaceByName(workspaceName) == null) {
             throw new ResourceNotFoundException("Workspace " + workspaceName + " not found");
         }
-        
-        LOGGER.info( "DELETE layer group " + layerGroupName );
-        LayerGroupInfo lg = workspaceName == null ? catalog.getLayerGroupByName( layerGroupName ) :
-                catalog.getLayerGroupByName(workspaceName, layerGroupName);
-        catalog.remove( lg );
+
+        LOGGER.info("DELETE layer group " + layerGroupName);
+        LayerGroupInfo lg =
+                workspaceName == null
+                        ? catalog.getLayerGroupByName(layerGroupName)
+                        : catalog.getLayerGroupByName(workspaceName, layerGroupName);
+        catalog.remove(lg);
     }
 
     @Override
-    public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+    public boolean supports(
+            MethodParameter methodParameter,
+            Type targetType,
+            Class<? extends HttpMessageConverter<?>> converterType) {
         return LayerGroupInfo.class.isAssignableFrom(methodParameter.getParameterType());
     }
 
     @Override
     public void configurePersister(XStreamPersister persister, XStreamMessageConverter converter) {
-        persister.setCallback(new XStreamPersister.Callback() {
+        persister.setCallback(
+                new XStreamPersister.Callback() {
+                    @Override
+                    protected Class<LayerGroupInfo> getObjectClass() {
+                        return LayerGroupInfo.class;
+                    }
+
+                    @Override
+                    protected CatalogInfo getCatalogObject() {
+                        Map<String, String> uriTemplateVars =
+                                (Map<String, String>)
+                                        RequestContextHolder.getRequestAttributes()
+                                                .getAttribute(
+                                                        HandlerMapping
+                                                                .URI_TEMPLATE_VARIABLES_ATTRIBUTE,
+                                                        RequestAttributes.SCOPE_REQUEST);
+                        String workspace = uriTemplateVars.get("workspaceName");
+                        String layerGroup = uriTemplateVars.get("layerGroupName");
+
+                        if (layerGroup == null) {
+                            return null;
+                        }
+                        return catalog.getLayerGroupByName(workspace, layerGroup);
+                    }
+
+                    @Override
+                    protected void postEncodeReference(
+                            Object obj,
+                            String ref,
+                            String prefix,
+                            HierarchicalStreamWriter writer,
+                            MarshallingContext context) {
+                        if (obj instanceof StyleInfo) {
+                            StringBuilder link = new StringBuilder();
+                            if (prefix != null) {
+                                link.append("/workspaces/").append(converter.encode(prefix));
+                            }
+                            link.append("/styles/").append(converter.encode(ref));
+                            converter.encodeLink(link.toString(), writer);
+                        }
+                        if (obj instanceof LayerInfo) {
+                            converter.encodeLink(
+                                    "/workspaces/" + prefix + "/layers/" + converter.encode(ref),
+                                    writer);
+                        } else if (obj instanceof LayerGroupInfo) {
+                            LayerGroupInfo lg = (LayerGroupInfo) obj;
+                            if (lg.getWorkspace() != null) {
+                                converter.encodeLink(
+                                        "/workspaces/"
+                                                + lg.getWorkspace().getName()
+                                                + "/layergroups/"
+                                                + converter.encode(ref),
+                                        writer);
+                            } else {
+                                converter.encodeLink(
+                                        "/layergroups/" + converter.encode(ref), writer);
+                            }
+                        }
+                    }
+                });
+    }
+
+    @Override
+    protected <T> ObjectWrapper createObjectWrapper(Class<T> clazz) {
+        return new ObjectToMapWrapper<LayerGroupInfo>(LayerGroupInfo.class) {
             @Override
-            protected Class<LayerGroupInfo> getObjectClass() {
-                return LayerGroupInfo.class;
+            protected void wrapInternal(
+                    Map<String, Object> properties, SimpleHash model, LayerGroupInfo layerGroup) {
+                if (properties == null) {
+                    try {
+                        properties = model.toMap();
+                    } catch (TemplateModelException e) {
+                        LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                        return;
+                    }
+                }
+                List<Map<String, Map<String, String>>> layerProps = new ArrayList<>();
+                for (PublishedInfo info : layerGroup.getLayers()) {
+                    Map<String, String> props = new HashMap<>();
+                    if (info != null) {
+                        props.put("name", info.getName());
+                        props.put("prefixedName", info.prefixedName());
+                    }
+                    layerProps.add(Collections.singletonMap("properties", props));
+                }
+                properties.put("layers", layerProps);
+
+                List<Map<String, Map<String, String>>> styleProps = new ArrayList<>();
+                for (StyleInfo info : layerGroup.getStyles()) {
+                    Map<String, String> props = new HashMap<>();
+                    if (info != null) {
+                        props.put("name", info.getName());
+                        if (info.getWorkspace() != null) {
+                            props.put("workspace", info.getWorkspace().getName());
+                        }
+                    }
+                    styleProps.add(Collections.singletonMap("properties", props));
+                }
+                properties.put("styles", styleProps);
             }
 
             @Override
-            protected CatalogInfo getCatalogObject() {
-                Map<String, String> uriTemplateVars = (Map<String, String>) RequestContextHolder.getRequestAttributes().getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
-                String workspace = uriTemplateVars.get("workspaceName");
-                String layerGroup = uriTemplateVars.get("layerGroupName");
-
-                if (layerGroup == null) {
-                    return null;
-                }
-                return catalog.getLayerGroupByName(workspace, layerGroup);
-            }
-            
-            @Override
-            protected void postEncodeReference(Object obj, String ref, String prefix,
-                    HierarchicalStreamWriter writer, MarshallingContext context) {
-                if ( obj instanceof StyleInfo ) {
-                    StringBuilder link = new StringBuilder();
-                    if (prefix != null) {
-                        link.append("/workspaces/").append(converter.encode(prefix));
-                    }
-                    link.append("/styles/").append(converter.encode(ref));
-                    converter.encodeLink(link.toString(), writer);
-                }
-                if ( obj instanceof LayerInfo ) {
-                    converter.encodeLink("/layers/" + converter.encode(ref), writer);
-                } else if ( obj instanceof LayerGroupInfo) {
-                    LayerGroupInfo lg = (LayerGroupInfo) obj;
-                    if (lg.getWorkspace() != null) {
-                        converter.encodeLink("/workspaces/"+lg.getWorkspace().getName()+"/layergroups/" + converter.encode(ref), writer);
-                    } else {
-                        converter.encodeLink("/layergroups/" + converter.encode(ref), writer);
-                    }
+            protected void wrapInternal(
+                    SimpleHash model, @SuppressWarnings("rawtypes") Collection object) {
+                for (Object l : object) {
+                    LayerGroupInfo lg = (LayerGroupInfo) l;
+                    wrapInternal(null, model, lg);
                 }
             }
-        });
+        };
     }
 }

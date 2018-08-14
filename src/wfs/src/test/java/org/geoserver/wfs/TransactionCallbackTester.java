@@ -1,27 +1,31 @@
+/* (c) 2017 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.wfs;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.BiFunction;
+import javax.xml.namespace.QName;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.data.test.MockData;
 import org.geoserver.wfs.request.*;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.filter.text.cql2.CQLException;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-
-import javax.xml.namespace.QName;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.BiFunction;
 
 public class TransactionCallbackTester implements TransactionCallback {
 
     public static final String FOLSOM_STREET = "Folsom Street";
 
-    public static TransactionRequest defaultTransformation(Catalog catalog, TransactionRequest request) {
+    public static TransactionRequest defaultTransformation(
+            Catalog catalog, TransactionRequest request) {
         for (TransactionElement element : request.getElements()) {
             if (element instanceof Insert) {
                 for (Object f : ((Insert) element).getFeatures()) {
@@ -52,17 +56,22 @@ public class TransactionCallbackTester implements TransactionCallback {
         return request;
     }
 
-    public static TransactionRequest replaceWithFixedRoadsInsert(Catalog catalog, TransactionRequest request) {
+    public static TransactionRequest replaceWithFixedRoadsInsert(
+            Catalog catalog, TransactionRequest request) {
         List<TransactionElement> transactionElements = new ArrayList<>();
 
         // create an insert
         Insert insert = request.createInsert();
         List<SimpleFeature> features = new ArrayList<>();
         try {
-            SimpleFeatureType schema = (SimpleFeatureType) catalog.getFeatureTypeByName(MockData.ROAD_SEGMENTS
-                    .getLocalPart()).getFeatureType();
+            SimpleFeatureType schema =
+                    (SimpleFeatureType)
+                            catalog.getFeatureTypeByName(MockData.ROAD_SEGMENTS.getLocalPart())
+                                    .getFeatureType();
             Geometry geometry = new WKTReader().read("MULTILINESTRING((0 0, 1 1))");
-            SimpleFeature feature = SimpleFeatureBuilder.build(schema, new Object[] {geometry, "107", "New Road"}, null);
+            SimpleFeature feature =
+                    SimpleFeatureBuilder.build(
+                            schema, new Object[] {geometry, "107", "New Road"}, null);
             features.add(feature);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -74,13 +83,17 @@ public class TransactionCallbackTester implements TransactionCallback {
         return request;
     }
 
-    public static TransactionRequest replaceWithFixedRoadsUpdate(Catalog catalog, TransactionRequest request) {
+    public static TransactionRequest replaceWithFixedRoadsUpdate(
+            Catalog catalog, TransactionRequest request) {
         List<TransactionElement> transactionElements = new ArrayList<>();
 
         // create an update
         Update update = request.createUpdate();
         try {
-            update.setTypeName(new QName(MockData.ROAD_SEGMENTS.getNamespaceURI(), MockData.ROAD_SEGMENTS.getLocalPart()));
+            update.setTypeName(
+                    new QName(
+                            MockData.ROAD_SEGMENTS.getNamespaceURI(),
+                            MockData.ROAD_SEGMENTS.getLocalPart()));
             update.setFilter(CQL.toFilter("FID = 106"));
             Property property = update.createProperty();
             property.setName(new QName(null, "NAME"));
@@ -95,13 +108,17 @@ public class TransactionCallbackTester implements TransactionCallback {
         return request;
     }
 
-    public static TransactionRequest replaceWithFixedRoadsDelete(Catalog catalog, TransactionRequest request) {
+    public static TransactionRequest replaceWithFixedRoadsDelete(
+            Catalog catalog, TransactionRequest request) {
         List<TransactionElement> transactionElements = new ArrayList<>();
 
         // create a delete
         Delete delete = request.createDelete();
         try {
-            delete.setTypeName(new QName(MockData.ROAD_SEGMENTS.getNamespaceURI(), MockData.ROAD_SEGMENTS.getLocalPart()));
+            delete.setTypeName(
+                    new QName(
+                            MockData.ROAD_SEGMENTS.getNamespaceURI(),
+                            MockData.ROAD_SEGMENTS.getLocalPart()));
             delete.setFilter(CQL.toFilter("FID = 106"));
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -115,6 +132,7 @@ public class TransactionCallbackTester implements TransactionCallback {
     TransactionResponse result;
     boolean committed;
     boolean beforeCommitCalled;
+    boolean dataStoreChanged;
     TransactionRequest request;
     BiFunction<Catalog, TransactionRequest, TransactionRequest> beforeTransaction =
             TransactionCallbackTester::defaultTransformation;
@@ -123,7 +141,6 @@ public class TransactionCallbackTester implements TransactionCallback {
     public TransactionCallbackTester(Catalog catalog) {
         this.catalog = catalog;
     }
-
 
     @Override
     public TransactionRequest beforeTransaction(TransactionRequest request) throws WFSException {
@@ -139,7 +156,8 @@ public class TransactionCallbackTester implements TransactionCallback {
     }
 
     @Override
-    public void afterTransaction(TransactionRequest request, TransactionResponse result, boolean committed) {
+    public void afterTransaction(
+            TransactionRequest request, TransactionResponse result, boolean committed) {
         this.request = request;
         this.result = result;
         this.committed = committed;
@@ -149,6 +167,12 @@ public class TransactionCallbackTester implements TransactionCallback {
         this.result = null;
         this.committed = false;
         this.beforeCommitCalled = false;
+        this.dataStoreChanged = false;
         this.beforeTransaction = TransactionCallbackTester::defaultTransformation;
+    }
+
+    @Override
+    public void dataStoreChange(TransactionEvent event) throws WFSException {
+        this.dataStoreChanged = true;
     }
 }
