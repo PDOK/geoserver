@@ -247,62 +247,62 @@ public class UsernamePasswordDetailsPanelTest extends AbstractSecurityNamedServi
     }
 
     @Test
-    public void testMultipleAuthProviders() throws Exception{
+    public void testMultipleAuthProviders() throws Exception {
         initializeForXML();
-        
+
         activatePanel();
-        
+
         assertNotNull(getSecurityNamedServiceConfig("default"));
         assertNull(getSecurityNamedServiceConfig("xxxxxxxx"));
-        
+
         // Test add 1
         clickAddNew();
-        
+
         tester.assertRenderedPage(SecurityNamedServiceNewPage.class);
         setSecurityConfigClassName(UsernamePasswordAuthProviderPanelInfo.class);
 
         newFormTester();
-        setSecurityConfigName("default_001");                        
+        setSecurityConfigName("default_001");
         setUGName("default");
         clickCancel();
-        
+
         tester.assertRenderedPage(basePage.getClass());
         assertEquals(1, countItems());
         assertNotNull(getSecurityNamedServiceConfig("default"));
-        
+
         clickAddNew();
         newFormTester();
         setSecurityConfigClassName(UsernamePasswordAuthProviderPanelInfo.class);
         newFormTester();
-        setSecurityConfigName("default_001");        
-        setUGName("default");        
+        setSecurityConfigName("default_001");
+        setUGName("default");
         tester.assertRenderedPage(SecurityNamedServiceNewPage.class);
         clickSave();
-        
+
         // Test add 2
         clickAddNew();
-        
+
         tester.assertRenderedPage(SecurityNamedServiceNewPage.class);
         setSecurityConfigClassName(UsernamePasswordAuthProviderPanelInfo.class);
 
         newFormTester();
-        setSecurityConfigName("default_002");                        
+        setSecurityConfigName("default_002");
         setUGName("default");
         clickCancel();
-        
+
         tester.assertRenderedPage(basePage.getClass());
         assertEquals(2, countItems());
         assertNotNull(getSecurityNamedServiceConfig("default"));
-        
+
         clickAddNew();
         newFormTester();
         setSecurityConfigClassName(UsernamePasswordAuthProviderPanelInfo.class);
         newFormTester();
-        setSecurityConfigName("default_002");        
-        setUGName("default");        
+        setSecurityConfigName("default_002");
+        setUGName("default");
         tester.assertRenderedPage(SecurityNamedServiceNewPage.class);
         clickSave();
-        
+
         // start test modify
         clickNamedServiceConfig("default_001");
         tester.assertRenderedPage(SecurityNamedServiceEditPage.class);
@@ -310,7 +310,7 @@ public class UsernamePasswordDetailsPanelTest extends AbstractSecurityNamedServi
         newFormTester("panel:panel:form");
         clickCancel();
         tester.assertRenderedPage(basePage.getClass());
-        
+
         clickNamedServiceConfig("default_002");
         tester.assertRenderedPage(SecurityNamedServiceEditPage.class);
         tester.debugComponentTrees();

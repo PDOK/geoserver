@@ -8,12 +8,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.geoserver.geofence.core.model.AdminRule;
-
 import org.geoserver.geofence.rest.xml.JaxbAdminRule;
 import org.geoserver.geofence.rest.xml.JaxbAdminRuleList;
 import org.geoserver.geofence.services.AdminRuleAdminService;
@@ -45,57 +42,74 @@ public class AdminRulesRestController {
     }
 
     @ExceptionHandler(NotFoundServiceEx.class)
-    public void ruleNotFound(NotFoundServiceEx exception, HttpServletRequest request, HttpServletResponse response) throws IOException {
-    	response.sendError(404, exception.getMessage());
+    public void ruleNotFound(
+            NotFoundServiceEx exception, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.sendError(404, exception.getMessage());
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
-    public void rule(DuplicateKeyException exception, HttpServletRequest request, HttpServletResponse response) throws IOException {
-    	response.sendError(409, exception.getMessage());
+    public void rule(
+            DuplicateKeyException exception,
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+        response.sendError(409, exception.getMessage());
     }
 
-    @RequestMapping(value = "/rest/adminrules", method = RequestMethod.GET, produces={"application/xml", "application/json"})
+    @RequestMapping(
+        value = "/rest/adminrules",
+        method = RequestMethod.GET,
+        produces = {"application/xml", "application/json"}
+    )
     public @ResponseBody JaxbAdminRuleList get(
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "entries", required = false) Integer entries,
-            @RequestParam(value = "full", required = false, defaultValue = "false")  boolean full,
+            @RequestParam(value = "full", required = false, defaultValue = "false") boolean full,
             @RequestParam(value = "userName", required = false) String userName,
-            @RequestParam(value = "userAny", required = false)  Boolean userDefault,
+            @RequestParam(value = "userAny", required = false) Boolean userDefault,
             @RequestParam(value = "roleName", required = false) String roleName,
-            @RequestParam(value = "roleAny", required = false)  Boolean roleDefault,
-            @RequestParam(value = "workspace", required = false) String  workspace,
-            @RequestParam(value = "workspaceAny", required = false)  Boolean workspaceDefault
-    ) {
-    	RuleFilter filter = buildFilter(
-                userName, userDefault,
-                roleName, roleDefault,
-                workspace, workspaceDefault);
+            @RequestParam(value = "roleAny", required = false) Boolean roleDefault,
+            @RequestParam(value = "workspace", required = false) String workspace,
+            @RequestParam(value = "workspaceAny", required = false) Boolean workspaceDefault) {
+        RuleFilter filter =
+                buildFilter(
+                        userName, userDefault,
+                        roleName, roleDefault,
+                        workspace, workspaceDefault);
 
-       return new JaxbAdminRuleList(adminService.getListFull(filter, page, entries));
+        return new JaxbAdminRuleList(adminService.getListFull(filter, page, entries));
     }
 
-    @RequestMapping(value = "/rest/adminrules/id/{id}", method = RequestMethod.GET, produces={"application/xml", "application/json"})
-    public @ResponseBody JaxbAdminRule get(@PathVariable ("id") Long id) {
-    	return new JaxbAdminRule(adminService.get(id));
+    @RequestMapping(
+        value = "/rest/adminrules/id/{id}",
+        method = RequestMethod.GET,
+        produces = {"application/xml", "application/json"}
+    )
+    public @ResponseBody JaxbAdminRule get(@PathVariable("id") Long id) {
+        return new JaxbAdminRule(adminService.get(id));
     }
 
-    @RequestMapping(value = "/rest/adminrules/count", method = RequestMethod.GET, produces={"application/xml", "application/json"})
+    @RequestMapping(
+        value = "/rest/adminrules/count",
+        method = RequestMethod.GET,
+        produces = {"application/xml", "application/json"}
+    )
     public @ResponseBody JaxbAdminRuleList count(
-        @RequestParam(value = "userName", required = false) String userName,
-        @RequestParam(value = "userAny", required = false) Boolean userDefault,
-        @RequestParam(value = "roleName", required = false) String roleName,
-        @RequestParam(value = "roleAny", required = false) Boolean roleDefault,
-        @RequestParam(value = "workspace", required = false) String  workspace,
-        @RequestParam(value = "workspaceAny", required = false) Boolean workspaceDefault
-    ) {
-    	RuleFilter filter = buildFilter(
-                userName, userDefault,
-                roleName, roleDefault,
-                workspace, workspaceDefault);
+            @RequestParam(value = "userName", required = false) String userName,
+            @RequestParam(value = "userAny", required = false) Boolean userDefault,
+            @RequestParam(value = "roleName", required = false) String roleName,
+            @RequestParam(value = "roleAny", required = false) Boolean roleDefault,
+            @RequestParam(value = "workspace", required = false) String workspace,
+            @RequestParam(value = "workspaceAny", required = false) Boolean workspaceDefault) {
+        RuleFilter filter =
+                buildFilter(
+                        userName, userDefault,
+                        roleName, roleDefault,
+                        workspace, workspaceDefault);
 
         return new JaxbAdminRuleList(adminService.count(filter));
     }
-
 
     @RequestMapping(value = "/rest/adminrules", method = RequestMethod.POST)
     public ResponseEntity<Long> insert(@RequestBody JaxbAdminRule rule) {
@@ -105,19 +119,19 @@ public class AdminRulesRestController {
             adminService.shift(priority, 1);
         }
 
-        return new ResponseEntity<>(adminService.insert(rule.toRule()),
-        		HttpStatus.CREATED);
+        return new ResponseEntity<>(adminService.insert(rule.toRule()), HttpStatus.CREATED);
     }
 
     @RequestMapping(value = "/rest/adminrules/id/{id}", method = RequestMethod.POST)
-    public @ResponseStatus(HttpStatus.OK) void update(@PathVariable ("id") Long id, @RequestBody JaxbAdminRule rule) {
+    public @ResponseStatus(HttpStatus.OK) void update(
+            @PathVariable("id") Long id, @RequestBody JaxbAdminRule rule) {
         if (rule.getPriority() != null) {
             ShortAdminRule priorityRule = adminService.getRuleByPriority(rule.getPriority());
             if (priorityRule != null && priorityRule.getId().longValue() != id) {
                 adminService.shift(rule.getPriority(), 1);
             }
         }
-    	adminService.update(rule.toRule(adminService.get(id)));
+        adminService.update(rule.toRule(adminService.get(id)));
     }
 
     @RequestMapping(value = "/rest/adminrules/id/{id}", method = RequestMethod.DELETE)
@@ -126,9 +140,12 @@ public class AdminRulesRestController {
     }
 
     protected RuleFilter buildFilter(
-            String userName, Boolean userDefault,
-            String roleName, Boolean groupDefault,
-            String workspace, Boolean workspaceDefault) {
+            String userName,
+            Boolean userDefault,
+            String roleName,
+            Boolean groupDefault,
+            String workspace,
+            Boolean workspaceDefault) {
 
         RuleFilter filter = new RuleFilter(SpecialFilterType.ANY, true);
 
@@ -155,17 +172,18 @@ public class AdminRulesRestController {
     }
 
     /**
-     * Move the provided rules to the target priority. Rules will be sorted by their priority,
-     * first rule will be updated with a priority equal to the target priority and the next ones
-     * will get an incremented priority value.
+     * Move the provided rules to the target priority. Rules will be sorted by their priority, first
+     * rule will be updated with a priority equal to the target priority and the next ones will get
+     * an incremented priority value.
      */
-    @RequestMapping(value = "/rest/adminrules/move", method = RequestMethod.GET, produces = {"application/xml", "application/json"})
-    public
-    @ResponseBody
-    ResponseEntity<JaxbAdminRuleList> move(
+    @RequestMapping(
+        value = "/rest/adminrules/move",
+        method = RequestMethod.GET,
+        produces = {"application/xml", "application/json"}
+    )
+    public @ResponseBody ResponseEntity<JaxbAdminRuleList> move(
             @RequestParam(value = "targetPriority", required = true) int targetPriority,
-            @RequestParam(value = "rulesIds", required = true) String rulesIds
-    ) {
+            @RequestParam(value = "rulesIds", required = true) String rulesIds) {
         // let's find the rules that need to be moved
         List<AdminRule> rules = findRules(rulesIds);
         if (rules.isEmpty()) {
@@ -184,28 +202,29 @@ public class AdminRulesRestController {
         return ResponseEntity.ok(new JaxbAdminRuleList(rules));
     }
 
-    /**
-     * Helper method that will parse and retrieve the provided rules sorted by their priority.
-     */
+    /** Helper method that will parse and retrieve the provided rules sorted by their priority. */
     private List<AdminRule> findRules(String rulesIds) {
         return Arrays.stream(rulesIds.split(","))
-            .map(ruleId -> {
-            try {
-                // parsing the rule id
-                return Long.parseLong(ruleId);
-            } catch (NumberFormatException exception) {
-                // error parsing the rule id
-                throw new InvalidRulesIds();
-            }
-        }).map(ruleId -> {
-            // search the rule by id
-            return adminService.get(ruleId);
-        }).filter(rule -> rule != null)
+                .map(
+                        ruleId -> {
+                            try {
+                                // parsing the rule id
+                                return Long.parseLong(ruleId);
+                            } catch (NumberFormatException exception) {
+                                // error parsing the rule id
+                                throw new InvalidRulesIds();
+                            }
+                        })
+                .map(
+                        ruleId -> {
+                            // search the rule by id
+                            return adminService.get(ruleId);
+                        })
+                .filter(rule -> rule != null)
                 .sorted((ruleA, ruleB) -> Long.compare(ruleA.getPriority(), ruleB.getPriority()))
                 .collect(Collectors.toList());
     }
 
-    @ResponseStatus(value=HttpStatus.BAD_REQUEST, reason="Invalid adminrules ids")
-    private class InvalidRulesIds extends RuntimeException {
-    }
+    @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "Invalid adminrules ids")
+    private class InvalidRulesIds extends RuntimeException {}
 }

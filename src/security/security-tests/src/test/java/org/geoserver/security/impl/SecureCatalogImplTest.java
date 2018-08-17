@@ -1765,5 +1765,4 @@ public class SecureCatalogImplTest extends AbstractAuthorizationTest {
         assertNotNull(sc.getLayerGroupByName("nurc", "wsContainerD"));
         assertNotNull(sc.getLayerByName(arcGridLayer.prefixedName()));
     }
-
 }

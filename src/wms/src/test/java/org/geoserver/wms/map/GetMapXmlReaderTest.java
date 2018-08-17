@@ -99,13 +99,13 @@ public class GetMapXmlReaderTest extends KvpRequestReaderTestSupport {
         PropertyIsEqualTo parsed = (PropertyIsEqualTo) request.getFilter().get(0);
         assertEquals("[ NAME = VALUE ]", parsed.toString());
     }
-    
+
     public void testAllowDynamicStyles() throws Exception {
         GetMapRequest request = (GetMapRequest) reader.createRequest();
         BufferedReader input = getResourceInputStream("WMSPostLayerGroupNonDefaultStyle.xml");
 
         WMS wms = new WMS(getGeoServer());
-        WMSInfo  oldInfo = wms.getGeoServer().getService(WMSInfo.class);
+        WMSInfo oldInfo = wms.getGeoServer().getService(WMSInfo.class);
         WMSInfo info = new WMSInfoImpl();
         info.setDynamicStylingDisabled(Boolean.TRUE);
         getGeoServer().remove(oldInfo);
@@ -114,7 +114,7 @@ public class GetMapXmlReaderTest extends KvpRequestReaderTestSupport {
         boolean error = false;
         try {
             request = (GetMapRequest) reader.read(request, input, new HashMap());
-        } catch(ServiceException e) {
+        } catch (ServiceException e) {
             error = true;
         }
         getGeoServer().remove(info);
