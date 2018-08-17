@@ -4,6 +4,7 @@
  */
 package org.geoserver.geofence.web;
 
+import java.util.*;
 import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortParam;
 import org.apache.wicket.model.IModel;
@@ -14,8 +15,6 @@ import org.geoserver.geofence.services.AdminRuleAdminService;
 import org.geoserver.geofence.services.dto.ShortAdminRule;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.wicket.GeoServerDataProvider;
-
-import java.util.*;
 
 public class GeofenceAdminRulesModel extends GeoServerDataProvider<ShortAdminRule> {
 
@@ -33,8 +32,8 @@ public class GeofenceAdminRulesModel extends GeoServerDataProvider<ShortAdminRul
             return null;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-		public IModel getModel(IModel<T> itemModel) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public IModel getModel(IModel<T> itemModel) {
             return new PropertyModel<Object>(itemModel, getPropertyPath()) {
                 private static final long serialVersionUID = -3213885135907358752L;
 
@@ -47,11 +46,21 @@ public class GeofenceAdminRulesModel extends GeoServerDataProvider<ShortAdminRul
         }
     }
 
-    public static final Property<ShortAdminRule> PRIORITY = new BeanProperty<>("priority", "priority");
-    public static final Property<ShortAdminRule> ROLE = new RuleBeanProperty<>("roleName", "roleName");
-    public static final Property<ShortAdminRule> USER = new RuleBeanProperty<>("userName", "userName");
-    public static final Property<ShortAdminRule> WORKSPACE = new RuleBeanProperty<>("workspace", "workspace");
-    public static final Property<ShortAdminRule> ACCESS = new RuleBeanProperty<>("access", "access");
+    public static final Property<ShortAdminRule> PRIORITY =
+            new BeanProperty<>("priority", "priority");
+
+    public static final Property<ShortAdminRule> ROLE =
+            new RuleBeanProperty<>("roleName", "roleName");
+
+    public static final Property<ShortAdminRule> USER =
+            new RuleBeanProperty<>("userName", "userName");
+
+    public static final Property<ShortAdminRule> WORKSPACE =
+            new RuleBeanProperty<>("workspace", "workspace");
+
+    public static final Property<ShortAdminRule> ACCESS =
+            new RuleBeanProperty<>("access", "access");
+
     public static final Property<ShortAdminRule> BUTTONS = new PropertyPlaceholder<>("buttons");
 
     private static AdminRuleAdminService adminService() {

@@ -40,5 +40,4 @@ public class HSQLLogStoreTest extends AbstractLogStoreTest {
 
         // runScript(driverClassName, jdbcUrl, getClass().getResource("hsqldb.sql"), "sa", null);
     }
-
 }

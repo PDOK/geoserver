@@ -4,8 +4,10 @@
  */
 package org.geoserver.ows;
 
-import java.util.Collections;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
+import java.util.Collections;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogFactory;
 import org.geoserver.catalog.LayerGroupInfo;
@@ -17,9 +19,6 @@ import org.geoserver.test.GeoServerSystemTestSupport;
 import org.geotools.feature.NameImpl;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class OWSHandlerMappingTest extends GeoServerSystemTestSupport {
 
@@ -103,5 +102,10 @@ public class OWSHandlerMappingTest extends GeoServerSystemTestSupport {
     @Test
     public void testLookupHandler_LayerGroupMissing() throws Exception {
         assertNull(this.mapping.lookupHandler("/lg/test", null));
+    }
+
+    @Test
+    public void testLookupHandler_NotAGlobalLayerGroup() throws Exception {
+        assertNull(this.mapping.lookupHandler("/cite:LayerGroup2/test", null));
     }
 }

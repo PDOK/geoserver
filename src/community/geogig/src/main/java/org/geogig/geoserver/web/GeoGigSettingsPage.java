@@ -6,7 +6,6 @@ package org.geogig.geoserver.web;
 
 import org.apache.wicket.extensions.ajax.markup.html.tabs.AjaxTabbedPanel;
 import org.apache.wicket.extensions.markup.html.tabs.ITab;
-import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.geogig.geoserver.web.settings.CacheStatusPanel;
 import org.geoserver.web.GeoServerSecuredPage;
 
@@ -17,10 +16,7 @@ public class GeoGigSettingsPage extends GeoServerSecuredPage {
 
     protected AjaxTabbedPanel<ITab> tabbedPanel;
 
-    protected FeedbackPanel feedbackPanel;
-
     public GeoGigSettingsPage() {
-        this.feedbackPanel = super.feedbackPanel;
         initUI();
     }
 

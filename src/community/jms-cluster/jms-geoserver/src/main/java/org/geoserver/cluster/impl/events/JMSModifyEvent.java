@@ -5,17 +5,15 @@
  */
 package org.geoserver.cluster.impl.events;
 
-import org.geoserver.cluster.impl.events.configuration.JMSEventType;
-
 import java.io.Serializable;
 import java.util.List;
+import org.geoserver.cluster.impl.events.configuration.JMSEventType;
 
 /**
  * Class implementing a generic JMS Modify event.<br>
  * It is used to handle serialization of a modify event.<br>
- * 
+ *
  * @author Carlo Cancellieri - carlo.cancellieri@geo-solutions.it
- * 
  * @param <S> a Serializable object
  */
 public class JMSModifyEvent<S extends Serializable> {
@@ -31,8 +29,11 @@ public class JMSModifyEvent<S extends Serializable> {
     // identifies the type of event (added, removed or modified)
     private final JMSEventType eventType;
 
-    public JMSModifyEvent(final S source, final List<String> propertyNames,
-            final List<Object> oldValues, final List<Object> newValues) {
+    public JMSModifyEvent(
+            final S source,
+            final List<String> propertyNames,
+            final List<Object> oldValues,
+            final List<Object> newValues) {
         this.source = source;
         this.propertyNames = propertyNames;
         this.oldValues = oldValues;
@@ -40,8 +41,12 @@ public class JMSModifyEvent<S extends Serializable> {
         this.eventType = JMSEventType.MODIFIED;
     }
 
-    public JMSModifyEvent(final S source, final List<String> propertyNames,
-            final List<Object> oldValues, final List<Object> newValues, JMSEventType eventType) {
+    public JMSModifyEvent(
+            final S source,
+            final List<String> propertyNames,
+            final List<Object> oldValues,
+            final List<Object> newValues,
+            JMSEventType eventType) {
         this.source = source;
         this.propertyNames = propertyNames;
         this.oldValues = oldValues;
@@ -49,23 +54,17 @@ public class JMSModifyEvent<S extends Serializable> {
         this.eventType = eventType;
     }
 
-    /**
-     * @return the propertyNames
-     */
+    /** @return the propertyNames */
     public final List<String> getPropertyNames() {
         return propertyNames;
     }
 
-    /**
-     * @return the oldValues
-     */
+    /** @return the oldValues */
     public final List<Object> getOldValues() {
         return oldValues;
     }
 
-    /**
-     * @return the newValues
-     */
+    /** @return the newValues */
     public final List<Object> getNewValues() {
         return newValues;
     }
@@ -73,6 +72,9 @@ public class JMSModifyEvent<S extends Serializable> {
     public S getSource() {
         return (S) source;
     }
+
+    /** */
+    private static final long serialVersionUID = 1L;
 
     public JMSEventType getEventType() {
         return eventType;

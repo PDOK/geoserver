@@ -9,8 +9,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.util.List;
-
-import org.geoserver.catalog.rest.CatalogRESTTestSupport;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.notification.common.Notification;
 import org.geoserver.notification.geonode.kombu.KombuMessage;
@@ -18,6 +16,7 @@ import org.geoserver.notification.support.BrokerManager;
 import org.geoserver.notification.support.Receiver;
 import org.geoserver.notification.support.ReceiverService;
 import org.geoserver.notification.support.Utils;
+import org.geoserver.rest.catalog.CatalogRESTTestSupport;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -52,7 +51,8 @@ public class AnonymousIntegrationTest extends CatalogRESTTestSupport {
     protected void setUpTestData(SystemTestData testData) throws Exception {
         super.setUpTestData(testData);
         new File(testData.getDataDirectoryRoot(), "notifier").mkdir();
-        testData.copyTo(getClass().getClassLoader().getResourceAsStream("notifierAnonymous.xml"),
+        testData.copyTo(
+                getClass().getClassLoader().getResourceAsStream("notifierAnonymous.xml"),
                 "notifier/" + NotifierInitializer.PROPERTYFILENAME);
     }
 
@@ -73,5 +73,4 @@ public class AnonymousIntegrationTest extends CatalogRESTTestSupport {
         assertEquals("Catalog", wsMsg.getType());
         assertEquals("WorkspaceInfo", wsMsg.getSource().getType());
     }
-
 }

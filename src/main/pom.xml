@@ -11,7 +11,7 @@
  <parent>
   <groupId>org.geoserver</groupId>
   <artifactId>geoserver</artifactId>
-  <version>2.10.4</version>
+  <version>2.13.2</version>
  </parent>
  
  <groupId>org.geoserver</groupId>
@@ -134,6 +134,12 @@
   <dependency>
     <groupId>it.geosolutions.jaiext.concurrent-tile-cache</groupId>
     <artifactId>jt-concurrent-tile-cache</artifactId>
+    <exclusions>
+       <exclusion>
+          <groupId>com.vividsolutions</groupId>
+          <artifactId>jts</artifactId>
+       </exclusion>
+    </exclusions>
   </dependency>
   
   <dependency>
@@ -174,11 +180,6 @@
   <dependency>
    <groupId>org.geotools</groupId>
    <artifactId>gt-geotiff</artifactId>
-   <scope>test</scope>
-  </dependency>
-  <dependency>
-   <groupId>org.geotools</groupId>
-   <artifactId>gt-gtopo30</artifactId>
    <scope>test</scope>
   </dependency>
   <dependency>
@@ -224,6 +225,10 @@
       <artifactId>jasypt</artifactId>
    </dependency>
    <dependency>
+      <groupId>org.jasypt</groupId>
+      <artifactId>jasypt-springsecurity3</artifactId>
+   </dependency>
+   <dependency>
     <groupId>org.bouncycastle</groupId>
     <artifactId>bcprov-jdk15on</artifactId>    
   </dependency>
@@ -236,6 +241,11 @@
      <dependency>
          <groupId>org.codehaus.jettison</groupId>
          <artifactId>jettison</artifactId>
+     </dependency>
+     <dependency>
+     	<groupId>org.geotools</groupId>
+     	<artifactId>gt-wmts</artifactId>
+     	<version>${gt.version}</version>
      </dependency>
  </dependencies>
 

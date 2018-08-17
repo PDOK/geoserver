@@ -1,8 +1,13 @@
+/* (c) 2017 Open Source Geospatial Foundation - all rights reserved
+ * This code is licensed under the GPL 2.0 license, available at the root
+ * application directory.
+ */
 package org.geoserver.script.py;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.WKTReader;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.geoserver.script.wps.ScriptProcessFactory;
 import org.geoserver.script.wps.ScriptProcessTestSupport;
 import org.geoserver.wps.WPSException;
@@ -12,9 +17,6 @@ import org.geotools.util.DefaultProgressListener;
 import org.opengis.feature.type.Name;
 import org.opengis.util.ProgressListener;
 import org.python.core.PyException;
-
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
 
 public class PyMonitorTest extends ScriptProcessTestSupport {
 
@@ -48,8 +50,13 @@ public class PyMonitorTest extends ScriptProcessTestSupport {
         checkParameter(inputs, "distance", Number.class, "The buffer distance", 1, 1);
     }
 
-    public Parameter<?> checkParameter(Map<String, Parameter<?>> parameters, String name,
-            Class type, String description, int minOccurs, int maxOccurs) {
+    public Parameter<?> checkParameter(
+            Map<String, Parameter<?>> parameters,
+            String name,
+            Class type,
+            String description,
+            int minOccurs,
+            int maxOccurs) {
         assertTrue(parameters.containsKey(name));
         Parameter<?> param = parameters.get(name);
         assertTrue(type.isAssignableFrom(param.type));
@@ -58,7 +65,6 @@ public class PyMonitorTest extends ScriptProcessTestSupport {
         assertEquals(maxOccurs, param.maxOccurs);
 
         return param;
-
     }
 
     public void testRun() throws Exception {
@@ -109,5 +115,4 @@ public class PyMonitorTest extends ScriptProcessTestSupport {
             assertEquals("distance", e.getLocator());
         }
     }
-
 }

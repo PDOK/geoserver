@@ -5,9 +5,9 @@
  */
 package org.geoserver.geofence;
 
+import com.google.common.base.Ticker;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.geoserver.geofence.cache.CacheConfiguration;
 import org.geoserver.geofence.cache.CachedRuleReader;
 import org.geoserver.geofence.config.GeoFencePropertyPlaceholderConfigurer;
@@ -17,25 +17,24 @@ import org.geoserver.geofence.services.dto.RuleFilter;
 import org.geotools.util.logging.Logging;
 import org.springframework.core.io.UrlResource;
 
-import com.google.common.base.Ticker;
-
-/**
- *
- * @author ETj (etj at geo-solutions.it)
- */
+/** @author ETj (etj at geo-solutions.it) */
 public class CacheReaderTest extends GeofenceBaseTest {
 
     static final Logger LOGGER = Logging.getLogger(CacheReaderTest.class);
 
     private RuleReaderService realReader;
+
     private GeoFencePropertyPlaceholderConfigurer configurer;
 
     @Override
     protected void setUpInternal() throws Exception {
         super.setUpInternal();
 
-        configurer = (GeoFencePropertyPlaceholderConfigurer) applicationContext.getBean("geofence-configurer");
-        configurer.setLocation(new UrlResource(this.getClass().getResource("/test-cache-config.properties")));
+        configurer =
+                (GeoFencePropertyPlaceholderConfigurer)
+                        applicationContext.getBean("geofence-configurer");
+        configurer.setLocation(
+                new UrlResource(this.getClass().getResource("/test-cache-config.properties")));
 
         realReader = applicationContext.getBean("remoteReaderService", RuleReaderService.class);
     }
@@ -88,7 +87,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
         int evictExp = 0;
 
         // first loading, obviously a miss
-        AccessInfo ai1_1= cachedRuleReader.getAccessInfo(filter1);
+        AccessInfo ai1_1 = cachedRuleReader.getAccessInfo(filter1);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(hitExp, cachedRuleReader.getStats().hitCount());
@@ -97,7 +96,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
 
         // second loading with the same rule, should be a hit
         ticker.setMillisec(1);
-        AccessInfo ai1_2= cachedRuleReader.getAccessInfo(filter1);
+        AccessInfo ai1_2 = cachedRuleReader.getAccessInfo(filter1);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(++hitExp, cachedRuleReader.getStats().hitCount());
@@ -108,7 +107,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
 
         // loading a different filter, a miss again
         ticker.setMillisec(2);
-        AccessInfo ai2= cachedRuleReader.getAccessInfo(filter2);
+        AccessInfo ai2 = cachedRuleReader.getAccessInfo(filter2);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(hitExp, cachedRuleReader.getStats().hitCount());
@@ -117,7 +116,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
 
         // yet another different filter. we expect a miss, and an eviction
         ticker.setMillisec(3);
-        AccessInfo ai3= cachedRuleReader.getAccessInfo(filter3);
+        AccessInfo ai3 = cachedRuleReader.getAccessInfo(filter3);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(hitExp, cachedRuleReader.getStats().hitCount());
@@ -143,7 +142,6 @@ public class CacheReaderTest extends GeofenceBaseTest {
         assertEquals(++missExp, cachedRuleReader.getStats().missCount());
         assertEquals(++evictExp, cachedRuleReader.getStats().evictionCount());
     }
-
 
     public void testExpire() throws InterruptedException {
         CustomTicker ticker = new CustomTicker();
@@ -183,7 +181,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
         int evictExp = 0;
 
         // first loading
-        AccessInfo ai1_1= cachedRuleReader.getAccessInfo(filter1);
+        AccessInfo ai1_1 = cachedRuleReader.getAccessInfo(filter1);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(hitExp, cachedRuleReader.getStats().hitCount());
@@ -192,7 +190,7 @@ public class CacheReaderTest extends GeofenceBaseTest {
 
         // second loading with the same rule, should be a hit
         ticker.setMillisec(1);
-        AccessInfo ai1_2= cachedRuleReader.getAccessInfo(filter1);
+        AccessInfo ai1_2 = cachedRuleReader.getAccessInfo(filter1);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(++hitExp, cachedRuleReader.getStats().hitCount());
@@ -204,15 +202,16 @@ public class CacheReaderTest extends GeofenceBaseTest {
 
         // loading the same filter, after the refresh time
         ticker.setMillisec(600);
-//        LOGGER.log(Level.INFO, "We expect a reload() now....");
+        // LOGGER.log(Level.INFO, "We expect a reload() now....");
         System.out.println("---> We expect a reload() now....");
-        AccessInfo ai1_3= cachedRuleReader.getAccessInfo(filter1);
+        AccessInfo ai1_3 = cachedRuleReader.getAccessInfo(filter1);
 
         System.out.println(cachedRuleReader.getStats());
         assertEquals(++hitExp, cachedRuleReader.getStats().hitCount());
         assertEquals(missExp, cachedRuleReader.getStats().missCount());
         assertEquals(evictExp, cachedRuleReader.getStats().evictionCount());
-//        assertEquals(2, cachedRuleReader.getStats().loadSuccessCount()); // dunno if load is made asynch or not
+        // assertEquals(2, cachedRuleReader.getStats().loadSuccessCount()); // dunno if load is made
+        // asynch or not
 
         // reloading should have been triggered
         ticker.setMillisec(700);
@@ -222,9 +221,13 @@ public class CacheReaderTest extends GeofenceBaseTest {
         assertEquals(hitExp, cachedRuleReader.getStats().hitCount());
         assertEquals(missExp, cachedRuleReader.getStats().missCount());
         assertEquals(evictExp, cachedRuleReader.getStats().evictionCount());
-//        assertEquals(2, cachedRuleReader.getStats().loadSuccessCount());  // uhm, this does not work
-        if(2!=cachedRuleReader.getStats().loadSuccessCount())
-            LOGGER.log(Level.SEVERE, "*** Bad successCount check, expected 2, found {0}", cachedRuleReader.getStats().loadSuccessCount());
+        // assertEquals(2, cachedRuleReader.getStats().loadSuccessCount()); // uhm, this does not
+        // work
+        if (2 != cachedRuleReader.getStats().loadSuccessCount())
+            LOGGER.log(
+                    Level.SEVERE,
+                    "*** Bad successCount check, expected 2, found {0}",
+                    cachedRuleReader.getStats().loadSuccessCount());
 
         ticker.setMillisec(800);
         cachedRuleReader.getAccessInfo(filter1);
@@ -234,23 +237,23 @@ public class CacheReaderTest extends GeofenceBaseTest {
         cachedRuleReader.getAccessInfo(filter1);
         System.out.println(cachedRuleReader.getStats());
     }
-    
-//    public void testSave() throws IOException, URISyntaxException {
-//        GeofenceTestUtils.emptyFile("test-cache-config.properties");
-//
-//        CacheConfiguration params = new CacheConfiguration();
-//        params.setSize(100);
-//        params.setRefreshMilliSec(500);
-//        params.setExpireMilliSec(1000);
-//
-//        configManager.setCacheConfiguration(params);
-//
-//        CachedRuleReader cachedRuleReader = new CachedRuleReader(configManager);
-//
-//
-//        cachedRuleReader.saveConfiguration(params);
-//        String content = GeofenceTestUtils.readConfig("test-cache-config.properties");
-//        assertEquals("cacheSize=100cacheRefresh=500cacheExpire=1000", content);
-//    }
+
+    // public void testSave() throws IOException, URISyntaxException {
+    // GeofenceTestUtils.emptyFile("test-cache-config.properties");
+    //
+    // CacheConfiguration params = new CacheConfiguration();
+    // params.setSize(100);
+    // params.setRefreshMilliSec(500);
+    // params.setExpireMilliSec(1000);
+    //
+    // configManager.setCacheConfiguration(params);
+    //
+    // CachedRuleReader cachedRuleReader = new CachedRuleReader(configManager);
+    //
+    //
+    // cachedRuleReader.saveConfiguration(params);
+    // String content = GeofenceTestUtils.readConfig("test-cache-config.properties");
+    // assertEquals("cacheSize=100cacheRefresh=500cacheExpire=1000", content);
+    // }
 
 }

@@ -20,7 +20,7 @@ Communication channels:
 
 We have a number of build servers employed to assist with day to day activities:
 
-* http://ares.boundlessgeo.com/jenkins/view/geoserver/ (main build server)
+* https://build.geoserver.org/view/geoserver/ (main build server)
 * http://office.geo-solutions.it/jenkins/ (windows build server)
 * http://aaime.no-ip.org/jenkins/ (JDK 7)
 * http://aaime.no-ip.org/sonar/ (Sonar)
@@ -38,7 +38,7 @@ Question and answer:
 License
 -------
 
-For complete license information review :download:`LICENSE.txt </../../../../src/LICENSE.txt>`.
+For complete license information review :download:`LICENSE.txt </../../../../LICENSE.txt>`.
 
 * GeoServer is free software and is licensed under the :download:`GNU General Public License </../../../../src/release/GPL.txt>`::
 

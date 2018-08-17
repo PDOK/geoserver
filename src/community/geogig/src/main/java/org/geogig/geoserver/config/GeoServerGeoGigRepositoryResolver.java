@@ -7,20 +7,16 @@ package org.geogig.geoserver.config;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Strings;
 import java.net.URI;
 import java.util.List;
-
 import org.locationtech.geogig.repository.Context;
 import org.locationtech.geogig.repository.Repository;
 import org.locationtech.geogig.repository.RepositoryConnectionException;
 import org.locationtech.geogig.repository.RepositoryResolver;
 import org.locationtech.geogig.storage.ConfigDatabase;
 
-import com.google.common.base.Strings;
-
-/**
- * Specialized RepositoryResolver for GeoServer manager Geogig Repositories.
- */
+/** Specialized RepositoryResolver for GeoServer manager Geogig Repositories. */
 public class GeoServerGeoGigRepositoryResolver extends RepositoryResolver {
 
     public static final String GEOSERVER_URI_SCHEME = "geoserver";
@@ -33,7 +29,12 @@ public class GeoServerGeoGigRepositoryResolver extends RepositoryResolver {
 
     @Override
     public boolean canHandle(URI repoURI) {
-        return repoURI != null && GEOSERVER_URI_SCHEME.equals(repoURI.getScheme());
+        return repoURI != null && canHandleURIScheme(repoURI.getScheme());
+    }
+
+    @Override
+    public boolean canHandleURIScheme(String scheme) {
+        return scheme != null && GEOSERVER_URI_SCHEME.equals(scheme);
     }
 
     @Override
@@ -75,17 +76,20 @@ public class GeoServerGeoGigRepositoryResolver extends RepositoryResolver {
         RepositoryInfo info = repoMgr.getByRepoName(name);
         if (info != null) {
             // get the native RepositoryResolver for the location and open it directly
-            // Using the RepositryManager to get the repo would cause the repo to be managed by the RepositoryManager,
-            // when this repo should be managed by the DataStore. The DataStore will close this repo instance when
+            // Using the RepositryManager to get the repo would cause the repo to be managed by the
+            // RepositoryManager,
+            // when this repo should be managed by the DataStore. The DataStore will close this repo
+            // instance when
             // GeoServer decides to dispose the DataStore.
             Repository repo = RepositoryResolver.load(info.getLocation());
-            checkState(repo.isOpen(), "RepositoryManager returned a closed repository for %s",
-                    name);
+            checkState(
+                    repo.isOpen(), "RepositoryManager returned a closed repository for %s", name);
             return repo;
         } else {
             // didn't find a repo
-            RepositoryConnectionException rce = new RepositoryConnectionException(
-                    "No GeoGig repository found with NAME or ID: " + name);
+            RepositoryConnectionException rce =
+                    new RepositoryConnectionException(
+                            "No GeoGig repository found with NAME or ID: " + name);
             throw rce;
         }
     }
@@ -104,5 +108,4 @@ public class GeoServerGeoGigRepositoryResolver extends RepositoryResolver {
     public List<String> listRepoNamesUnderRootURI(URI rootRepoURI) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-
 }

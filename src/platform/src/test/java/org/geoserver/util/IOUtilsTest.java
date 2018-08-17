@@ -5,26 +5,24 @@
  */
 package org.geoserver.util;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.google.common.io.Files;
-
-import org.geoserver.util.IOUtils;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.zip.ZipOutputStream;
-
-import static org.junit.Assert.assertTrue;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class IOUtilsTest {
 
-    @Rule
-    public TemporaryFolder temp = new TemporaryFolder(new File("target"));
+    @Rule public TemporaryFolder temp = new TemporaryFolder(new File("target"));
 
     @Test
     public void testZipUnzip() throws IOException {
@@ -44,5 +42,30 @@ public class IOUtilsTest {
         IOUtils.decompress(bin, p2.toFile());
 
         assertTrue(p2.resolve("foo/bar/bar.txt").toFile().exists());
+    }
+
+    @Test
+    public void testDecompressStreamBadEntryName() throws IOException {
+        File destDir = temp.newFolder("d3").toPath().toFile();
+        destDir.mkdirs();
+        try (InputStream input = getClass().getResourceAsStream("/bad-zip-file.zip")) {
+            IOUtils.decompress(input, destDir);
+            fail("Expected decompression to fail");
+        } catch (IOException e) {
+            assertTrue(e.getMessage().startsWith("Entry is outside of the target directory"));
+        }
+    }
+
+    @Test
+    public void testDecompressFileBadEntryName() throws IOException {
+        File destDir = temp.newFolder("d4").toPath().toFile();
+        destDir.mkdirs();
+        File input = new File("src/test/resources/bad-zip-file.zip");
+        try {
+            IOUtils.decompress(input, destDir);
+            fail("Expected decompression to fail");
+        } catch (IOException e) {
+            assertTrue(e.getMessage().startsWith("Entry is outside of the target directory"));
+        }
     }
 }

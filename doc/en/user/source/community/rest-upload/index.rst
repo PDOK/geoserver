@@ -7,7 +7,7 @@ This plugin can be used for managing the upload of files in GeoServer via REST w
 Installing the Plugin
 ----------------------------------------------
 
-    #. Download the plugin from the `nightly GeoServer community module builds <http://ares.boundlessgeo.com/geoserver/master/community-latest/>`_.
+    #. Download the plugin from the `nightly GeoServer community module builds <https://build.geoserver.org/geoserver/master/community-latest/>`_.
 
     .. warning:: Make sure the version of the extension matches the version of the GeoServer instance!
 
@@ -20,7 +20,7 @@ Plugin Description
 The upload service is published under the common prefix **/rest/resumableupload/${uploadId}**, where uploadId is the unique identifier of each upload request.
 
 
-The completed uploaded file is moved to REST *ROOT folder*, if configured, otherwise in *$GEOSERVER_DATA_DIR/data* folder (see documentation of Path Mapper at the `Path Mapper documentation page <http://docs.geoserver.org/latest/en/user/webadmin/server/globalsettings.html#rest-pathmapper-root-directory-path>`_
+The completed uploaded file is moved to REST *ROOT folder*, if configured, otherwise in *$GEOSERVER_DATA_DIR/data* folder (see documentation of Path Mapper at the :ref:`Global Settings documentation page <config_globalsettings>`
 
 Here is a description of general workflow that clients must follow to handle file upload, manage returned data and resume upload:
 
@@ -32,7 +32,7 @@ Here is a description of general workflow that clients must follow to handle fil
 
 #.	The client starts the file upload with an *application/octet-stream* **REST PUT** at url returned from the POST (relative url is **/rest/resumableupload/${uploadId}** ). The body of the **PUT** contains the file bytes to upload. It is mandatory to set the header attribute **Content-Length** with the total number of byte of the current upload (same as the complete size of file in bytes). 
 
-#.	The server saves a temporary file into the desired path relative to a configurable folder (default is *tmp/upload* subfolder of *Geoserver data directory*). 
+#.	The server saves a temporary file into the desired path relative to a configurable folder (default is *tmp/upload* subfolder of *GeoServer data directory*). 
 	
 #.	The server reply can be:
 
@@ -52,7 +52,7 @@ Here is a description of general workflow that clients must follow to handle fil
 The uploads which are not completed and are not resumed from too much time (default value is 300000 milliseconds) will be removed from server.
 The completed files will be reachable via GET request for a limited time (default value is 300000 milliseconds).
 
-The timeout of files cleaner task and the temporary subfolder path can be configured by adding a **resumableUpload.properties** file to the Geoserver data directory with the definition of properties *resumable.tempPath* and *resumable.expirationDelay* (in milliseconds). Each modification of this file requires to restart GeoServer.
+The timeout of files cleaner task and the temporary subfolder path can be configured by adding a **resumableUpload.properties** file to the GeoServer data directory with the definition of properties *resumable.tempPath* and *resumable.expirationDelay* (in milliseconds). Each modification of this file requires to restart GeoServer.
 
 Example of usage
 -------------------------

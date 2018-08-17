@@ -10,47 +10,47 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.geoserver.sldservice.utils.classifier.ColorRamp;
 
 /**
  * Random Color Ramp Implementation
- * 
- * @author Alessio Fabiani, GeoSolutions SAS
  *
+ * @author Alessio Fabiani, GeoSolutions SAS
  */
 public class RandomColorRamp implements ColorRamp {
 
-	private int classNum = 0;
-	private List<Color> colors = new ArrayList<Color>();
+    private int classNum = 0;
 
-	public int getNumClasses() {
-		return classNum;
-	}
+    private List<Color> colors = new ArrayList<Color>();
 
-	public List<Color> getRamp() throws Exception {
-		if (colors == null)
-			throw new Exception("Class num not setted, color ramp null");
-		return colors;
-	}
+    public int getNumClasses() {
+        return classNum;
+    }
 
-	public void revert() {
+    public List<Color> getRamp() throws Exception {
+        if (colors == null) throw new Exception("Class num not setted, color ramp null");
+        return colors;
+    }
+
+    public void revert() {
         Collections.reverse(colors);
-	}
+    }
 
-	public void setNumClasses(int numClass) {
-		classNum = numClass;
-		try {
-			createRamp();
-		} catch (Exception e) {
+    public void setNumClasses(int numClass) {
+        classNum = numClass;
+        try {
+            createRamp();
+        } catch (Exception e) {
 
-		}
-	}
+        }
+    }
 
-	private void createRamp() throws Exception {
-		for (int i = 0; i < classNum; i++)
-			colors.add(new Color((int) (Math.random() * 255), (int) (Math
-					.random() * 255), (int) (Math.random() * 255)));
-	}
-
+    private void createRamp() throws Exception {
+        for (int i = 0; i < classNum; i++)
+            colors.add(
+                    new Color(
+                            (int) (Math.random() * 255),
+                            (int) (Math.random() * 255),
+                            (int) (Math.random() * 255)));
+    }
 }

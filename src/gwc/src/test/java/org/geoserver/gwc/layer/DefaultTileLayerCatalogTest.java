@@ -9,10 +9,13 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 
+import com.google.common.collect.ImmutableSet;
+import com.thoughtworks.xstream.XStream;
 import java.io.File;
-
+import java.util.Collections;
 import org.apache.commons.io.FileUtils;
 import org.geoserver.catalog.impl.ModificationProxy;
+import org.geoserver.config.util.SecureXStream;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geowebcache.config.ContextualConfigurationProvider.Context;
 import org.geowebcache.config.XMLConfiguration;
@@ -20,9 +23,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.web.context.WebApplicationContext;
-
-import com.google.common.collect.ImmutableSet;
-import com.thoughtworks.xstream.XStream;
 
 public class DefaultTileLayerCatalogTest {
 
@@ -37,8 +37,9 @@ public class DefaultTileLayerCatalogTest {
         baseDirectory.mkdirs();
         GeoServerResourceLoader resourceLoader = new GeoServerResourceLoader(baseDirectory);
 
-        XStream xStream = XMLConfiguration.getConfiguredXStreamWithContext(new XStream(),
-                (WebApplicationContext) null, Context.PERSIST);
+        XStream xStream =
+                XMLConfiguration.getConfiguredXStreamWithContext(
+                        new SecureXStream(), (WebApplicationContext) null, Context.PERSIST);
 
         catalog = new DefaultTileLayerCatalog(resourceLoader, xStream);
     }
@@ -48,7 +49,8 @@ public class DefaultTileLayerCatalogTest {
         FileUtils.deleteDirectory(baseDirectory);
     }
 
-    @Test public void testGetLayerById() {
+    @Test
+    public void testGetLayerById() {
         GeoServerTileLayerInfo info = new GeoServerTileLayerInfoImpl();
         info.setId("id1");
         info.setName("name1");
@@ -58,7 +60,8 @@ public class DefaultTileLayerCatalogTest {
         assertEquals(info, actual);
     }
 
-    @Test public void testGetLayerByName() {
+    @Test
+    public void testGetLayerByName() {
         GeoServerTileLayerInfo info = new GeoServerTileLayerInfoImpl();
         info.setId("id1");
         info.setName("name1");
@@ -68,7 +71,8 @@ public class DefaultTileLayerCatalogTest {
         assertEquals(info, actual);
     }
 
-    @Test public void testDelete() {
+    @Test
+    public void testDelete() {
         GeoServerTileLayerInfo info = new GeoServerTileLayerInfoImpl();
         info.setId("id1");
         info.setName("name1");
@@ -84,7 +88,8 @@ public class DefaultTileLayerCatalogTest {
         assertNull(catalog.getLayerById("id1"));
     }
 
-    @Test public void testSave() {
+    @Test
+    public void testSave() {
         final GeoServerTileLayerInfo original;
         {
             final GeoServerTileLayerInfo info = new GeoServerTileLayerInfoImpl();
@@ -92,6 +97,7 @@ public class DefaultTileLayerCatalogTest {
             info.setName("name1");
             info.getMimeFormats().add("image/png");
             info.getMimeFormats().add("image/jpeg");
+
             assertNull(catalog.save(info));
 
             original = catalog.getLayerById("id1");
@@ -115,4 +121,40 @@ public class DefaultTileLayerCatalogTest {
         assertEquals(ImmutableSet.of("image/gif"), modified.getMimeFormats());
     }
 
+    @Test
+    public void testSaveWithEmptyStyleParamFilter() {
+        final GeoServerTileLayerInfo original;
+        {
+            final GeoServerTileLayerInfo info = new GeoServerTileLayerInfoImpl();
+            info.setId("id1");
+            info.setName("name1");
+            info.getMimeFormats().add("image/png");
+            info.getMimeFormats().add("image/jpeg");
+
+            StyleParameterFilter parameterFilter = new StyleParameterFilter();
+            parameterFilter.setStyles(Collections.emptySet());
+            info.addParameterFilter(parameterFilter);
+
+            assertNull(catalog.save(info));
+
+            original = catalog.getLayerById("id1");
+            assertEquals(info.getMimeFormats(), original.getMimeFormats());
+        }
+
+        original.getMimeFormats().clear();
+        original.getMimeFormats().add("image/gif");
+        original.setName("name2");
+
+        final GeoServerTileLayerInfo oldValue = catalog.save(original);
+
+        assertNotNull(oldValue);
+        assertEquals(ImmutableSet.of("image/png", "image/jpeg"), oldValue.getMimeFormats());
+        assertEquals("name1", oldValue.getName());
+
+        assertNull(catalog.getLayerByName("name1"));
+        assertNotNull(catalog.getLayerByName("name2"));
+
+        GeoServerTileLayerInfo modified = catalog.getLayerById("id1");
+        assertEquals(ImmutableSet.of("image/gif"), modified.getMimeFormats());
+    }
 }

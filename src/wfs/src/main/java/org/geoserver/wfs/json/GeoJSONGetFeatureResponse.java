@@ -5,6 +5,7 @@
  */
 package org.geoserver.wfs.json;
 
+import com.vividsolutions.jts.geom.Geometry;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import net.sf.json.JSONException;
 import org.geoserver.config.GeoServer;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
@@ -40,16 +41,12 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-
-import net.sf.json.JSONException;
-
 /**
- * A GetFeatureInfo response handler specialized in producing Json and JsonP data for a GetFeatureInfo request.
- * 
+ * A GetFeatureInfo response handler specialized in producing Json and JsonP data for a
+ * GetFeatureInfo request.
+ *
  * @author Simone Giannecchini, GeoSolutions
  * @author Carlo Cancellieri - GeoSolutions
- * 
  */
 public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
     private final Logger LOGGER = org.geotools.util.logging.Logging.getLogger(this.getClass());
@@ -65,58 +62,71 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             jsonp = true;
         } else {
             throw new IllegalArgumentException(
-                    "Unable to create the JSON Response handler using format: " + format
+                    "Unable to create the JSON Response handler using format: "
+                            + format
                             + " supported mymetype are: "
                             + Arrays.toString(JSONType.getSupportedTypes()));
         }
     }
 
-    /**
-     * capabilities output format string.
-     */
+    /** capabilities output format string. */
     public String getCapabilitiesElementName() {
         return JSONType.getJSONType(getOutputFormat()).toString();
     }
 
-    /**
-     * Returns the mime type
-     */
+    /** Returns the mime type */
     public String getMimeType(Object value, Operation operation) throws ServiceException {
-        if(jsonp) {
+        if (jsonp) {
             return JSONType.JSONP.getMimeType();
         } else {
             return JSONType.JSON.getMimeType();
         }
     }
 
+    /** Helper method that checks if the results feature collections contain complex features. */
+    private static boolean isComplexFeature(FeatureCollectionResponse results) {
+        for (FeatureCollection featureCollection : results.getFeatures()) {
+            if (!(featureCollection.getSchema() instanceof SimpleFeatureType)) {
+                // this feature collection contains complex features
+                return true;
+            }
+        }
+        // all features collections contain only simple features
+        return false;
+    }
+
     @Override
-    protected void write(FeatureCollectionResponse featureCollection, OutputStream output,
-            Operation describeFeatureType) throws IOException {
+    protected void write(
+            FeatureCollectionResponse featureCollection,
+            OutputStream output,
+            Operation describeFeatureType)
+            throws IOException {
 
         int numDecimals = getNumDecimals(featureCollection.getFeature(), gs, gs.getCatalog());
 
-        if (LOGGER.isLoggable(Level.INFO))
-            LOGGER.info("about to encode JSON");
+        if (LOGGER.isLoggable(Level.INFO)) LOGGER.info("about to encode JSON");
         // Generate bounds for every feature?
         WFSInfo wfs = getInfo();
         boolean featureBounding = wfs.isFeatureBounding();
-        
+
         // include fid?
         String id_option = null; // null - default, "" - none, or "property"
-        //GetFeatureRequest request = GetFeatureRequest.adapt(describeFeatureType.getParameters()[0]);
+        // GetFeatureRequest request =
+        // GetFeatureRequest.adapt(describeFeatureType.getParameters()[0]);
         Request request = Dispatcher.REQUEST.get();
         if (request != null) {
-            id_option = JSONType.getIdPolicy( request.getKvp() );
+            id_option = JSONType.getIdPolicy(request.getKvp());
         }
         // prepare to write out
         OutputStreamWriter osw = null;
         Writer outWriter = null;
-        boolean hasGeom = false;
 
         // get feature count for request
         BigInteger totalNumberOfFeatures = featureCollection.getTotalNumberOfFeatures();
-        BigInteger featureCount = (totalNumberOfFeatures != null && totalNumberOfFeatures.longValue() < 0)
-                ? null : totalNumberOfFeatures;
+        BigInteger featureCount =
+                (totalNumberOfFeatures != null && totalNumberOfFeatures.longValue() < 0)
+                        ? null
+                        : totalNumberOfFeatures;
 
         try {
             osw = new OutputStreamWriter(output, gs.getGlobal().getSettings().getCharset());
@@ -125,11 +135,19 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             if (jsonp) {
                 outWriter.write(getCallbackFunction() + "(");
             }
-            
+
+            // currently complex features count always return zero
+            boolean isComplex = isComplexFeature(featureCollection);
+            if (featureCount != null && isComplex && featureCount.equals(BigInteger.ZERO)) {
+                // a zero count when dealing with complex features means that features count is not
+                // supported
+                featureCount = null;
+            }
+
             final GeoJSONBuilder jsonWriter = new GeoJSONBuilder(outWriter);
             jsonWriter.setNumberOfDecimals(numDecimals);
             jsonWriter.object().key("type").value("FeatureCollection");
-            if(featureCount != null) {
+            if (featureCount != null) {
                 jsonWriter.key("totalFeatures").value(featureCount);
             } else {
                 jsonWriter.key("totalFeatures").value("unknown");
@@ -142,110 +160,27 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             //
             // execute should also fail if all of the locks could not be acquired
             List<FeatureCollection> resultsList = featureCollection.getFeature();
-            CoordinateReferenceSystem crs = null;
-            for (int i = 0; i < resultsList.size(); i++) {
-                FeatureCollection collection = resultsList.get(i);
-                FeatureIterator iterator = collection.features();
-
-                
-                try {
-                    SimpleFeatureType fType;
-                    List<AttributeDescriptor> types;
-
-                    while (iterator.hasNext()) {
-                        SimpleFeature feature = (SimpleFeature) iterator.next();
-                        jsonWriter.object();
-                        jsonWriter.key("type").value("Feature");
-
-                        fType = feature.getFeatureType();
-                        types = fType.getAttributeDescriptors();
-
-                        if( id_option == null ){
-                            jsonWriter.key("id").value(feature.getID());
-                        }
-                        else if ( id_option.length() != 0){
-                            Object value = feature.getAttribute(id_option);
-                            jsonWriter.key("id").value(value);
-                        }
-                        
-                        GeometryDescriptor defaultGeomType = fType.getGeometryDescriptor();
-                        if(defaultGeomType != null) {
-                            CoordinateReferenceSystem featureCrs =
-                                    defaultGeomType.getCoordinateReferenceSystem();
-                            
-                            jsonWriter.setAxisOrder(CRS.getAxisOrder(featureCrs));
-                            
-                            if (crs == null)
-                                crs = featureCrs;
-                        } else  {
-                            // If we don't know, assume EAST_NORTH so that no swapping occurs
-                            jsonWriter.setAxisOrder(CRS.AxisOrder.EAST_NORTH);
-                        }
-                        
-                        jsonWriter.key("geometry");
-                        Geometry aGeom = (Geometry) feature.getDefaultGeometry();
-
-                        // Write the geometry, whether it is a null or not
-                        if (aGeom != null) {
-                            jsonWriter.writeGeom(aGeom);
-                            hasGeom = true;
-                        } else {
-                            jsonWriter.value(null);
-                        }
-                        if (defaultGeomType != null)
-                            jsonWriter.key("geometry_name").value(defaultGeomType.getLocalName());
-
-                        jsonWriter.key("properties");
-                        jsonWriter.object();
-
-                        for (int j = 0; j < types.size(); j++) {
-                            Object value = feature.getAttribute(j);
-                            AttributeDescriptor ad = types.get(j);
-                            
-                            if( id_option != null && id_option.equals(ad.getLocalName()) ){
-                            	continue; // skip this value as it is used as the id
-                            }
-                            if (ad instanceof GeometryDescriptor) {
-                                // This is an area of the spec where they
-                                // decided to 'let convention evolve',
-                                // that is how to handle multiple
-                                // geometries. My take is to print the
-                                // geometry here if it's not the default.
-                                // If it's the default that you already
-                                // printed above, so you don't need it here.
-                                if (ad.equals(defaultGeomType)) {
-                                    // Do nothing, we wrote it above
-                                    // jsonWriter.value("geometry_name");
-                                } else if(value == null){
-                                    jsonWriter.key(ad.getLocalName());
-                                    jsonWriter.value(null);
-                                } else {
-                                    jsonWriter.key(ad.getLocalName());
-                                    jsonWriter.writeGeom((Geometry) value);
-                                }
-                            } else {
-                                jsonWriter.key(ad.getLocalName());
-                                jsonWriter.value(value);
-                            }
-                        }
-                        // Bounding box for feature in properties
-                        ReferencedEnvelope refenv = ReferencedEnvelope.reference(feature.getBounds());
-                        if (featureBounding && !refenv.isEmpty())
-                            jsonWriter.writeBoundingBox(refenv);
-
-                        jsonWriter.endObject(); // end the properties
-                        jsonWriter.endObject(); // end the feature
-                    }
-                } // catch an exception here?
-                finally {
-                    iterator.close();
-                }
+            // encode the features and extract information about the CRS and if geometry exists
+            boolean hasGeom = false;
+            CoordinateReferenceSystem crs;
+            if (!isComplex) {
+                FeaturesInfo featuresInfo =
+                        encodeSimpleFeatures(jsonWriter, resultsList, id_option, featureBounding);
+                hasGeom = featuresInfo.hasGeometry;
+                crs = featuresInfo.crs;
+            } else {
+                // encode collection with complex features
+                ComplexGeoJsonWriter complexWriter = new ComplexGeoJsonWriter(jsonWriter);
+                complexWriter.write(resultsList);
+                hasGeom = complexWriter.geometryFound();
+                crs = complexWriter.foundCrs();
             }
             jsonWriter.endArray(); // end features
 
             // Coordinate Reference System
             try {
-                if ("true".equals(GeoServerExtensions.getProperty("GEOSERVER_GEOJSON_LEGACY_CRS"))){
+                if ("true"
+                        .equals(GeoServerExtensions.getProperty("GEOSERVER_GEOJSON_LEGACY_CRS"))) {
                     // This is wrong, but GeoServer used to do it this way.
                     writeCrsLegacy(jsonWriter, crs);
                 } else {
@@ -254,7 +189,7 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             } catch (FactoryException e) {
                 throw (IOException) new IOException("Error looking up crs identifier").initCause(e);
             }
-            
+
             // Bounding box for featurecollection
             if (hasGeom && featureBounding) {
                 ReferencedEnvelope e = null;
@@ -265,7 +200,6 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
                     } else {
                         e.expandToInclude(collection.getBounds());
                     }
-
                 }
 
                 if (e != null) {
@@ -283,26 +217,137 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             outWriter.flush();
 
         } catch (JSONException jsonException) {
-            ServiceException serviceException = new ServiceException("Error: "
-                    + jsonException.getMessage());
+            ServiceException serviceException =
+                    new ServiceException("Error: " + jsonException.getMessage());
             serviceException.initCause(jsonException);
             throw serviceException;
         }
     }
 
-    private void writeCrs(final GeoJSONBuilder jsonWriter,
-            CoordinateReferenceSystem crs) throws FactoryException {
+    /** Container class for information related with a group of features. */
+    private class FeaturesInfo {
+
+        final CoordinateReferenceSystem crs;
+        final boolean hasGeometry;
+
+        private FeaturesInfo(CoordinateReferenceSystem crs, boolean hasGeometry) {
+            this.crs = crs;
+            this.hasGeometry = hasGeometry;
+        }
+    }
+
+    private FeaturesInfo encodeSimpleFeatures(
+            GeoJSONBuilder jsonWriter,
+            List<FeatureCollection> resultsList,
+            String id_option,
+            boolean featureBounding) {
+        CoordinateReferenceSystem crs = null;
+        boolean hasGeom = false;
+        for (FeatureCollection collection : resultsList) {
+            try (FeatureIterator iterator = collection.features()) {
+                SimpleFeatureType fType;
+                List<AttributeDescriptor> types;
+                // encode each simple feature
+                while (iterator.hasNext()) {
+                    // get next simple feature
+                    SimpleFeature simpleFeature = (SimpleFeature) iterator.next();
+                    // start writing the JSON feature object
+                    jsonWriter.object();
+                    jsonWriter.key("type").value("Feature");
+                    fType = simpleFeature.getFeatureType();
+                    types = fType.getAttributeDescriptors();
+                    // write the simple feature id
+                    if (id_option == null) {
+                        // no specific attribute nominated, use the simple feature id
+                        jsonWriter.key("id").value(simpleFeature.getID());
+                    } else if (id_option.length() != 0) {
+                        // a specific attribute was nominated to be used as id
+                        Object value = simpleFeature.getAttribute(id_option);
+                        jsonWriter.key("id").value(value);
+                    }
+                    // set that axis order that should be used to write geometries
+                    GeometryDescriptor defaultGeomType = fType.getGeometryDescriptor();
+                    if (defaultGeomType != null) {
+                        CoordinateReferenceSystem featureCrs =
+                                defaultGeomType.getCoordinateReferenceSystem();
+                        jsonWriter.setAxisOrder(CRS.getAxisOrder(featureCrs));
+                        if (crs == null) {
+                            crs = featureCrs;
+                        }
+                    } else {
+                        // If we don't know, assume EAST_NORTH so that no swapping occurs
+                        jsonWriter.setAxisOrder(CRS.AxisOrder.EAST_NORTH);
+                    }
+                    // start writing the simple feature geometry JSON object
+                    jsonWriter.key("geometry");
+                    Geometry aGeom = (Geometry) simpleFeature.getDefaultGeometry();
+                    // Write the geometry, whether it is a null or not
+                    if (aGeom != null) {
+                        jsonWriter.writeGeom(aGeom);
+                        hasGeom = true;
+                    } else {
+                        jsonWriter.value(null);
+                    }
+                    if (defaultGeomType != null) {
+                        jsonWriter.key("geometry_name").value(defaultGeomType.getLocalName());
+                    }
+                    // start writing feature properties JSON object
+                    jsonWriter.key("properties");
+                    jsonWriter.object();
+                    for (int j = 0; j < types.size(); j++) {
+                        Object value = simpleFeature.getAttribute(j);
+                        AttributeDescriptor ad = types.get(j);
+                        if (id_option != null && id_option.equals(ad.getLocalName())) {
+                            continue; // skip this value as it is used as the id
+                        }
+                        if (ad instanceof GeometryDescriptor) {
+                            // This is an area of the spec where they
+                            // decided to 'let convention evolve',
+                            // that is how to handle multiple
+                            // geometries. My take is to print the
+                            // geometry here if it's not the default.
+                            // If it's the default that you already
+                            // printed above, so you don't need it here.
+                            if (ad.equals(defaultGeomType)) {
+                                // Do nothing, we wrote it above
+                                // jsonWriter.value("geometry_name");
+                            } else if (value == null) {
+                                jsonWriter.key(ad.getLocalName());
+                                jsonWriter.value(null);
+                            } else {
+                                jsonWriter.key(ad.getLocalName());
+                                jsonWriter.writeGeom((Geometry) value);
+                            }
+                        } else {
+                            jsonWriter.key(ad.getLocalName());
+                            jsonWriter.value(value);
+                        }
+                    }
+                    // Bounding box for feature in properties
+                    ReferencedEnvelope refenv =
+                            ReferencedEnvelope.reference(simpleFeature.getBounds());
+                    if (featureBounding && !refenv.isEmpty()) jsonWriter.writeBoundingBox(refenv);
+                    jsonWriter.endObject(); // end the properties
+                    jsonWriter.endObject(); // end the feature
+                }
+            }
+        }
+        return new FeaturesInfo(crs, hasGeom);
+    }
+
+    private void writeCrs(final GeoJSONBuilder jsonWriter, CoordinateReferenceSystem crs)
+            throws FactoryException {
         if (crs != null) {
             String identifier = null;
             Integer code = CRS.lookupEpsgCode(crs, true);
-            if(code != null) {
+            if (code != null) {
                 if (code != null) {
                     identifier = SrsSyntax.OGC_URN.getPrefix() + code;
                 }
             } else {
                 identifier = CRS.lookupIdentifier(crs, true);
             }
-            
+
             jsonWriter.key("crs");
             jsonWriter.object();
             jsonWriter.key("type").value("name");
@@ -317,10 +362,9 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             jsonWriter.value(null);
         }
     }
-    
+
     // Doesn't follow spec, but GeoServer used to do this.
-    private void writeCrsLegacy(final GeoJSONBuilder jsonWriter,
-            CoordinateReferenceSystem crs) {
+    private void writeCrsLegacy(final GeoJSONBuilder jsonWriter, CoordinateReferenceSystem crs) {
         // Coordinate Reference System, currently only if the namespace is
         // EPSG
         if (crs != null) {
@@ -353,9 +397,8 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
         return JSONType.getCallbackFunction(request.getKvp());
     }
 
-    
     @Override
-    public String getCharset(Operation operation){
+    public String getCharset(Operation operation) {
         return gs.getGlobal().getSettings().getCharset();
     }
 }

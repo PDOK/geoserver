@@ -1,19 +1,19 @@
 /*
  *  Copyright (C) 2007 - 2014 GeoSolutions S.A.S.
  *  http://www.geo-solutions.it
- * 
+ *
  *  GPLv3 + Classpath exception
- * 
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- * 
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -27,7 +27,6 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
-
 import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
 import org.custommonkey.xmlunit.XMLUnit;
@@ -42,19 +41,24 @@ import org.springframework.core.io.UrlResource;
 
 public class AccessManagerConfigTest extends GeoServerTestSupport {
 
-
-//    protected GeofenceAccessManager manager;
-//    protected RuleReaderService geofenceService;
+    // protected GeofenceAccessManager manager;
+    // protected RuleReaderService geofenceService;
     GeoFencePropertyPlaceholderConfigurer configurer;
+
     GeoFenceConfigurationManager manager;
 
     @Override
     protected void oneTimeSetUp() throws Exception {
-        try{
+        try {
             super.oneTimeSetUp();
-        } catch(Exception e) {
-            LOGGER.severe("Error in OneTimeSetup: it may be due to GeoFence not running, please check the logs -- " + e.getMessage());
-            LOGGER.log(Level.FINE, "Error in OneTimeSetup: it may be due to GeoFence not running, please check the logs", e);
+        } catch (Exception e) {
+            LOGGER.severe(
+                    "Error in OneTimeSetup: it may be due to GeoFence not running, please check the logs -- "
+                            + e.getMessage());
+            LOGGER.log(
+                    Level.FINE,
+                    "Error in OneTimeSetup: it may be due to GeoFence not running, please check the logs",
+                    e);
         }
 
         Map<String, String> namespaces = new HashMap<String, String>();
@@ -71,14 +75,19 @@ public class AccessManagerConfigTest extends GeoServerTestSupport {
         super.setUpInternal();
 
         // get the beans we use for testing
-//        manager = (GeofenceAccessManager) applicationContext.getBean("geofenceRuleAccessManager");
-//        geofenceService = (RuleReaderService) applicationContext.getBean("ruleReaderService");
-        manager = (GeoFenceConfigurationManager) applicationContext.getBean("geofenceConfigurationManager");
+        // manager = (GeofenceAccessManager)
+        // applicationContext.getBean("geofenceRuleAccessManager");
+        // geofenceService = (RuleReaderService) applicationContext.getBean("ruleReaderService");
+        manager =
+                (GeoFenceConfigurationManager)
+                        applicationContext.getBean("geofenceConfigurationManager");
 
-        configurer = (GeoFencePropertyPlaceholderConfigurer) applicationContext.getBean("geofence-configurer");
-        configurer.setLocation(new UrlResource(this.getClass().getResource("/test-config.properties")));
+        configurer =
+                (GeoFencePropertyPlaceholderConfigurer)
+                        applicationContext.getBean("geofence-configurer");
+        configurer.setLocation(
+                new UrlResource(this.getClass().getResource("/test-config.properties")));
     }
-
 
     @Test
     public void testSave() throws IOException, URISyntaxException {
@@ -91,20 +100,20 @@ public class AccessManagerConfigTest extends GeoServerTestSupport {
         config.setGrantWriteToWorkspacesToAuthenticatedUsers(true);
         config.setUseRolesToFilter(true);
         config.setAcceptedRoles("A,B");
-        
+
         manager.setConfiguration(config);
-        
-        Resource configurationFile =  configurer.getConfigFile();
-        
+
+        Resource configurationFile = configurer.getConfigFile();
+
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new OutputStreamWriter(configurationFile.out()));
-            
+
             writer.write("newUserProperty=custom_property_value\n");
         } finally {
             IOUtils.closeQuietly(writer);
         }
-                
+
         manager.storeConfiguration();
 
         File configFile = configurer.getConfigFile().file();

@@ -5,13 +5,13 @@
  application directory.
  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
  <modelVersion>4.0.0</modelVersion>
  <parent>
   <groupId>org.geoserver</groupId>
   <artifactId>community</artifactId>
-  <version>2.10.4</version>
+  <version>2.13.2</version>
  </parent>
  <groupId>org.geoserver.community</groupId>
  <artifactId>gs-release</artifactId>
@@ -93,11 +93,11 @@
      <artifactId>gs-dyndimension</artifactId>
      <version>${project.version}</version>
    </dependency>
-   <dependency>
+   <!-- <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-rest-ext</artifactId>
      <version>${project.version}</version>
-   </dependency>
+   </dependency> -->
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-pgraster</artifactId>
@@ -109,15 +109,10 @@
      <version>${project.version}</version>
    </dependency>
    <dependency>
-     <groupId>org.geoserver.community</groupId>
-     <artifactId>gs-gpxppio</artifactId>
-     <version>${project.version}</version>
-   </dependency>
-   <dependency>
       <groupId>org.geoserver.community</groupId>
       <artifactId>gs-jms-geoserver</artifactId>
      <version>${project.version}</version>
-   </dependency>  
+   </dependency>
    <dependency>
       <groupId>org.geoserver.community</groupId>
       <artifactId>gs-jms-commons</artifactId>
@@ -128,11 +123,11 @@
       <artifactId>gs-hz-cluster</artifactId>
       <version>${project.version}</version>
    </dependency>  
-   <dependency>
+   <!-- <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-geofence</artifactId>
      <version>${project.version}</version>
-   </dependency>   
+   </dependency> -->
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-geofence-server</artifactId>
@@ -166,11 +161,6 @@
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-gdal-wps</artifactId>
-     <version>${project.version}</version>
-   </dependency>
-   <dependency>
-     <groupId>org.geoserver.community</groupId>
-     <artifactId>gs-vectortiles</artifactId>
      <version>${project.version}</version>
    </dependency>
    <dependency>
@@ -230,7 +220,7 @@
    </dependency>
    <dependency>
      <groupId>org.geoserver.community</groupId>
-	 <artifactId>gs-sec-oauth2-google</artifactId>
+     <artifactId>gs-sec-oauth2-google</artifactId>
      <version>${project.version}</version>
    </dependency>
    <dependency>
@@ -245,9 +235,14 @@
    </dependency>
    <dependency>
      <groupId>org.geoserver.community</groupId>
-     <artifactId>gs-notification</artifactId>
+     <artifactId>gs-onelogin</artifactId>
      <version>${project.version}</version>
    </dependency>
+   <!-- <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-notification</artifactId>
+     <version>${project.version}</version>
+   </dependency> -->
    <dependency>
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-notification-common</artifactId>
@@ -257,6 +252,61 @@
      <groupId>org.geoserver.community</groupId>
      <artifactId>gs-notification-geonode</artifactId>
      <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-ows-simulate</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-jdbc-metrics</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-oseo-core</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-web-oseo</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-oseo-rest</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-mbstyle</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-status-monitoring</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-nsg-wmts-profile</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-nsg-wfs-profile</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>org.geoserver.community</groupId>
+     <artifactId>gs-netcdf-ghrsst</artifactId>
+     <version>${project.version}</version>
+   </dependency>
+   <dependency>
+    <groupId>org.geoserver.extension</groupId>
+    <artifactId>gs-monitor-hibernate</artifactId>
+    <version>${project.version}</version>
    </dependency>
  </dependencies>
  <build>

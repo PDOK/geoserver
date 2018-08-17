@@ -12,7 +12,7 @@
   <parent>
     <groupId>org.geoserver</groupId>
     <artifactId>geoserver</artifactId>
-    <version>2.10.4</version>
+    <version>2.13.2</version>
   </parent>
 
   <groupId>org.geoserver</groupId>
@@ -87,6 +87,10 @@
       <artifactId>pngj</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.jdom</groupId>
+      <artifactId>jdom2</artifactId>
+    </dependency>
+    <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
       <scope>provided</scope>
@@ -155,6 +159,11 @@
       <version>${gt.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-library</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -165,20 +174,12 @@
     </testResources>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>cobertura-maven-plugin</artifactId>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
-          <instrumentation>
-            <!-- ignores>
-             <ignore>**/*Exception.class</ignore>
-            </ignores-->
-            <excludes>
-              <exclude>**/*Exception.class</exclude>
-            </excludes>
-            <!-- includes>
-              <include>**/*Test.class</include>
-            </includes-->
-          </instrumentation>
+          <excludes>
+            <exclude>**/*Exception.class</exclude>
+          </excludes>
         </configuration>
       </plugin>
     </plugins>
