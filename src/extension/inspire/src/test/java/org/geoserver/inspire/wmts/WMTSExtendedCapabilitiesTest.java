@@ -7,7 +7,9 @@ package org.geoserver.inspire.wmts;
 import org.geoserver.config.ServiceInfo;
 import org.geoserver.gwc.wmts.WMTSInfo;
 import org.geoserver.inspire.ViewServicesTestSupport;
+import org.junit.Ignore;
 
+@Ignore("PDOK doesnt use WMTS")
 public class WMTSExtendedCapabilitiesTest extends ViewServicesTestSupport {
 
     private static final String WMTS_1_0_0_GETCAPREQUEST =

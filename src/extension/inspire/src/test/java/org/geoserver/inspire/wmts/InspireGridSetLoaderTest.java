@@ -11,9 +11,11 @@ import static org.junit.Assert.assertThat;
 
 import org.geoserver.gwc.GWC;
 import org.geoserver.test.GeoServerSystemTestSupport;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /** Testing that INSPIRE grid set is correctly loaded and configured. */
+@Ignore("PDOK doesnt use WMTS")
 public class InspireGridSetLoaderTest extends GeoServerSystemTestSupport {
 
     @Test
