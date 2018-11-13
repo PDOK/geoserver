@@ -13,6 +13,8 @@ import static org.junit.Assert.*;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.logging.Level;
+import org.geoserver.GeoServerConfigurationLock;
+import org.geoserver.GeoServerConfigurationLock.LockType;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
@@ -21,12 +23,15 @@ import org.geoserver.catalog.impl.CatalogImpl;
 import org.geoserver.catalog.util.CloseableIterator;
 import org.geoserver.jdbcconfig.JDBCConfigTestSupport;
 import org.geoserver.jdbcconfig.internal.ConfigDatabase;
+import org.geoserver.platform.GeoServerExtensions;
+import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.util.logging.Logging;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory;
 import org.opengis.filter.sort.SortBy;
 
 @RunWith(Parameterized.class)
@@ -68,6 +73,84 @@ public class CatalogImplWithJDBCFacadeTest extends org.geoserver.catalog.impl.Ca
         CatalogImpl catalogImpl = new CatalogImpl();
         catalogImpl.setFacade(facade);
         return catalogImpl;
+    }
+
+    @Test
+    public void testAdvertised() {
+        final FilterFactory ff = CommonFactoryFinder.getFilterFactory();
+
+        addDataStore();
+        addNamespace();
+
+        FeatureTypeInfo ft1 = newFeatureType("ft1", ds);
+        ft1.setAdvertised(false);
+        catalog.add(ft1);
+        StyleInfo s1;
+        catalog.add(s1 = newStyle("s1", "s1Filename"));
+        LayerInfo l1 = newLayer(ft1, s1);
+        catalog.add(l1);
+        CloseableIterator<LayerInfo> it =
+                catalog.list(
+                        LayerInfo.class, ff.equals(ff.property("advertised"), ff.literal(true)));
+        assertFalse(it.hasNext());
+
+        ft1 = catalog.getFeatureTypeByName("ft1");
+        ft1.setAdvertised(true);
+        catalog.save(ft1);
+
+        it = catalog.list(LayerInfo.class, ff.equals(ff.property("advertised"), ff.literal(true)));
+        assertTrue(it.hasNext());
+        assertEquals(l1.getName(), it.next().getName());
+    }
+
+    @Test
+    public void testCharacterEncoding() {
+        addDataStore();
+        addNamespace();
+        String name = "testFT";
+        FeatureTypeInfo ft = newFeatureType(name, ds);
+
+        String degC = "Air Temperature in \u00b0C";
+        ft.setAbstract(degC);
+        catalog.add(ft);
+        // clear cache to force retrieval from database.
+        facade.getConfigDatabase().dispose();
+        FeatureTypeInfo added = catalog.getFeatureTypeByName(name);
+        assertEquals(degC, added.getAbstract());
+
+        String degF = "Air Temperature in \u00b0F";
+        added.setAbstract(degF);
+        catalog.save(added);
+        facade.getConfigDatabase().dispose();
+        FeatureTypeInfo saved = catalog.getFeatureTypeByName(name);
+        assertEquals(degF, saved.getAbstract());
+    }
+
+    @Test
+    public void testEnabled() {
+        final FilterFactory ff = CommonFactoryFinder.getFilterFactory();
+
+        addDataStore();
+        addNamespace();
+
+        FeatureTypeInfo ft1 = newFeatureType("ft1", ds);
+        ft1.setEnabled(false);
+        catalog.add(ft1);
+        StyleInfo s1;
+        catalog.add(s1 = newStyle("s1", "s1Filename"));
+        LayerInfo l1 = newLayer(ft1, s1);
+        catalog.add(l1);
+        CloseableIterator<LayerInfo> it =
+                catalog.list(LayerInfo.class, ff.equals(ff.property("enabled"), ff.literal(true)));
+        assertFalse(it.hasNext());
+
+        ft1 = catalog.getFeatureTypeByName("ft1");
+        ft1.setEnabled(true);
+        catalog.save(ft1);
+
+        it = catalog.list(LayerInfo.class, ff.equals(ff.property("enabled"), ff.literal(true)));
+        assertTrue(it.hasNext());
+        assertEquals(l1.getName(), it.next().getName());
     }
 
     @Test
@@ -168,19 +251,16 @@ public class CatalogImplWithJDBCFacadeTest extends org.geoserver.catalog.impl.Ca
         }
     }
 
-    //    @Override
-    //    public void testGetLayerGroupByNameWithWorkspace() {
-    //        try {
-    //            super.testGetLayerGroupByNameWithWorkspace();
-    //        } catch (AssertionFailedError e) {
-    //            // ignoring failure, we need to fix this as we did for styles by workspace. Check
-    // the
-    //            // comment in the original test case:
-    //            // "//will randomly return one... we should probably return null with multiple
-    // matches"
-    //            e.printStackTrace();
-    //        }
-    //    }
+    @Test
+    public void testUpgradeLock() {
+        GeoServerConfigurationLock configurationLock =
+                GeoServerExtensions.bean(GeoServerConfigurationLock.class);
+        configurationLock.lock(LockType.READ);
+        catalog.getNamespaces();
+        assertEquals(LockType.READ, configurationLock.getCurrentLock());
+        addNamespace();
+        assertEquals(LockType.WRITE, configurationLock.getCurrentLock());
+    }
 
     /**
      * Allow execution of a single test method with a hard-coded DBConfig. Due to the way

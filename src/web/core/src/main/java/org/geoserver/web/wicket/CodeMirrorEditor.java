@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.regex.Matcher;
@@ -18,7 +19,10 @@ import org.apache.wicket.AttributeModifier;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.attributes.AjaxCallListener;
+import org.apache.wicket.ajax.attributes.AjaxRequestAttributes;
 import org.apache.wicket.ajax.attributes.IAjaxCallListener;
+import org.apache.wicket.ajax.markup.html.AjaxLink;
+import org.apache.wicket.behavior.AttributeAppender;
 import org.apache.wicket.behavior.Behavior;
 import org.apache.wicket.markup.head.CssHeaderItem;
 import org.apache.wicket.markup.head.IHeaderResponse;
@@ -27,6 +31,7 @@ import org.apache.wicket.markup.head.OnDomReadyHeaderItem;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.form.FormComponentPanel;
 import org.apache.wicket.markup.html.form.TextArea;
+import org.apache.wicket.markup.repeater.RepeatingView;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.protocol.http.ClientProperties;
 import org.apache.wicket.protocol.http.WebSession;
@@ -75,6 +80,8 @@ public class CodeMirrorEditor extends FormComponentPanel<String> {
 
     private String mode;
 
+    private RepeatingView customButtons;
+
     public CodeMirrorEditor(String id, String mode, IModel<String> model) {
         super(id, model);
         this.mode = mode;
@@ -90,9 +97,14 @@ public class CodeMirrorEditor extends FormComponentPanel<String> {
         toolbar.setVisible(enableCodeMirror);
         container.add(toolbar);
 
+        customButtons = new RepeatingView("custom-buttons");
+        toolbar.add(customButtons);
+
         WebMarkupContainer editorParent = new WebMarkupContainer("editorParent");
         if (enableCodeMirror) {
-            editorParent.add(AttributeModifier.replace("style", "border: 1px solid black;"));
+            editorParent.add(
+                    AttributeModifier.replace(
+                            "style", "border: 1px solid black; padding-bottom: 3px"));
         }
         container.add(editorParent);
         editor = new TextArea<String>("editor", model);
@@ -104,6 +116,25 @@ public class CodeMirrorEditor extends FormComponentPanel<String> {
         } else {
             editor.add(AttributeModifier.replace("style", "width:100%"));
         }
+    }
+
+    public void addCustomButton(String title, String cssClass, CustomButtonAction action) {
+        customButtons.add(
+                new AjaxLink<Object>(customButtons.newChildId()) {
+                    @Override
+                    public void onClick(AjaxRequestTarget target) {
+                        action.onClick(target);
+                    }
+
+                    @Override
+                    protected void updateAjaxAttributes(AjaxRequestAttributes attributes) {
+                        super.updateAjaxAttributes(attributes);
+                        CharSequence dynamicExtraParameters =
+                                "var result = {'cmSelection': getSelection()};" + "return result;";
+                        attributes.getDynamicExtraParameters().add(dynamicExtraParameters);
+                    }
+                }.add(new AttributeAppender("class", cssClass, " "))
+                        .add(new AttributeAppender("title", title, " ")));
     }
 
     private boolean isCodeMirrorSupported() {
@@ -323,5 +354,9 @@ public class CodeMirrorEditor extends FormComponentPanel<String> {
                 throw new RuntimeException("Did not expect this one...", e);
             }
         }
+    }
+
+    public interface CustomButtonAction extends Serializable {
+        void onClick(AjaxRequestTarget target);
     }
 }

@@ -6,7 +6,6 @@ package org.geoserver.opensearch.eo;
 
 import static org.geoserver.opensearch.eo.ComplexFeatureAccessor.value;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +16,6 @@ import java.util.logging.Logger;
 import org.geoserver.catalog.Predicates;
 import org.geoserver.config.GeoServer;
 import org.geoserver.opensearch.eo.store.OpenSearchAccess;
-import org.geoserver.opensearch.eo.store.OpenSearchAccess.ProductClass;
 import org.geoserver.platform.OWS20Exception;
 import org.geoserver.platform.OWS20Exception.OWSExceptionCode;
 import org.geotools.data.DataUtilities;
@@ -28,6 +26,7 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.NameImpl;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.feature.type.FeatureType;
@@ -97,7 +96,7 @@ public class DefaultOpenSearchEoService implements OpenSearchEoService {
         String sensorType = (String) sensorTypeProperty.getValue();
         ProductClass collectionClass = null;
         try {
-            collectionClass = OpenSearchAccess.ProductClass.valueOf(sensorType);
+            collectionClass = ProductClass.getProductClassFromName(geoServer, sensorType);
         } catch (Exception e) {
             LOGGER.warning(
                     "Could not understand sensor type "
@@ -107,8 +106,7 @@ public class DefaultOpenSearchEoService implements OpenSearchEoService {
 
         OpenSearchAccess access = getOpenSearchAccess();
         FeatureType productSchema = access.getProductSource().getSchema();
-        searchParameters.addAll(
-                getSearchParametersByClass(ProductClass.EOP_GENERIC, productSchema));
+        searchParameters.addAll(getSearchParametersByClass(ProductClass.GENERIC, productSchema));
         if (collectionClass != null) {
             searchParameters.addAll(getSearchParametersByClass(collectionClass, productSchema));
         }

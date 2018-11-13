@@ -31,8 +31,8 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -189,7 +189,11 @@ public class ConfigDatabase {
         return dialect;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(
+        transactionManager = "jdbcConfigTransactionManager",
+        propagation = Propagation.REQUIRED,
+        rollbackFor = Exception.class
+    )
     public void initDb(@Nullable Resource resource) throws IOException {
         this.dbMappings = new DbMappings(dialect());
         if (resource != null) {
@@ -493,7 +497,11 @@ public class ConfigDatabase {
         return getById(defaultObjectId, type);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(
+        transactionManager = "jdbcConfigTransactionManager",
+        propagation = Propagation.REQUIRED,
+        rollbackFor = Exception.class
+    )
     public <T extends Info> T add(final T info) {
         checkNotNull(info);
         checkNotNull(info.getId(), "Object has no id");
@@ -502,8 +510,7 @@ public class ConfigDatabase {
         final String id = info.getId();
 
         byte[] value = binding.objectToEntry(info);
-
-        final String blob = new String(value);
+        final String blob = new String(value, StandardCharsets.UTF_8);
         final Class<T> interf = ClassMappings.fromImpl(info.getClass()).getInterface();
         final Integer typeId = dbMappings.getTypeId(interf);
 
@@ -741,7 +748,11 @@ public class ConfigDatabase {
     }
 
     /** @param info */
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(
+        transactionManager = "jdbcConfigTransactionManager",
+        propagation = Propagation.REQUIRED,
+        rollbackFor = Exception.class
+    )
     public void remove(Info info) {
         Integer oid;
         try {
@@ -750,6 +761,9 @@ public class ConfigDatabase {
             return;
         }
 
+        if (info instanceof ServiceInfo) {
+            disposeServiceCache();
+        }
         identityCache.invalidateAll(InfoIdentities.get().getIdentities(info));
         cache.invalidate(info.getId());
 
@@ -774,7 +788,11 @@ public class ConfigDatabase {
     }
 
     /** @param info */
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(
+        transactionManager = "jdbcConfigTransactionManager",
+        propagation = Propagation.REQUIRED,
+        rollbackFor = Exception.class
+    )
     public <T extends Info> T save(T info) {
         checkNotNull(info);
 
@@ -787,6 +805,9 @@ public class ConfigDatabase {
 
         final Info oldObject = (Info) modificationProxy.getProxyObject();
 
+        if (info instanceof ServiceInfo) {
+            disposeServiceCache();
+        }
         identityCache.invalidateAll(InfoIdentities.get().getIdentities(oldObject));
         cache.invalidate(id);
 
@@ -797,6 +818,12 @@ public class ConfigDatabase {
         final boolean updateResouceLayersName =
                 info instanceof ResourceInfo
                         && modificationProxy.getPropertyNames().contains("name");
+        final boolean updateResouceLayersAdvertised =
+                info instanceof ResourceInfo
+                        && modificationProxy.getPropertyNames().contains("advertised");
+        final boolean updateResourceLayersEnabled =
+                info instanceof ResourceInfo
+                        && modificationProxy.getPropertyNames().contains("enabled");
         final boolean updateResourceLayersKeywords =
                 CollectionUtils.exists(
                         modificationProxy.getPropertyNames(),
@@ -813,13 +840,8 @@ public class ConfigDatabase {
 
         // get the object's internal id
         final Integer objectId = findObjectId(info);
-        final String blob;
-        try {
-            byte[] value = binding.objectToEntry(info);
-            blob = new String(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw Throwables.propagate(e);
-        }
+        byte[] value = binding.objectToEntry(info);
+        final String blob = new String(value, StandardCharsets.UTF_8);
         String updateStatement = "update object set blob = :blob where oid = :oid";
         params = params("blob", blob, "oid", objectId);
         logStatement(updateStatement, params);
@@ -836,10 +858,22 @@ public class ConfigDatabase {
         // a regular JavaBean property
         if (info instanceof ResourceInfo) {
             if (updateResouceLayersName) {
-                updateResourceLayerName((ResourceInfo) info);
+                updateResourceLayerProperty(
+                        (ResourceInfo) info, "name", ((ResourceInfo) info).getName());
+            }
+            if (updateResouceLayersAdvertised) {
+                updateResourceLayerProperty(
+                        (ResourceInfo) info, "advertised", ((ResourceInfo) info).isAdvertised());
+            }
+            if (updateResourceLayersEnabled) {
+                updateResourceLayerProperty(
+                        (ResourceInfo) info, "enabled", ((ResourceInfo) info).isEnabled());
             }
             if (updateResourceLayersKeywords) {
-                updateResourceLayerKeywords((ResourceInfo) info);
+                updateResourceLayerProperty(
+                        (ResourceInfo) info,
+                        "resource.keywords.value",
+                        ((ResourceInfo) info).getKeywords());
             }
         }
         // / </HACK>
@@ -856,28 +890,14 @@ public class ConfigDatabase {
         return getById(id, clazz);
     }
 
-    private <T> void updateResourceLayerName(ResourceInfo info) {
-        final Object newValue = info.getName();
-        Filter filter = Predicates.equal("resource.id", info.getId());
-        List<LayerInfo> resourceLayers;
-        resourceLayers = this.queryAsList(LayerInfo.class, filter, null, null, null);
-        for (LayerInfo layer : resourceLayers) {
-            Set<PropertyType> propertyTypes = dbMappings.getPropertyTypes(LayerInfo.class, "name");
-            PropertyType propertyType = propertyTypes.iterator().next();
-            Property changedProperty = new Property(propertyType, newValue);
-            Integer layerOid = findObjectId(layer);
-            updateQueryableProperties(layer, layerOid, ImmutableSet.of(changedProperty));
-        }
-    }
-
-    private <T> void updateResourceLayerKeywords(ResourceInfo info) {
-        final Object newValue = info.getKeywords();
+    private <T> void updateResourceLayerProperty(
+            ResourceInfo info, String propertyPath, Object newValue) {
         Filter filter = Predicates.equal("resource.id", info.getId());
         List<LayerInfo> resourceLayers;
         resourceLayers = this.queryAsList(LayerInfo.class, filter, null, null, null);
         for (LayerInfo layer : resourceLayers) {
             Set<PropertyType> propertyTypes =
-                    dbMappings.getPropertyTypes(LayerInfo.class, "resource.keywords.value");
+                    dbMappings.getPropertyTypes(LayerInfo.class, propertyPath);
             PropertyType propertyType = propertyTypes.iterator().next();
             Property changedProperty = new Property(propertyType, newValue);
             Integer layerOid = findObjectId(layer);
@@ -1207,7 +1227,11 @@ public class ConfigDatabase {
         return inValues;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    @Transactional(
+        transactionManager = "jdbcConfigTransactionManager",
+        propagation = Propagation.REQUIRED,
+        rollbackFor = Exception.class
+    )
     public void setDefault(final String key, @Nullable final String id) {
         String sql = "DELETE FROM DEFAULT_OBJECT WHERE DEF_KEY = :key";
         Map<String, ?> params = params("key", key);
@@ -1226,6 +1250,12 @@ public class ConfigDatabase {
         cache.cleanUp();
         identityCache.invalidateAll();
         identityCache.cleanUp();
+        disposeServiceCache();
+    }
+
+    private void disposeServiceCache() {
+        serviceCache.invalidateAll();
+        serviceCache.cleanUp();
     }
 
     private final class CatalogLoader implements Callable<CatalogInfo> {
@@ -1448,6 +1478,12 @@ public class ConfigDatabase {
     }
 
     void clear(Info info) {
+        if (info instanceof ServiceInfo) {
+            // need to figure out how to remove only the relevant cache
+            // entries for the service info, like with InfoIdenties below,
+            // that will be able to handle new service types.
+            disposeServiceCache();
+        }
         identityCache.invalidateAll(InfoIdentities.get().getIdentities(info));
         cache.invalidate(info.getId());
     }

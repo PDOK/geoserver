@@ -9,11 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.io.ParseException;
 import it.geosolutions.imageio.plugins.tiff.BaselineTIFFTagSet;
+import it.geosolutions.imageio.plugins.tiff.PrivateTIFFTagSet;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.RenderedImage;
@@ -78,6 +75,10 @@ import org.geotools.util.logging.Logging;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.ParseException;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
@@ -758,12 +759,26 @@ public class DownloadProcessTest extends WPSTestSupport {
     }
 
     /**
+     * Test Writing parameters are used, nodata not being set
+     *
+     * @throws Exception the exception
+     */
+    @Test
+    public void testDownloadWithWriteParametersWithoutNodata() throws Exception {
+        testWriteParameters(false);
+    }
+
+    /**
      * Test Writing parameters are used
      *
      * @throws Exception the exception
      */
     @Test
     public void testDownloadWithWriteParameters() throws Exception {
+        testWriteParameters(true);
+    }
+
+    private void testWriteParameters(boolean writeNodata) throws Exception {
         // Estimator process for checking limits
         DownloadEstimatorProcess limits =
                 new DownloadEstimatorProcess(
@@ -799,6 +814,12 @@ public class DownloadProcessTest extends WPSTestSupport {
         parametersList.add(new Parameter("compression", compressionValue));
         parametersList.add(new Parameter("not_supported_ignore_this", "NOT_VALID_IGNORE_THIS"));
 
+        // Note that nodata is written by default on GeoTiffWriter as soon
+        // as a nodata is found on the input gridCoverage
+        if (!writeNodata) {
+            parametersList.add(new Parameter("writenodata", "false"));
+        }
+
         // Download the coverage as tiff
         File rasterZip =
                 downloadProcess.execute(
@@ -828,7 +849,14 @@ public class DownloadProcessTest extends WPSTestSupport {
                 Integer.toString(BaselineTIFFTagSet.TAG_TILE_LENGTH), tileHeightValue);
         expectedTiffTagValues.put(
                 Integer.toString(BaselineTIFFTagSet.TAG_COMPRESSION), compressionValue);
-        int matchingStillRequired = 3;
+        expectedTiffTagValues.put(Integer.toString(PrivateTIFFTagSet.TAG_GDAL_NODATA), "0.0");
+
+        int matchingStillRequired = expectedTiffTagValues.size();
+        if (!writeNodata) {
+            // we keep the map entry for scan but we make sure
+            // the matching is missing
+            matchingStillRequired--;
+        }
 
         try {
             final File[] tiffFiles = extractFiles(rasterZip, "GTIFF");
@@ -1325,7 +1353,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         10,
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         DownloadServiceConfiguration.NO_LIMIT,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         final WPSResourceManager resourceManager = getResourceManager();
@@ -1383,7 +1412,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         10,
                                         10,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         final WPSResourceManager resourceManager = getResourceManager();
@@ -1442,7 +1472,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         921600, // 900KB
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         final WPSResourceManager resourceManager = getResourceManager();
@@ -1528,7 +1559,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         30000, // = 100x100 pixels x 3 bands x 1 byte (8 bits) per
                                         // band
                                         DownloadServiceConfiguration.NO_LIMIT,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         downloadProcess = new DownloadProcess(getGeoServer(), limits, resourceManager);
@@ -1582,7 +1614,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         (long) 1E12, // huge number, way above integer limits
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         DownloadServiceConfiguration.NO_LIMIT,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         final WPSResourceManager resourceManager = getResourceManager();
@@ -1640,7 +1673,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         10,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
         final WPSResourceManager resourceManager = getResourceManager();
         // Creates the new process for the download
@@ -1758,7 +1792,8 @@ public class DownloadProcessTest extends WPSTestSupport {
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         DownloadServiceConfiguration.NO_LIMIT,
                                         1,
-                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL)),
+                                        DownloadServiceConfiguration.DEFAULT_COMPRESSION_LEVEL,
+                                        DownloadServiceConfiguration.NO_LIMIT)),
                         getGeoServer());
 
         // Creates the new process for the download

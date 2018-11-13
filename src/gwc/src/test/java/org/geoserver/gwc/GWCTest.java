@@ -40,8 +40,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.MultiPolygon;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -116,6 +114,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -557,8 +557,6 @@ public class GWCTest {
         when(tld.getConfiguration(same(tileLayerGroup))).thenReturn(config);
         doNothing().when(tld).modify(same(tileLayer));
         doNothing().when(tld).modify(same(tileLayerGroup));
-        when(tld.removeGridset(eq("TEST"))).thenReturn(config);
-        when(tld.removeGridset(eq("My4326"))).thenReturn(config);
 
         mediator.removeGridSets(ImmutableSet.of("My4326", "TEST"));
 
@@ -581,8 +579,6 @@ public class GWCTest {
 
         verify(tld, times(1)).modify(same(tileLayer));
         verify(tld, times(1)).modify(same(tileLayerGroup));
-        verify(tld, times(1)).removeGridset(eq("TEST"));
-        verify(tld, times(1)).removeGridset(eq("My4326"));
     }
 
     @Test
@@ -592,8 +588,6 @@ public class GWCTest {
         when(tld.getConfiguration(same(tileLayerGroup))).thenReturn(config);
         doNothing().when(tld).modify(same(tileLayer));
         doNothing().when(tld).modify(same(tileLayerGroup));
-        when(tld.removeGridset(eq("EPSG:4326"))).thenReturn(config);
-        when(tld.removeGridset(eq("EPSG:900913"))).thenReturn(config);
 
         // sanity check before modification
         assertTrue(tileLayer.getInfo().isEnabled());

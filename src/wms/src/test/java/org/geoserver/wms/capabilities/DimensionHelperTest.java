@@ -25,6 +25,7 @@ import org.geoserver.wms.WMS;
 import org.geoserver.wms.capabilities.DimensionHelper.Mode;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.util.Assert;
 import org.xml.sax.Attributes;
 
 /**

@@ -4,7 +4,6 @@
  */
 package org.geoserver.wfs.json;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,6 +14,7 @@ import java.util.Map;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.Attribute;
 import org.opengis.feature.ComplexAttribute;
 import org.opengis.feature.Feature;
@@ -28,7 +28,7 @@ import org.opengis.filter.identity.Identifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /** GeoJSON writer capable of handling complex features. */
-public final class ComplexGeoJsonWriter {
+class ComplexGeoJsonWriter {
 
     private final GeoJSONBuilder jsonWriter;
 
@@ -59,7 +59,7 @@ public final class ComplexGeoJsonWriter {
     }
 
     /** Encode a feature in GeoJSON. */
-    private void encodeFeature(Feature feature) {
+    protected void encodeFeature(Feature feature) {
         // start the feature JSON object
         jsonWriter.object();
         jsonWriter.key("type").value("Feature");

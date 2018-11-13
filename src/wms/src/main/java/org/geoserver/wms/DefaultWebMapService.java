@@ -5,12 +5,10 @@
  */
 package org.geoserver.wms;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import net.opengis.wfs.FeatureCollectionType;
 import org.geoserver.platform.GeoServerExtensions;
@@ -28,6 +26,7 @@ import org.geotools.referencing.operation.projection.ProjectionException;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyledLayerDescriptor;
 import org.geotools.xml.transform.TransformerBase;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -597,7 +596,7 @@ public class DefaultWebMapService
         if (USE_GLOBAL_RENDERING_POOL && RENDERING_POOL == null) {
             synchronized (DefaultWebMapService.class) {
                 if (RENDERING_POOL == null) {
-                    RENDERING_POOL = Executors.newCachedThreadPool();
+                    RENDERING_POOL = new ThreadLocalTransferExecutor();
                 }
             }
         }

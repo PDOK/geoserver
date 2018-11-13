@@ -8,6 +8,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.util.CanonicalSet;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**

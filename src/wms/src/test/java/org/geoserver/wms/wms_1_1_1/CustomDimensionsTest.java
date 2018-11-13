@@ -5,9 +5,12 @@
  */
 package org.geoserver.wms.wms_1_1_1;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
@@ -24,6 +27,7 @@ import org.geoserver.catalog.DimensionPresentation;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.impl.DimensionInfoImpl;
 import org.geoserver.catalog.testreader.CustomFormat;
+import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerInfo;
 import org.geoserver.data.test.MockData;
 import org.geoserver.data.test.SystemTestData;
@@ -176,6 +180,48 @@ public class CustomDimensionsTest extends WMSTestSupport {
         image = ImageIO.read(getBinaryInputStream(response));
         assertFalse(isEmpty(image));
         assertTrue("sample model bands", 3 <= image.getSampleModel().getNumBands());
+    }
+
+    @Test
+    public void testCustomDimensionTooMany() throws Exception {
+        GeoServer gs = getGeoServer();
+        WMSInfo wms = gs.getService(WMSInfo.class);
+        wms.setMaxRequestedDimensionValues(2);
+        gs.save(wms);
+        try {
+            ImageIOExt.allowNativeCodec("tif", ImageReaderSpi.class, false);
+
+            // check that we get data when requesting a correct value for custom dimension
+            MockHttpServletResponse response =
+                    getAsServletResponse(
+                            "wms?bbox="
+                                    + BBOX
+                                    + "&styles=raster"
+                                    + "&layers="
+                                    + LAYERS
+                                    + "&Format=image/tiff"
+                                    + "&request=GetMap"
+                                    + "&width=550"
+                                    + "&height=250"
+                                    + "&srs=EPSG:4326"
+                                    + "&VALIDATESCHEMA=true"
+                                    + "&DIM_"
+                                    + DIMENSION_NAME
+                                    + "=CustomDimValueB,CustomDimValueC,CustomDimValueA");
+            assertEquals("text/xml", response.getContentType());
+            Document dom = dom(response, true);
+            print(dom);
+            String text =
+                    checkLegacyException(
+                            dom,
+                            org.geoserver.platform.ServiceException.INVALID_PARAMETER_VALUE,
+                            "DIM_" + DIMENSION_NAME);
+            assertThat(text, containsString("More than 2 dimension values"));
+        } finally {
+            wms.setMaxRequestedDimensionValues(
+                    DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES);
+            gs.save(wms);
+        }
     }
 
     @Test

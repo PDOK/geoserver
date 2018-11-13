@@ -13,6 +13,8 @@ import java.util.Date;
 import org.geotools.referencing.CRS;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 public class GMLFileFormatTest {

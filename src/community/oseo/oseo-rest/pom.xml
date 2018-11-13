@@ -8,14 +8,14 @@
   <parent>
     <groupId>org.geoserver.community</groupId>
     <artifactId>gs-oseo</artifactId>
-    <version>2.13.2</version>
+    <version>2.14.0</version>
   </parent>
 
   <groupId>org.geoserver.community</groupId>
   <artifactId>gs-oseo-rest</artifactId>
   <name>OpenSearch for EO REST configuration API</name>
   <packaging>jar</packaging>
-  <version>2.13.2</version>
+  <version>2.14.0</version>
 
   <dependencies>
     <dependency>
@@ -108,6 +108,16 @@
       <groupId>com.jayway.jsonpath</groupId>
       <artifactId>json-path</artifactId>
       <scope>test</scope>
-    </dependency>   
+    </dependency>
+    <dependency>
+      <groupId>org.geotools</groupId>
+      <artifactId>gt-sample-data</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.geotools.jdbc</groupId>
+      <artifactId>gt-jdbc-postgis</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

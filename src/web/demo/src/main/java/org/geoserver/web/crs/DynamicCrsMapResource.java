@@ -18,6 +18,7 @@ import org.apache.wicket.request.resource.AbstractResource;
 import org.apache.wicket.util.lang.Bytes;
 import org.apache.wicket.util.resource.AbstractResourceStream;
 import org.apache.wicket.util.resource.ResourceStreamNotFoundException;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**

@@ -45,12 +45,12 @@ copyright = u'2017, Open Source Geospatial Foundation'
 # other places throughout the built documents.
 #
 # The short X.Y version.
-version = '2.13'
+version = '2.14'
 # The full version, including alpha/beta/rc tags.
-release = '2.13.2'
+release = '2.14.0'
 # Users don't need to see the "SNAPSHOT" notation when it's there
 if release.find('SNAPSHOT') != -1:
-   release = '2.13.x'
+   release = '2.14.x'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -92,9 +92,9 @@ pygments_style = 'sphinx'
 extlinks = { 
     'wiki': ('https://github.com/geoserver/geoserver/wiki/%s',''),
     'website': ('http://geoserver.org/%s',''),
-    'user': ('http://docs.geoserver.org/2.13.x/en/user/%s',''),
-    'developer': ('http://docs.geoserver.org/2.13.x/en/developer/%s',''),
-    'docguide': ('http://docs.geoserver.org/2.13.x/en/docguide/%s',''),
+    'user': ('http://docs.geoserver.org/latest/en/user/%s',''),
+    'developer': ('http://docs.geoserver.org/latest/en/developer/%s',''),
+    'docguide': ('http://docs.geoserver.org/latest/en/docguide/%s',''),
     'geos': ('https://osgeo-org.atlassian.net/browse/GEOS-%s','GEOS-'),
     'geot': ('https://osgeo-org.atlassian.net/browse/GEOT-%s','GEOT-'),
     'api': ('http://docs.geoserver.org/api/#/1.0.0/%s','')

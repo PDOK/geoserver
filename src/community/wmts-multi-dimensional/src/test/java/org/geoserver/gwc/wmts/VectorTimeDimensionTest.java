@@ -8,6 +8,7 @@ import static org.geoserver.gwc.wmts.MultiDimensionalExtension.ALL_DOMAINS;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
+import java.util.Arrays;
 import java.util.List;
 import org.geoserver.catalog.*;
 import org.geoserver.catalog.DimensionDefaultValueSetting.Strategy;
@@ -72,8 +73,8 @@ public class VectorTimeDimensionTest extends TestsSupport {
         DimensionInfo dimensionInfo = createDimension(true, null);
         Dimension dimension = buildDimension(dimensionInfo);
         Tuple<String, List<Integer>> histogram = dimension.getHistogram(Filter.INCLUDE, "P1D");
-        assertThat(histogram.first, is("2012-02-11T00:00:00.000Z/2012-02-12T00:00:00.000Z/P1D"));
-        assertThat(histogram.second, containsInAnyOrder(4));
+        assertThat(histogram.first, is("2012-02-11T00:00:00.000Z/2012-02-13T00:00:00.000Z/P1D"));
+        assertThat(histogram.second, equalTo(Arrays.asList(3, 1)));
     }
 
     /** Helper method that just returns the current layer info. */

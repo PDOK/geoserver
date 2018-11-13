@@ -5,9 +5,12 @@
  */
 package org.geoserver.wms;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.xml.namespace.QName;
 import org.custommonkey.xmlunit.SimpleNamespaceContext;
@@ -20,6 +23,8 @@ import org.geoserver.data.test.SystemTestData;
 import org.geoserver.data.test.SystemTestData.LayerProperty;
 import org.junit.After;
 import org.junit.Before;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 public abstract class WMSDimensionsTestSupport extends WMSTestSupport {
 
@@ -183,5 +188,63 @@ public abstract class WMSDimensionsTestSupport extends WMSTestSupport {
         }
         info.getMetadata().put(dimensionName, di);
         getCatalog().save(info);
+    }
+
+    /**
+     * Checks that the last HTTP response had the expected number of "Warning" headers
+     *
+     * @param expectedValue
+     */
+    protected void assertWarningCount(int expectedValue) {
+        MockHttpServletResponse response = getLastResponse();
+        List<Object> values = response.getHeaderValues(HttpHeaders.WARNING);
+        assertNotNull(values);
+        assertEquals(
+                "Expected to find a different number of warnings", expectedValue, values.size());
+    }
+
+    /**
+     * Asserts that the specified nearest value has been used and check the corresponding HTTP
+     * warning
+     *
+     * @param layerId
+     * @param expectedValue
+     */
+    protected void assertNearestTimeWarning(String layerId, String expectedValue) {
+        String expected =
+                "99 Nearest value used: time="
+                        + expectedValue
+                        + " "
+                        + ResourceInfo.TIME_UNIT
+                        + " ("
+                        + layerId
+                        + ")";
+
+        MockHttpServletResponse response = getLastResponse();
+        List<Object> values = response.getHeaderValues(HttpHeaders.WARNING);
+        Object found = values.stream().filter(v -> expected.equals(v)).findFirst().orElse(null);
+
+        assertNotNull(
+                "Could not find\n" + expected + "\n among the following warnings:\n" + values,
+                found);
+    }
+
+    /**
+     * Asserts that the specified nearest value has been used and check the corresponding HTTP
+     * warning
+     *
+     * @param layerId
+     * @param expectedValue
+     */
+    protected void assertNoNearestWarning(String layerId, String dimension) {
+        String expected = "99 No nearest value found on " + layerId + ": " + dimension;
+
+        MockHttpServletResponse response = getLastResponse();
+        List<Object> values = response.getHeaderValues(HttpHeaders.WARNING);
+        Object found = values.stream().filter(v -> expected.equals(v)).findFirst().orElse(null);
+
+        assertNotNull(
+                "Could not find\n" + expected + "\n among the following warnings:\n" + values,
+                found);
     }
 }

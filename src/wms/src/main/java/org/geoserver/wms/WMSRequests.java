@@ -26,6 +26,7 @@ import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.map.Layer;
 import org.geotools.map.MapLayer;
 import org.geotools.styling.Style;
+import org.locationtech.jts.geom.Envelope;
 import org.vfny.geoserver.util.Requests;
 
 /**

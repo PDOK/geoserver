@@ -13,8 +13,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Point;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,6 +21,7 @@ import java.util.List;
 import java.util.Properties;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.CoverageStoreInfo;
@@ -37,6 +36,7 @@ import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.importer.ImportContext;
 import org.geoserver.importer.ImportTask;
 import org.geoserver.importer.Importer;
+import org.geoserver.importer.ImporterDataTest;
 import org.geoserver.importer.ImporterTestSupport;
 import org.geoserver.importer.SpatialFile;
 import org.geoserver.importer.transform.AttributesToPointGeometryTransform;
@@ -56,8 +56,11 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.filter.text.cql2.CQL;
 import org.hamcrest.CoreMatchers;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.Feature;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -86,6 +89,120 @@ public class ImporterIntegrationTest extends ImporterTestSupport {
         // remove any callback set to check the request spring context
         RequestContextListener listener = applicationContext.getBean(RequestContextListener.class);
         listener.setCallBack(null);
+    }
+
+    @Test
+    public void testDirectWrongFile() throws Exception {
+        // set a callback to check that the request spring context is passed to the job thread
+        RequestContextListener listener = applicationContext.getBean(RequestContextListener.class);
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+
+        final boolean[] invoked = {false};
+        listener.setCallBack(
+                (request, user, resource) -> {
+                    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                    assertThat(request, notNullValue());
+                    assertThat(resource, notNullValue());
+                    assertThat(auth, notNullValue());
+                    invoked[0] = true;
+                });
+        File dir = unpack("geotiff/EmissiveCampania.tif.bz2");
+        File geotiffFile = new File(dir, "EmissiveCampania.tif");
+        String wrongPath = jsonSafePath(geotiffFile).replace("/EmissiveCampania", "/foobar");
+
+        String wsName = getCatalog().getDefaultWorkspace().getName();
+
+        // @formatter:off
+        String contextDefinition =
+                "{\n"
+                        + "   \"import\": {\n"
+                        + "      \"targetWorkspace\": {\n"
+                        + "         \"workspace\": {\n"
+                        + "            \"name\": \""
+                        + wsName
+                        + "\"\n"
+                        + "         }\n"
+                        + "      },\n"
+                        + "      \"data\": {\n"
+                        + "        \"type\": \"file\",\n"
+                        + "        \"file\": \""
+                        + wrongPath
+                        + "\"\n"
+                        + "      },"
+                        + "      targetStore: {\n"
+                        + "        dataStore: {\n"
+                        + "        name: \"h2\",\n"
+                        + "        }\n"
+                        + "      }\n"
+                        + "   }\n"
+                        + "}";
+        // @formatter:on
+
+        // initialize the import
+        MockHttpServletResponse servletResponse =
+                postAsServletResponse("/rest/imports", contextDefinition, "application/json");
+        JSONObject json = (JSONObject) json(servletResponse);
+        int importId = json.getJSONObject("import").getInt("id");
+        json = (JSONObject) getAsJSON("/rest/imports/" + importId);
+
+        // Expect an error
+        assertEquals("INIT_ERROR", json.getJSONObject("import").getString("state"));
+        assertEquals("input == null!", json.getJSONObject("import").getString("message"));
+    }
+
+    @Test
+    public void testDirectWrongDir() throws Exception {
+        // set a callback to check that the request spring context is passed to the job thread
+        RequestContextListener listener = applicationContext.getBean(RequestContextListener.class);
+        SecurityContextHolder.getContext().setAuthentication(createAuthentication());
+
+        final boolean[] invoked = {false};
+        listener.setCallBack(
+                (request, user, resource) -> {
+                    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                    assertThat(request, notNullValue());
+                    assertThat(resource, notNullValue());
+                    assertThat(auth, notNullValue());
+                    invoked[0] = true;
+                });
+        File dir = unpack("geotiff/EmissiveCampania.tif.bz2");
+        File geotiffFile = new File(dir, "EmissiveCampania.tif");
+        String wrongPath =
+                jsonSafePath(geotiffFile).replace("/EmissiveCampania", "bar/EmissiveCampania");
+
+        String wsName = getCatalog().getDefaultWorkspace().getName();
+
+        // @formatter:off
+        String contextDefinition =
+                "{\n"
+                        + "   \"import\": {\n"
+                        + "      \"targetWorkspace\": {\n"
+                        + "         \"workspace\": {\n"
+                        + "            \"name\": \""
+                        + wsName
+                        + "\"\n"
+                        + "         }\n"
+                        + "      },\n"
+                        + "      \"data\": {\n"
+                        + "        \"type\": \"file\",\n"
+                        + "        \"file\": \""
+                        + wrongPath
+                        + "\"\n"
+                        + "      },"
+                        + "      targetStore: {\n"
+                        + "        dataStore: {\n"
+                        + "        name: \"h2\",\n"
+                        + "        }\n"
+                        + "      }\n"
+                        + "   }\n"
+                        + "}";
+        // @formatter:on
+
+        // initialize the import
+        MockHttpServletResponse servletResponse =
+                postAsServletResponse("/rest/imports", contextDefinition, "application/json");
+
+        assertEquals(500, servletResponse.getStatus());
     }
 
     @Test
@@ -660,6 +777,107 @@ public class ImporterIntegrationTest extends ImporterTestSupport {
                 System.clearProperty(Importer.UPLOAD_ROOT_KEY);
             }
         }
+    }
+
+    @Test
+    public void testRunPostScript() throws Exception {
+        // check if bash is there
+        Assume.assumeTrue(
+                "Could not find sh in path, skipping", ImporterDataTest.checkShellAvailable());
+        // even with bash available, the test won't work on windows as it won't know
+        // how to run the .sh out of the box
+        Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
+
+        // the target layer is not there
+        assertNull(getCatalog().getLayerByName("archsites"));
+
+        // write out a simple shell script in the data dir and make it executable
+        File scripts = getDataDirectory().findOrCreateDir("importer", "scripts");
+        File script = new File(scripts, "test.sh");
+        FileUtils.writeStringToFile(script, "touch test.properties\n");
+        script.setExecutable(true, true);
+
+        // create context with default name
+        File dir = unpack("shape/archsites_epsg_prj.zip");
+        ImportContext context = importer.createContext(0l);
+        importer.changed(context);
+        importer.update(context, new SpatialFile(new File(dir, "archsites.shp")));
+
+        // add a transformation to run post script
+        String json =
+                "{\n"
+                        + "  \"type\": \"PostScriptTransform\",\n"
+                        + "  \"name\": \"test.sh\"\n"
+                        + "}";
+
+        MockHttpServletResponse resp =
+                postAsServletResponse(
+                        RestBaseController.ROOT_PATH + "/imports/0/tasks/0/transforms",
+                        json,
+                        "application/json");
+        assertEquals(HttpStatus.CREATED.value(), resp.getStatus());
+
+        // run it
+        context = importer.getContext(0);
+        importer.run(context);
+
+        // check the layer has been created
+        assertNotNull(getCatalog().getLayerByName("archsites"));
+
+        // verify the script also run
+        File testFile = new File(scripts, "test.properties");
+        assertTrue(testFile.exists());
+    }
+
+    @Test
+    public void testRunPostScriptWithOptions() throws Exception {
+        // check if bash is there
+        Assume.assumeTrue(
+                "Could not find sh in path, skipping", ImporterDataTest.checkShellAvailable());
+        // even with bash available, the test won't work on windows as it won't know
+        // how to run the .sh out of the box
+        Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
+
+        // the target layer is not there
+        assertNull(getCatalog().getLayerByName("archsites"));
+
+        // write out a simple shell script in the data dir and make it executable
+        File scripts = getDataDirectory().findOrCreateDir("importer", "scripts");
+        File script = new File(scripts, "test.sh");
+        FileUtils.writeStringToFile(script, "touch $1\n");
+        script.setExecutable(true, true);
+
+        // create context with default name
+        File dir = unpack("shape/archsites_epsg_prj.zip");
+        ImportContext context = importer.createContext(0l);
+        importer.changed(context);
+        importer.update(context, new SpatialFile(new File(dir, "archsites.shp")));
+
+        // add a transformation to run post script
+        String json =
+                "{\n"
+                        + "  \"type\": \"PostScriptTransform\",\n"
+                        + "  \"name\": \"test.sh\",\n"
+                        + "  \"options\": [\"test.abc\"]"
+                        + "}";
+
+        MockHttpServletResponse resp =
+                postAsServletResponse(
+                        RestBaseController.ROOT_PATH + "/imports/0/tasks/0/transforms",
+                        json,
+                        "application/json");
+        assertEquals(HttpStatus.CREATED.value(), resp.getStatus());
+
+        // run it
+        context = importer.getContext(0);
+        importer.run(context);
+
+        // check the layer has been created
+        assertNotNull(getCatalog().getLayerByName("archsites"));
+
+        // verify the script also run
+        File testFile = new File(scripts, "test.abc");
+        assertTrue(testFile.exists());
     }
 
     @Test

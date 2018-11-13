@@ -26,8 +26,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.Unit;
+import javax.measure.Unit;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 import org.geoserver.wcs2_0.response.GranuleStack;
@@ -47,6 +46,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.cs.CoordinateSystemAxis;
 import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.referencing.operation.TransformException;
+import si.uom.NonSI;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.ma2.Index;
@@ -122,23 +122,6 @@ public class GHRSSTEncoder extends AbstractNetCDFEncoder {
         GHRSST_VARIABLE_TYPES.put("sea_ice_fraction", DataType.BYTE);
         GHRSST_VARIABLE_TYPES.put("sea_ice_fraction_error", DataType.BYTE);
     }
-
-    /**
-     * Attributes that are never copied to the main output variable from a NetCDF/GRIB source
-     * because they require special handling.
-     */
-    @SuppressWarnings("serial")
-    private static final Set<String> COPY_ATTRIBUTES_BLACKLIST =
-            new HashSet<String>() {
-                {
-                    // coordinate variable names are usually changed
-                    add("coordinates");
-                    // these do not survive type change or packing and should be set from nodata
-                    // value
-                    add("_FillValue");
-                    add("missing_value");
-                }
-            };
 
     /** In case of data packing best to remove these as well */
     private static final Set<String> DATA_PACKING_ATTRIBUTES_BLACKLIST =
@@ -337,6 +320,25 @@ public class GHRSSTEncoder extends AbstractNetCDFEncoder {
             // handle data packing
             DataPacking.DataPacker dataPacker = null;
             if (dataPacking != DataPacking.NONE) {
+                // if copying attributes, we might copy over valid min and max, which might be out
+                // of range vs the collected stats
+                if (copyAttributes) {
+                    try (NetcdfDataset source = getSourceNetcdfDataset(sampleGranule)) {
+                        if (source != null) {
+                            Variable sourceVar = source.findVariable(bandName);
+                            Double min = getDoubleAttribute(sourceVar, NetCDFUtilities.VALID_MIN);
+                            Double max = getDoubleAttribute(sourceVar, NetCDFUtilities.VALID_MAX);
+                            if (min != null && max != null) {
+                                stats.update(min, max);
+                            }
+                        }
+                    } catch (Exception e) {
+                        if (LOGGER.isLoggable(Level.SEVERE)) {
+                            LOGGER.severe("Failed to copy from source NetCDF: " + e.getMessage());
+                        }
+                    }
+                }
+
                 dataPacker = dataPacking.getDataPacker(stats);
                 writer.addVariableAttribute(
                         var, new Attribute(DataPacking.ADD_OFFSET, dataPacker.getOffset()));
@@ -374,7 +376,7 @@ public class GHRSSTEncoder extends AbstractNetCDFEncoder {
                                 for (Attribute att : sourceVar.getAttributes()) {
                                     // do not allow overwrite or attributes in blacklist
                                     if (var.findAttribute(att.getFullName()) == null
-                                            && isBlacklistedAttribute(att, dataPacking)) {
+                                            && !isBlacklistedAttribute(att, dataPacking)) {
                                         writer.addVariableAttribute(var, att);
                                     }
                                 }
@@ -449,6 +451,15 @@ public class GHRSSTEncoder extends AbstractNetCDFEncoder {
         }
     }
 
+    private Double getDoubleAttribute(Variable sourceVar, String attributeName) {
+        Attribute attribute = sourceVar.findAttribute(attributeName);
+        if (attribute != null) {
+            return attribute.getNumericValue().doubleValue();
+        } else {
+            return null;
+        }
+    }
+
     private void addValidMinMax(
             Variable sourceVar,
             Variable var,
@@ -467,15 +478,15 @@ public class GHRSSTEncoder extends AbstractNetCDFEncoder {
         // part of the blacklist?
         String shortName = att.getShortName();
         if (COPY_ATTRIBUTES_BLACKLIST.contains(shortName)) {
-            return false;
+            return true;
         }
 
         // in case of data packing also valid_min and valid_max should go
         if (dataPacking != DataPacking.NONE) {
-            return !DATA_PACKING_ATTRIBUTES_BLACKLIST.contains(shortName);
+            return DATA_PACKING_ATTRIBUTES_BLACKLIST.contains(shortName);
         }
 
-        return true;
+        return false;
     }
 
     private DataType getDataType(String variableName, int dataType) {

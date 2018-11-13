@@ -37,6 +37,7 @@ import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.util.DateRange;
 import org.geotools.util.DefaultProgressListener;
+import org.geotools.util.SimpleInternationalString;
 import org.geotools.util.logging.Logging;
 import org.jcodec.api.awt.AWTSequenceEncoder;
 import org.jcodec.common.io.NIOUtils;
@@ -62,15 +63,18 @@ public class DownloadAnimationProcess implements GeoServerProcess {
         MAP_FORMAT.setName("image/png");
     }
 
-    private final TimeParser timeParser;
     private final DownloadMapProcess mapper;
     private final WPSResourceManager resourceManager;
     private final DateTimeFormatter formatter;
+    private final DownloadServiceConfigurationGenerator confiGenerator;
 
-    public DownloadAnimationProcess(DownloadMapProcess mapper, WPSResourceManager resourceManager) {
+    public DownloadAnimationProcess(
+            DownloadMapProcess mapper,
+            WPSResourceManager resourceManager,
+            DownloadServiceConfigurationGenerator downloadServiceConfigurationGenerator) {
         this.mapper = mapper;
-        this.timeParser = new TimeParser();
         this.resourceManager = resourceManager;
+        this.confiGenerator = downloadServiceConfigurationGenerator;
         // java 8 formatters are thread safe
         this.formatter =
                 DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
@@ -144,6 +148,9 @@ public class DownloadAnimationProcess implements GeoServerProcess {
 
         AWTSequenceEncoder enc =
                 new AWTSequenceEncoder(NIOUtils.writableChannel(output.file()), frameRate);
+
+        DownloadServiceConfiguration configuration = confiGenerator.getConfiguration();
+        TimeParser timeParser = new TimeParser(configuration.getMaxAnimationFrames());
         Collection parsedTimes = timeParser.parse(time);
         progressListener.started();
         int count = 1;
@@ -152,6 +159,7 @@ public class DownloadAnimationProcess implements GeoServerProcess {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             List<Future<Void>> futures = new ArrayList<>();
+            int totalTimes = parsedTimes.size();
             for (Object parsedTime : parsedTimes) {
                 // turn parsed time into a specification and generate a "WMS" like request based on
                 // it
@@ -177,7 +185,11 @@ public class DownloadAnimationProcess implements GeoServerProcess {
                                     return (Void) null;
                                 });
                 futures.add(future);
-                progressListener.progress(100 * (parsedTimes.size() / count));
+                // checking progress
+                progressListener.progress(90 * (((float) count) / totalTimes));
+                progressListener.setTask(
+                        new SimpleInternationalString(
+                                "Generated frames " + count + " out of " + totalTimes));
                 if (progressListener.isCanceled()) {
                     throw new ProcessException("Bailing out due to progress cancellation");
                 }
@@ -186,6 +198,7 @@ public class DownloadAnimationProcess implements GeoServerProcess {
             for (Future<Void> future : futures) {
                 future.get();
             }
+            progressListener.progress(100);
         } finally {
             executor.shutdown();
         }

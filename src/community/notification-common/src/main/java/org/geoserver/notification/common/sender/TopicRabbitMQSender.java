@@ -34,7 +34,9 @@ public class TopicRabbitMQSender extends RabbitMQSender {
 
     @Override
     public void sendMessage(byte[] payload) throws IOException {
-        channel.exchangeDeclare(exchangeName, EXCHANGE_TYPE);
-        channel.basicPublish(exchangeName, routingKey, null, payload);
+        if (channel != null) {
+            channel.exchangeDeclare(exchangeName, EXCHANGE_TYPE);
+            channel.basicPublish(exchangeName, routingKey, null, payload);
+        }
     }
 }

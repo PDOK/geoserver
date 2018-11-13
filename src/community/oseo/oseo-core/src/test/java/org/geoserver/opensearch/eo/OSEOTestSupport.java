@@ -4,10 +4,10 @@
  */
 package org.geoserver.opensearch.eo;
 
+import static org.geoserver.opensearch.eo.JDBCOpenSearchAccessTest.GS_PRODUCT;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collections;
@@ -17,7 +17,6 @@ import javax.servlet.Filter;
 import javax.xml.XMLConstants;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import org.apache.commons.io.FileUtils;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.WorkspaceInfo;
@@ -27,10 +26,11 @@ import org.geoserver.data.test.SystemTestData;
 import org.geoserver.opensearch.eo.store.OpenSearchAccess;
 import org.geoserver.test.GeoServerSystemTestSupport;
 import org.geotools.jdbc.JDBCDataStore;
-import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.util.xml.SimpleNamespaceContext;
 import org.w3c.dom.Document;
@@ -107,7 +107,13 @@ public class OSEOTestSupport extends GeoServerSystemTestSupport {
     protected void onSetUp(SystemTestData testData) throws Exception {
         super.onSetUp(testData);
 
-        setupBasicOpenSearch(testData, getCatalog(), getGeoServer(), populateGranulesTable());
+        GeoServer geoServer = getGeoServer();
+        setupBasicOpenSearch(testData, getCatalog(), geoServer, populateGranulesTable());
+
+        // add the custom product class
+        OSEOInfo oseo = geoServer.getService(OSEOInfo.class);
+        oseo.getProductClasses().add(JDBCOpenSearchAccessTest.GS_PRODUCT);
+        geoServer.save(oseo);
     }
 
     /**
@@ -117,6 +123,11 @@ public class OSEOTestSupport extends GeoServerSystemTestSupport {
      */
     protected boolean populateGranulesTable() {
         return false;
+    }
+
+    @BeforeClass
+    public static void checkOnLine() {
+        Assume.assumeNotNull(JDBCOpenSearchAccessTest.getFixture());
     }
 
     /**
@@ -140,13 +151,7 @@ public class OSEOTestSupport extends GeoServerSystemTestSupport {
         jdbcDs.setEnabled(true);
 
         Map params = jdbcDs.getConnectionParameters();
-        params.put("dbtype", "h2");
-        File dbFolder = new File(testData.getDataDirectoryRoot(), "oseo_db");
-        FileUtils.deleteQuietly(dbFolder);
-        dbFolder.mkdir();
-        File dbFile = new File(dbFolder, "oseo_db");
-        params.put("database", dbFile.getAbsolutePath());
-        params.put(JDBCDataStoreFactory.EXPOSE_PK.key, "true");
+        params.putAll(JDBCOpenSearchAccessTest.getFixture());
         cat.add(jdbcDs);
 
         JDBCDataStore h2 = (JDBCDataStore) jdbcDs.getDataStore(null);
@@ -195,9 +200,10 @@ public class OSEOTestSupport extends GeoServerSystemTestSupport {
         namespaceContext.bindNamespaceUri("owc", "http://www.opengis.net/owc/1.0");
         namespaceContext.bindNamespaceUri("dc", "http://purl.org/dc/elements/1.1/");
         namespaceContext.bindNamespaceUri("media", "http://search.yahoo.com/mrss/");
-        for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+        for (ProductClass pc : ProductClass.DEFAULT_PRODUCT_CLASSES) {
             namespaceContext.bindNamespaceUri(pc.getPrefix(), pc.getNamespace());
         }
+        namespaceContext.bindNamespaceUri(GS_PRODUCT.getPrefix(), GS_PRODUCT.getNamespace());
     }
 
     protected Matcher<Node> hasXPath(String xPath) {

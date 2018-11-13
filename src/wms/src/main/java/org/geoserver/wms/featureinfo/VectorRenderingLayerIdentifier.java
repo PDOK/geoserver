@@ -68,6 +68,7 @@ import org.geotools.styling.StyleAttributeExtractor;
 import org.geotools.styling.visitor.DpiRescaleStyleVisitor;
 import org.geotools.styling.visitor.UomRescaleStyleVisitor;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.Feature;
 import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.simple.SimpleFeature;

@@ -16,6 +16,8 @@ import org.geoserver.wms.WMSMapContent;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.xml.transform.Translator;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 import org.opengis.feature.simple.SimpleFeature;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.helpers.AttributesImpl;

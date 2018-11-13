@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.Sets;
 import com.jayway.jsonpath.DocumentContext;
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
@@ -28,6 +27,7 @@ import org.geoserver.rest.util.MediaTypeExtensions;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -43,20 +43,20 @@ public class CollectionsControllerTest extends OSEORestTestSupport {
     @Test
     public void testGetCollections() throws Exception {
         DocumentContext json = getAsJSONPath("/rest/oseo/collections", 200);
-        assertEquals(3, json.read("$.collections.*", List.class).size());
+        assertEquals(5, json.read("$.collections.*", List.class).size());
         // check the first (sorted alphabetically)
-        assertEquals("LANDSAT8", json.read("$.collections[0].name"));
+        assertEquals("ATMTEST", json.read("$.collections[0].name"));
         assertEquals(
-                "http://localhost:8080/geoserver/rest/oseo/collections/LANDSAT8",
+                "http://localhost:8080/geoserver/rest/oseo/collections/ATMTEST",
                 json.read("$.collections[0].href"));
         assertEquals(
-                "http://localhost:8080/geoserver/oseo/description?parentId=LANDSAT8",
+                "http://localhost:8080/geoserver/oseo/description?parentId=ATMTEST",
                 json.read("$.collections[0].search"));
     }
 
     @Test
     public void testGetCollectionsPaging() throws Exception {
-        DocumentContext json = getAsJSONPath("/rest/oseo/collections?offset=1&limit=1", 200);
+        DocumentContext json = getAsJSONPath("/rest/oseo/collections?offset=3&limit=1", 200);
         assertEquals(1, json.read("$.collections.*", List.class).size());
         assertEquals("SENTINEL1", json.read("$.collections[0].name"));
         assertEquals(

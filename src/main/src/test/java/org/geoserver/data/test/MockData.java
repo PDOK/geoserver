@@ -5,7 +5,6 @@
  */
 package org.geoserver.data.test;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.geom.AffineTransform;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -38,6 +37,7 @@ import org.geotools.coverage.grid.io.GridFormatFinder;
 import org.geotools.data.property.PropertyDataStoreFactory;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridGeometry;
 import org.opengis.parameter.ParameterValueGroup;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -50,6 +50,7 @@ import org.opengis.referencing.cs.CoordinateSystem;
  *
  * @author Justin Deoliveira, The Open Planning Project
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class MockData implements TestData {
     // Extra configuration keys for vector data
     /**
@@ -789,6 +790,11 @@ public class MockData implements TestData {
     }
 
     void coverageInfo(QName name, File coverageFile, String styleName) throws Exception {
+        coverageInfo(name, coverageFile, null, styleName);
+    }
+
+    void coverageInfo(QName name, Object coverageFile, String gridFormat, String styleName)
+            throws Exception {
         String coverage = name.getLocalPart();
 
         File coverageDir = new File(coverages, coverage);
@@ -798,14 +804,18 @@ public class MockData implements TestData {
         info.createNewFile();
 
         // let's grab the necessary metadata
-        AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(coverageFile);
+        AbstractGridFormat format =
+                (AbstractGridFormat)
+                        (gridFormat != null
+                                ? CoverageStoreUtils.acquireFormat(gridFormat)
+                                : GridFormatFinder.findFormat(coverageFile));
         GridCoverage2DReader reader;
         try {
             reader = (GridCoverage2DReader) format.getReader(coverageFile);
         } catch (Exception e) {
             String message =
                     "Exception while trying to read "
-                            + coverageFile.getCanonicalPath()
+                            + coverageFile.toString()
                             + " with format"
                             + format.getName();
             throw new RuntimeException(message, e);
@@ -814,7 +824,7 @@ public class MockData implements TestData {
         if (reader == null) {
             throw new RuntimeException(
                     "No reader for "
-                            + coverageFile.getCanonicalPath()
+                            + coverageFile.toString()
                             + " with format "
                             + format.getName());
         }
@@ -970,5 +980,27 @@ public class MockData implements TestData {
         styles = null;
         featureTypes = null;
         data = null;
+    }
+
+    public void addCustomType(QName name, Map params) throws IOException {
+        // write the info file
+        info(name, params);
+        // setup the meta information to be written in the catalog
+        namespaces.put(name.getPrefix(), name.getNamespaceURI());
+        dataStoreNamepaces.put(name.getPrefix(), name.getPrefix());
+        dataStores.put(name.getPrefix(), params);
+    }
+
+    public void addCustomCoverage(QName name, Map params) throws Exception {
+        // write the info file
+        coverageInfo(
+                name,
+                params.get(CatalogWriter.COVERAGE_URL_KEY),
+                (String) params.get(CatalogWriter.COVERAGE_TYPE_KEY),
+                "generic");
+        // setup the meta information to be written in the catalog
+        namespaces.put(name.getPrefix(), name.getNamespaceURI());
+        coverageStoresNamespaces.put(name.getLocalPart(), name.getPrefix());
+        coverageStores.put(name.getLocalPart(), params);
     }
 }

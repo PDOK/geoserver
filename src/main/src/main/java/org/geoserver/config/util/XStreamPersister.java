@@ -11,17 +11,20 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.ConversionException;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.SingleValueConverter;
 import com.thoughtworks.xstream.converters.SingleValueConverterWrapper;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.basic.AbstractSingleValueConverter;
 import com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter;
 import com.thoughtworks.xstream.converters.collections.CollectionConverter;
 import com.thoughtworks.xstream.converters.collections.MapConverter;
+import com.thoughtworks.xstream.converters.extended.JavaClassConverter;
 import com.thoughtworks.xstream.converters.reflection.FieldDictionary;
 import com.thoughtworks.xstream.converters.reflection.ReflectionConverter;
 import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.converters.reflection.SortableFieldKeySorter;
 import com.thoughtworks.xstream.converters.reflection.SunUnsafeReflectionProvider;
+import com.thoughtworks.xstream.core.ClassLoaderReference;
 import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamWriterHelper;
 import com.thoughtworks.xstream.io.HierarchicalStreamDriver;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
@@ -30,9 +33,10 @@ import com.thoughtworks.xstream.io.json.JettisonStaxWriter;
 import com.thoughtworks.xstream.io.xml.StaxWriter;
 import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 import com.thoughtworks.xstream.mapper.ClassAliasingMapper;
+import com.thoughtworks.xstream.mapper.DefaultMapper;
 import com.thoughtworks.xstream.mapper.DynamicProxyMapper;
 import com.thoughtworks.xstream.mapper.Mapper;
-import com.vividsolutions.jts.geom.Geometry;
+import com.thoughtworks.xstream.mapper.PackageAliasingMapper;
 import java.awt.geom.AffineTransform;
 import java.io.IOException;
 import java.io.InputStream;
@@ -157,6 +161,7 @@ import org.geotools.util.Converters;
 import org.geotools.util.MeasureConverterFactory;
 import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.coverage.grid.GridGeometry;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -433,6 +438,19 @@ public class XStreamPersister {
         xs.registerLocalConverter(impl(ResourceInfo.class), "keywords", new KeywordListConverter());
 
         // FeatureTypeInfo
+        PackageAliasingMapper bindingAliasingMapper =
+                new OneWayPackageAliasingMapper(
+                        new DefaultMapper(new ClassLoaderReference(xs.getClassLoader())));
+        // For compatibility with JTS 1.15 and older bindings
+        bindingAliasingMapper.addPackageAlias(
+                "com.vividsolutions.jts.geom", "org.locationtech.jts.geom");
+
+        xs.registerLocalConverter(
+                impl(AttributeTypeInfo.class),
+                "binding",
+                (SingleValueConverter)
+                        new SingleValueConverterWrapper(
+                                new JavaClassConverter(bindingAliasingMapper) {}));
 
         // CoverageInfo
         xs.registerLocalConverter(

@@ -14,8 +14,7 @@ import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.measure.quantity.Quantity;
-import javax.measure.unit.BaseUnit;
+import javax.measure.quantity.Dimensionless;
 import org.geoserver.catalog.CoverageDimensionCustomizerReader.GridCoverageWrapper;
 import org.geoserver.catalog.CoverageDimensionCustomizerReader.WrappedSampleDimension;
 import org.geoserver.catalog.impl.CoverageDimensionImpl;
@@ -32,6 +31,7 @@ import org.junit.Test;
 import org.opengis.coverage.ColorInterpretation;
 import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.SampleDimensionType;
+import tec.uom.se.unit.BaseUnit;
 
 public class CoverageDimensionCustomizerReaderTest extends GeoServerSystemTestSupport {
 
@@ -307,7 +307,7 @@ public class CoverageDimensionCustomizerReaderTest extends GeoServerSystemTestSu
         assertEquals(wrappedName, wrappedDim.getDescription().toString());
 
         // Configure a new GridSampleDimension without categories
-        sampleDim = new GridSampleDimension("original", null, new BaseUnit<Quantity>("test"));
+        sampleDim = new GridSampleDimension("original", null, new BaseUnit<Dimensionless>("test"));
         // New wrapped sample dimension
         wrappedDim = WrappedSampleDimension.build(sampleDim, coverageDim);
         // Get the range

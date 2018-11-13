@@ -145,7 +145,7 @@ public class CollectionLayerTest extends OSEORestTestSupport {
         assertEquals("gs", json.read("$.workspace"));
         assertEquals("test123", json.read("$.layer"));
         assertEquals(Boolean.FALSE, json.read("$.separateBands"));
-        assertEquals(Boolean.FALSE, json.read("$.heterogeneousCRS"));
+        assertEquals(Boolean.TRUE, json.read("$.heterogeneousCRS"));
 
         // check the configuration elements are there too
         Catalog catalog = getCatalog();
@@ -200,7 +200,7 @@ public class CollectionLayerTest extends OSEORestTestSupport {
         assertEquals("test", json.read("$.workspace"));
         assertEquals("test123", json.read("$.layer"));
         assertEquals(Boolean.FALSE, json.read("$.separateBands"));
-        assertEquals(Boolean.FALSE, json.read("$.heterogeneousCRS"));
+        assertEquals(Boolean.TRUE, json.read("$.heterogeneousCRS"));
 
         // check the configuration elements are there too
         Catalog catalog = getCatalog();
@@ -256,7 +256,7 @@ public class CollectionLayerTest extends OSEORestTestSupport {
         assertEquals("gs", json.read("$.workspace"));
         assertEquals("test123", json.read("$.layer"));
         assertEquals(Boolean.FALSE, json.read("$.separateBands"));
-        assertEquals(Boolean.FALSE, json.read("$.heterogeneousCRS"));
+        assertEquals(Boolean.TRUE, json.read("$.heterogeneousCRS"));
 
         // check the configuration elements are there too
         Catalog catalog = getCatalog();
@@ -288,7 +288,7 @@ public class CollectionLayerTest extends OSEORestTestSupport {
         assertNull(cs.getRGBChannels()[0]);
         assertNull(cs.getRGBChannels()[1]);
         assertNull(cs.getRGBChannels()[2]);
-        assertEquals("1", cs.getGrayChannel().getChannelName());
+        assertEquals("1", cs.getGrayChannel().getChannelName().evaluate(null, String.class));
 
         BufferedImage image =
                 getAsImage("wms/reflect?layers=gs:test123&format=image/png&width=200", "image/png");
@@ -354,9 +354,9 @@ public class CollectionLayerTest extends OSEORestTestSupport {
         assertEquals(1, symbolizers.size());
         RasterSymbolizer rs = (RasterSymbolizer) symbolizers.get(0);
         ChannelSelection cs = rs.getChannelSelection();
-        assertEquals("4", cs.getRGBChannels()[0].getChannelName());
-        assertEquals("2", cs.getRGBChannels()[1].getChannelName());
-        assertEquals("1", cs.getRGBChannels()[2].getChannelName());
+        assertEquals("4", cs.getRGBChannels()[0].getChannelName().evaluate(null, String.class));
+        assertEquals("2", cs.getRGBChannels()[1].getChannelName().evaluate(null, String.class));
+        assertEquals("1", cs.getRGBChannels()[2].getChannelName().evaluate(null, String.class));
         assertNull(cs.getGrayChannel());
 
         BufferedImage image =

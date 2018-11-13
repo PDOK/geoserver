@@ -240,28 +240,6 @@ else
   gwc_tag=`cat src/pom.xml | grep "<gwc.version>" | sed 's/ *<gwc.version>\(.*\)<\/gwc.version>/\1/g'`
 fi
 
-# update the release notes
-notes=RELEASE_NOTES.txt
-pushd src/release > /dev/null
-sed -i "s/@VER@/$tag/g" $notes
-sed -i "s/@DATE@/`date "+%b %d, %Y"`/g" $notes
-sed -i "s/@JIRA_VER@/$jira_id/g" $notes
-
-gt_ver_info=$gt_tag
-if [ ! -z $gt_rev ]; then
-  gt_ver_info="$gt_ver_info, rev $gt_rev"
-fi
-
-gwc_ver_info=$gwc_tag
-if [ ! -z $gwc_rev ]; then
-  gwc_ver_info="$gwc_ver_info, rev $gwc_rev"
-fi
-
-sed -i "s/@GT_VER@/$gt_ver_info/g" $notes
-sed -i "s/@GWC_VER@/$gwc_ver_info/g" $notes
-
-popd > /dev/null
-
 # update version numbers
 old_ver=`get_pom_version src/pom.xml`
 
@@ -320,9 +298,9 @@ if [ -z $SKIP_BUILD ]; then
 
   # 2.12 and newer uses ant to do everything
   else
-    ant clean user
-    ant user-pdf
-    ant developer
+    ant clean user -Dproject.version=$tag
+    ant user-pdf -Dproject.version=$tag
+    ant developer -Dproject.version=$tag
   fi
 
   popd > /dev/null

@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridCoverage;
 import org.springframework.mock.web.MockHttpServletResponse;
 

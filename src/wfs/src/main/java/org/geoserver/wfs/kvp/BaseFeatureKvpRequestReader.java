@@ -4,7 +4,6 @@
  */
 package org.geoserver.wfs.kvp;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +29,7 @@ import org.geoserver.wfs.request.Query;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope3D;
 import org.geotools.gml2.bindings.GML2EncodingUtils;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import org.opengis.filter.identity.FeatureId;
@@ -110,7 +110,7 @@ public abstract class BaseFeatureKvpRequestReader extends WFSKvpRequestReader {
             if (typeNames == null) {
                 typeNames = (List) kvp.get("typeNames");
             }
-            List list = new ArrayList();
+            List<List<QName>> list = new ArrayList<>();
 
             for (Iterator itr = typeNames.iterator(); itr.hasNext(); ) {
                 Object obj = itr.next();
@@ -135,6 +135,7 @@ public abstract class BaseFeatureKvpRequestReader extends WFSKvpRequestReader {
 
             kvp.put("typeName", list);
             querySet(eObject, "typeName", list);
+            typeNames = list;
         } else {
             // check for featureId and infer typeName
             // in WFS 2.0 it is resourceId
@@ -234,19 +235,18 @@ public abstract class BaseFeatureKvpRequestReader extends WFSKvpRequestReader {
             Query q = it.next();
 
             List typeName = q.getTypeNames();
-            Filter filter = null;
-
+            Filter filter;
             if (typeName.size() > 1) {
                 // TODO: not sure what to do here, just going to and them up
                 List and = new ArrayList(typeName.size());
 
                 for (Iterator t = typeName.iterator(); t.hasNext(); ) {
-                    and.add(bboxFilter((QName) t.next(), bbox));
+                    and.add(bboxFilter(bbox));
                 }
 
                 filter = filterFactory.and(and);
             } else {
-                filter = bboxFilter((QName) typeName.get(0), bbox);
+                filter = bboxFilter(bbox);
             }
 
             filters.add(filter);
@@ -286,7 +286,7 @@ public abstract class BaseFeatureKvpRequestReader extends WFSKvpRequestReader {
      * @param kvp
      * @param keys
      */
-    private void ensureMutuallyExclusive(Map kvp, String[] keys, EObject request) {
+    protected void ensureMutuallyExclusive(Map kvp, String[] keys, EObject request) {
         for (int i = 0; i < keys.length; i++) {
             if (kvp.containsKey(keys[i])) {
                 for (int j = i + 1; j < keys.length; j++) {
@@ -349,7 +349,7 @@ public abstract class BaseFeatureKvpRequestReader extends WFSKvpRequestReader {
         return qName;
     }
 
-    BBOX bboxFilter(QName typeName, Envelope bbox) throws Exception {
+    protected BBOX bboxFilter(Envelope bbox) {
         // JD: use "" so that it applies to all geometries
         String name = "";
 

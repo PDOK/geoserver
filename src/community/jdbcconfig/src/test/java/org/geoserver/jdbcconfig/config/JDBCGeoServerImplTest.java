@@ -90,6 +90,7 @@ public class JDBCGeoServerImplTest extends GeoServerImplTest {
         assertEquals(global, geoServer.getGlobal());
     }
 
+    @Override
     @Test
     public void testModifyService() throws Exception {
         ServiceInfo service = geoServer.getFactory().createService();
@@ -106,9 +107,22 @@ public class JDBCGeoServerImplTest extends GeoServerImplTest {
         ServiceInfo s2 = geoServer.getServiceByName("foo", ServiceInfo.class);
         assertEquals("quux", s2.getMaintainer());
 
+        ServiceInfo s3 = geoServer.getService(ServiceInfo.class);
+        assertEquals("quux", s3.getMaintainer());
+
         geoServer.save(s1);
         s2 = geoServer.getServiceByName("foo", ServiceInfo.class);
         assertEquals("quam", s2.getMaintainer());
+
+        s3 = geoServer.getService(ServiceInfo.class);
+        assertEquals("quam", s3.getMaintainer());
+
+        geoServer.remove(s1);
+        s2 = geoServer.getServiceByName("foo", ServiceInfo.class);
+        assertNull(s2);
+
+        s3 = geoServer.getService(ServiceInfo.class);
+        assertNull(s3);
     }
 
     // Would have put this on GeoServerImplTest, but it depends on WMS and WFS InfoImpl classes

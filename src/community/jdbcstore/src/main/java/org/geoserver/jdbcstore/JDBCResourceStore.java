@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 import org.apache.commons.io.output.ProxyOutputStream;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.geoserver.jdbcstore.cache.ResourceCache;
 import org.geoserver.jdbcstore.internal.JDBCDirectoryStructure;
 import org.geoserver.jdbcstore.internal.JDBCResourceStoreProperties;
@@ -75,8 +75,9 @@ public class JDBCResourceStore implements ResourceStore {
      *
      * @param resourceWatcher
      */
-    public void setResourceNotificationDispatcher(ResourceNotificationDispatcher resourceWatcher) {
-        this.resourceNotificationDispatcher = resourceWatcher;
+    public void setResourceNotificationDispatcher(ResourceNotificationDispatcher resourceNotDis) {
+        this.resourceNotificationDispatcher = resourceNotDis;
+        dir.setResourceNotificationDispatcher(resourceNotDis);
     }
 
     public JDBCResourceStore(JDBCDirectoryStructure dir) {
@@ -85,6 +86,7 @@ public class JDBCResourceStore implements ResourceStore {
 
     public JDBCResourceStore(DataSource ds, JDBCResourceStoreProperties config) {
         this(new JDBCDirectoryStructure(ds, config));
+        dir.setResourceNotificationDispatcher(resourceNotificationDispatcher);
     }
 
     public JDBCResourceStore(
@@ -231,7 +233,8 @@ public class JDBCResourceStore implements ResourceStore {
 
         @Override
         public Resource parent() {
-            return new JDBCResource(entry.getParent());
+            JDBCDirectoryStructure.Entry parentEntry = entry.getParent();
+            return parentEntry == null ? null : new JDBCResource(parentEntry);
         }
 
         @Override

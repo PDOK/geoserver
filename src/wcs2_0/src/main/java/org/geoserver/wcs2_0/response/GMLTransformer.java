@@ -16,8 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.measure.unit.Unit;
-import javax.measure.unit.UnitFormat;
+import javax.measure.Unit;
 import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RectIter;
 import javax.media.jai.iterator.RectIterFactory;
@@ -57,6 +56,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.NamespaceSupport;
+import tec.uom.se.format.SimpleUnitFormat;
 
 /**
  * Internal Base {@link GMLTransformer} for DescribeCoverage and GMLCoverageEncoding
@@ -721,7 +721,7 @@ class GMLTransformer extends TransformerBase {
             if (crs instanceof GeographicCRS) {
                 return "Deg";
             }
-            return UnitFormat.getInstance().format(uom);
+            return SimpleUnitFormat.getInstance().format(uom);
         }
 
         /**
@@ -879,7 +879,7 @@ class GMLTransformer extends TransformerBase {
                         "code",
                         "code",
                         "",
-                        uom == null ? "W.m-2.Sr-1" : UnitFormat.getInstance().format(uom));
+                        uom == null ? "W.m-2.Sr-1" : SimpleUnitFormat.getInstance().format(uom));
                 start("swe:uom", uomAttr);
                 end("swe:uom");
 

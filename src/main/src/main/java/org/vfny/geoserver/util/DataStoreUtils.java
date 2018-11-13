@@ -31,6 +31,7 @@ import org.geotools.data.DataAccessFinder;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureSource;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.Feature;
 import org.opengis.feature.type.FeatureType;
 

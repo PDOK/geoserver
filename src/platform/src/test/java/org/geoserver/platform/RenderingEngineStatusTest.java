@@ -62,7 +62,9 @@ public class RenderingEngineStatusTest {
                 || provider.equals("OpenJDK")) {
             assertEquals(msg, statusMessage.get());
         } else {
-            LOGGER.log(Level.WARNING, "Unkown Java Provider");
+            LOGGER.log(Level.WARNING, "Unknown Java Provider");
         }
+
+        assertEquals(System.getProperty("java.version"), res.getVersion().orElse(null));
     }
 }

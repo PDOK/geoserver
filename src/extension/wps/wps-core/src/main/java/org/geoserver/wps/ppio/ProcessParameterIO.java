@@ -5,19 +5,17 @@
  */
 package org.geoserver.wps.ppio;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.data.Parameter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Envelope;
 import org.springframework.context.ApplicationContext;
 
 /**
@@ -110,9 +108,9 @@ public abstract class ProcessParameterIO {
         defaults.add(new ImagePPIO.JPEGPPIO());
 
         // envelopes
-        defaults.add(new BoundingBoxPPIO(Envelope.class));
         defaults.add(new BoundingBoxPPIO(ReferencedEnvelope.class));
         defaults.add(new BoundingBoxPPIO(org.opengis.geometry.Envelope.class));
+        defaults.add(new BoundingBoxPPIO(Envelope.class));
 
         // filters
         defaults.add(new FilterPPIO.Filter10());
@@ -139,29 +137,6 @@ public abstract class ProcessParameterIO {
                     return ppio;
                 }
             }
-        }
-
-        // if more than one sort by class hierarchy, pushing the most specific classes to the
-        // beginning
-        if (all.size() > 0) {
-            Collections.sort(
-                    all,
-                    new Comparator<ProcessParameterIO>() {
-                        public int compare(ProcessParameterIO o1, ProcessParameterIO o2) {
-                            Class c1 = o1.getType();
-                            Class c2 = o2.getType();
-
-                            if (c1.equals(c2)) {
-                                return 0;
-                            }
-
-                            if (c1.isAssignableFrom(c2)) {
-                                return 1;
-                            }
-
-                            return -1;
-                        }
-                    });
         }
 
         // fall back on the first found

@@ -4,8 +4,6 @@
  */
 package org.geoserver.opensearch.eo;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -14,6 +12,8 @@ import org.geoserver.opensearch.eo.store.OpenSearchAccess;
 import org.geotools.data.Parameter;
 import org.geotools.feature.NameImpl;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.PropertyName;
 import org.opengis.referencing.FactoryException;
@@ -188,21 +188,24 @@ public class OpenSearchParameters {
      * Returns the qualified name of a parameter, in case the parameter has a PARAM_PREFIX among its
      * metadata, or the simple parameter key other
      *
-     * @param p
+     * @param oseo Reference to the service configuration
+     * @param p the parameter
      * @return
      */
-    public static String getQualifiedParamName(Parameter p) {
-        return getQualifiedParamName(p, true);
+    public static String getQualifiedParamName(OSEOInfo oseo, Parameter p) {
+        return getQualifiedParamName(oseo, p, true);
     }
 
     /**
      * Returns the qualified name of a parameter, in case the parameter has a PARAM_PREFIX among its
      * metadata, or the simple parameter key other
      *
+     * @param oseo Reference to the service configuration
      * @param p
      * @return
      */
-    public static String getQualifiedParamName(Parameter p, boolean qualifyOpenSearchNative) {
+    public static String getQualifiedParamName(
+            OSEOInfo oseo, Parameter p, boolean qualifyOpenSearchNative) {
         String name = getParameterName(p);
 
         String prefix = getParameterPrefix(p);
@@ -213,7 +216,7 @@ public class OpenSearchParameters {
                 } else {
                     return name;
                 }
-            } else if (isProductClass(prefix)) {
+            } else if (ProductClass.isProductClass(oseo, prefix)) {
                 // all the EO parameters should be put in the EO namespace
                 return "eo:" + name;
             }
@@ -221,15 +224,6 @@ public class OpenSearchParameters {
         } else {
             return name;
         }
-    }
-
-    private static boolean isProductClass(String prefix) {
-        for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
-            if (pc.getPrefix().equals(prefix)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -260,10 +254,13 @@ public class OpenSearchParameters {
     /**
      * Builds the {@link PropertyName} for the given OpenSearch parameter
      *
+     * @param oseo Reference to the service configuration
+     * @param ff The filter factory used to build the filters
      * @param parameter
      * @return
      */
-    public static PropertyName getFilterPropertyFor(FilterFactory2 ff, Parameter<?> parameter) {
+    public static PropertyName getFilterPropertyFor(
+            OSEOInfo oseo, FilterFactory2 ff, Parameter<?> parameter) {
         String prefix = getParameterPrefix(parameter);
         String namespace = null;
 
@@ -271,11 +268,8 @@ public class OpenSearchParameters {
             namespace = OpenSearchAccess.EO_NAMESPACE;
         } else {
             // product parameter maybe?
-            for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
-                if (pc.getPrefix().equals(prefix)) {
-                    namespace = pc.getNamespace();
-                }
-            }
+            ProductClass pc = ProductClass.getProductClassFromPrefix(oseo, prefix);
+            namespace = pc.getNamespace();
         }
 
         // the name

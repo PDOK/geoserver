@@ -8,16 +8,20 @@ package org.geoserver.web.admin;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 import org.apache.wicket.Component;
 import org.apache.wicket.Page;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.geoserver.data.test.SystemTestData;
+import org.geoserver.platform.ModuleStatusImpl;
 import org.geoserver.web.GeoServerWicketTestSupport;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 public class StatusPageTest extends GeoServerWicketTestSupport {
     @Override
@@ -99,6 +103,27 @@ public class StatusPageTest extends GeoServerWicketTestSupport {
     }
 
     @Test
+    public void testModuleStatusPanelVersion() {
+        // Skip this test if we are excecuting from an IDE; the version is extracted from the
+        // compiled jar
+        Assume.assumeFalse(
+                ModuleStatusImpl.class
+                        .getResource("ModuleStatusImpl.class")
+                        .getProtocol()
+                        .equals("file"));
+
+        tester.assertRenderedPage(StatusPage.class);
+        tester.clickLink("tabs:tabs-container:tabs:1:link", true);
+        tester.assertContains("gs-main");
+        Component component =
+                tester.getComponentFromLastRenderedPage(
+                        "tabs:panel:listViewContainer:modules:1:version");
+        assertTrue(component instanceof Label);
+        assertNotNull(component.getDefaultModelObjectAsString());
+        assertNotEquals("", component.getDefaultModelObjectAsString().trim());
+    }
+
+    @Test
     public void testModuleStatusPopup() {
         tester.assertRenderedPage(StatusPage.class);
         tester.clickLink("tabs:tabs-container:tabs:1:link", true);
@@ -140,5 +165,16 @@ public class StatusPageTest extends GeoServerWicketTestSupport {
         public Panel createPanel(String panelId, Page containerPage) {
             return new ExtraTabPanel(panelId);
         }
+    }
+
+    @Test
+    public void redirectUnauthorizedToLogin() throws Exception {
+        logout();
+        MockHttpServletResponse response =
+                getAsServletResponse(
+                        "web/wicket/bookmarkable/org.geoserver.web.admin"
+                                + ".StatusPage?29-1.ILinkListener-tabs-tabs~container-tabs-1-link");
+        assertEquals(HttpStatus.FOUND.value(), response.getStatus());
+        assertEquals("./org.geoserver.web.GeoServerLoginPage", response.getHeader("Location"));
     }
 }

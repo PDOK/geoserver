@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.geotools.data.Parameter;
 import org.geotools.feature.NameImpl;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.type.Name;
 
 public abstract class ScriptProcessTest extends ScriptProcessTestSupport {

@@ -33,6 +33,8 @@ import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.referencing.CRS;
 import org.junit.Test;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.filter.Filter;
 import org.opengis.geometry.DirectPosition;

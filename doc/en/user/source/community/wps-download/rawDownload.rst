@@ -120,14 +120,16 @@ In case of geometry parameters, such as filter, ROI, the parameter's ``<wps:Inpu
     <wps:Input>
       <ows:Identifier>ROI</ows:Identifier>
       <wps:Data>
-        <wps:ComplexData mimeType="application/wkt"><![CDATA["POLYGON (( 500116.08576537756 499994.25579707103, 500116.08576537756 500110.1012210889, 500286.2657688021 500110.1012210889, 500286.2657688021 499994.25579707103, 500116.08576537756 499994.25579707103 ))]]></wps:ComplexData>
+        <wps:ComplexData mimeType="application/wkt"><![CDATA[POLYGON (( 500116.08576537756 499994.25579707103, 500116.08576537756 500110.1012210889, 500286.2657688021 500110.1012210889, 500286.2657688021 499994.25579707103, 500116.08576537756 499994.25579707103 ))]]></wps:ComplexData>
       </wps:Data>
     </wps:Input>
 
   
-Note the ``<wps:ComplexData>`` tag, the ``mimeType="application/wkt"`` parameter, and the ``![CDATA[]`` wrapping of the actual geometry data (in textual representation, according to the selected MIME type.
+Note the ``<wps:ComplexData>`` tag, the ``mimeType="application/wkt"`` parameter, and the ``![CDATA[]`` wrapping of the actual geometry data (in textual representation), according to the selected MIME type.
 
-In case the ROI is defined using a REFENENCE source, the input block is slightly different:
+Note that if the ROI parameter is defined as WKT, you will need to specify a RoiCRS input parameter as well.
+
+In case the ROI is defined using a REFERENCE source, the input block is slightly different:
 
  .. code-block:: xml
 
@@ -423,4 +425,4 @@ The supported writing parameters are:
    
 
  * ``quality`` : Compression quality for lossy compression (JPEG). Value is in the range [0 : 1] where 0 is for worst quality/higher compression and 1 is for best quality/lower compression
-
+ * ``writenodata`` : Supported value is one of true/false. Note that, by default, a `nodata TAG <https://www.awaresystems.be/imaging/tiff/tifftags/gdal_nodata.html>`_ is produced as part of the output GeoTIFF file as soon as a nodata is found in the GridCoverage2D to be written. Therefore, not specifying this parameter will result into writing nodata to preserve default behavior. Setting it to false will avoid writing that TAG.

@@ -40,6 +40,7 @@ import org.geotools.filter.identity.FeatureIdImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.Filter;

@@ -25,6 +25,7 @@ import org.geoserver.catalog.CatalogInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.LockingCatalogFacade;
 import org.geoserver.catalog.MapInfo;
 import org.geoserver.catalog.NamespaceInfo;
 import org.geoserver.catalog.ResourceInfo;
@@ -34,6 +35,7 @@ import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.catalog.impl.CatalogImpl;
 import org.geoserver.catalog.impl.ClassMappings;
 import org.geoserver.catalog.impl.ModificationProxy;
+import org.geoserver.catalog.impl.ProxyUtils;
 import org.geoserver.catalog.util.CloseableIterator;
 import org.geoserver.jdbcconfig.internal.ConfigDatabase;
 import org.geoserver.ows.util.OwsUtils;
@@ -733,7 +735,7 @@ public class JDBCCatalogFacade implements CatalogFacade {
     /** @see org.geoserver.catalog.CatalogFacade#syncTo(org.geoserver.catalog.CatalogFacade) */
     @Override
     public void syncTo(CatalogFacade other) {
-
+        other = ProxyUtils.unwrap(other, LockingCatalogFacade.class);
         for (WorkspaceInfo w : getWorkspaces()) {
             other.add(w);
         }

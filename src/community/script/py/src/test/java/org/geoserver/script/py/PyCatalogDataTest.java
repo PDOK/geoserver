@@ -30,6 +30,8 @@ import org.geotools.data.Transaction;
 import org.geotools.data.h2.H2DataStoreFactory;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.h2.tools.DeleteDbFiles;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.context.ApplicationContext;

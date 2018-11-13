@@ -176,7 +176,7 @@ public abstract class WFSGetFeatureOutputFormat extends WFSResponse {
     }
 
     /** Calls through to {@link #write(FeatureCollectionResponse, OutputStream, Operation)}. */
-    public final void write(Object value, OutputStream output, Operation operation)
+    public void write(Object value, OutputStream output, Operation operation)
             throws IOException, ServiceException {
         // for WFS 2.0 we changed the input object type to be the request object adapter, but there
         // is other code (like WMS GetFeatureInfo) that passes in the old objects, so do a check
@@ -215,6 +215,34 @@ public abstract class WFSGetFeatureOutputFormat extends WFSResponse {
         }
 
         return numDecimals;
+    }
+
+    /**
+     * Helper method that checks if coordinates measured values should be encoded for the provided
+     * feature collections. By default coordinates measures are not encoded.
+     *
+     * @param featureCollections features collections
+     * @param catalog GeoServer catalog
+     * @return TRUE if coordinates measures should be encoded, otherwise FALSE
+     */
+    protected boolean encodeMeasures(List featureCollections, Catalog catalog) {
+        boolean encodeMeasures = true;
+        for (int i = 0; i < featureCollections.size(); i++) {
+            // get the feature type of the current collection
+            FeatureCollection features = (FeatureCollection) featureCollections.get(i);
+            FeatureType featureType = features.getSchema();
+            ResourceInfo resourceInfo =
+                    catalog.getResourceByName(featureType.getName(), ResourceInfo.class);
+            // let's see if this is a feature type
+            if (resourceInfo instanceof FeatureTypeInfo) {
+                FeatureTypeInfo featureTypeInfo = (FeatureTypeInfo) resourceInfo;
+                if (!featureTypeInfo.getEncodeMeasures()) {
+                    // no measures should be encoded
+                    encodeMeasures = false;
+                }
+            }
+        }
+        return encodeMeasures;
     }
 
     /**

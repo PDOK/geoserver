@@ -28,6 +28,7 @@ import org.geotools.process.vector.ClipProcess;
 import org.geotools.referencing.CRS;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.filter.Filter;
 import org.opengis.filter.spatial.Intersects;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;

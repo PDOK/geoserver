@@ -26,6 +26,7 @@ import org.geotools.data.ServiceInfo;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.coverage.grid.Format;
 import org.opengis.coverage.grid.GridEnvelope;
 import org.opengis.feature.simple.SimpleFeature;

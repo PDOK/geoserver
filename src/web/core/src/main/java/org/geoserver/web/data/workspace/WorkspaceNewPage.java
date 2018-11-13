@@ -13,7 +13,6 @@ import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
-import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
@@ -101,7 +100,6 @@ public class WorkspaceNewPage extends GeoServerSecuredPage {
                         doReturn(WorkspacePage.class);
                     }
                 };
-        form.add(new FeedbackPanel("feedback"));
         form.add(cancelLink);
     }
     /**

@@ -16,6 +16,8 @@ import org.geotools.data.Query;
 import org.geotools.factory.GeoTools;
 import org.geotools.feature.FeatureCollection;
 import org.opengis.filter.Filter;
+import org.opengis.filter.sort.SortBy;
+import org.opengis.filter.sort.SortOrder;
 
 /** Base class for vector based dimension */
 public abstract class VectorDimension extends Dimension {
@@ -29,7 +31,7 @@ public abstract class VectorDimension extends Dimension {
      * Helper method used to get domain values from a vector type in the form of a feature
      * collection.
      */
-    protected FeatureCollection getDomain(Filter filter) {
+    protected FeatureCollection getDomain(Query query) {
         FeatureTypeInfo typeInfo = (FeatureTypeInfo) getResourceInfo();
         FeatureSource source;
         try {
@@ -40,10 +42,9 @@ public abstract class VectorDimension extends Dimension {
                             "Error getting feature source of vector '%s'.", resourceInfo.getName()),
                     exception);
         }
-        Query query =
-                new Query(
-                        source.getSchema().getName().getLocalPart(),
-                        filter == null ? Filter.INCLUDE : filter);
+        // fix type name
+        query = new Query(query);
+        query.setTypeName(source.getSchema().getName().getLocalPart());
         try {
             return source.getFeatures(query);
         } catch (Exception exception) {
@@ -57,7 +58,7 @@ public abstract class VectorDimension extends Dimension {
 
     @Override
     public List<Object> getDomainValues(Filter filter, boolean noDuplicates) {
-        FeatureCollection featureCollection = getDomain(filter);
+        FeatureCollection featureCollection = getDomain(new Query(null, filter));
         if (noDuplicates) {
             // no duplicate values should be included
             Set<Object> values =
@@ -72,10 +73,21 @@ public abstract class VectorDimension extends Dimension {
     }
 
     @Override
-    protected DomainSummary getDomainSummary(Filter filter, int expandLimit) {
-        FeatureCollection features = getDomain(filter);
+    protected DomainSummary getDomainSummary(Query query, int expandLimit) {
+        FeatureCollection features = getDomain(query);
         String attribute = dimensionInfo.getAttribute();
 
         return getDomainSummary(features, attribute, expandLimit);
+    }
+
+    @Override
+    protected DomainSummary getPagedDomainValues(
+            Query query, int maxNumberOfValues, SortOrder sortOrder) {
+        String attribute = dimensionInfo.getAttribute();
+        Query sortedQuery = new Query(query);
+        sortedQuery.setSortBy(new SortBy[] {FILTER_FACTORY.sort(attribute, sortOrder)});
+        FeatureCollection features = getDomain(sortedQuery);
+
+        return getPagedDomainValues(features, attribute, maxNumberOfValues);
     }
 }

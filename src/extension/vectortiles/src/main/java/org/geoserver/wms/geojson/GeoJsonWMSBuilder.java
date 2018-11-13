@@ -7,17 +7,13 @@ package org.geoserver.wms.geojson;
 import static org.geoserver.wms.geojson.GeoJsonBuilderFactory.MIME_TYPE;
 
 import com.google.common.base.Charsets;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.precision.CoordinatePrecisionReducerFilter;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Map;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
+import javax.measure.Unit;
 import org.apache.commons.io.output.DeferredFileOutputStream;
 import org.geoserver.wms.WMSMapContent;
 import org.geoserver.wms.map.RawMap;
@@ -25,7 +21,11 @@ import org.geoserver.wms.vector.DeferredFileOutputStreamWebMap;
 import org.geoserver.wms.vector.VectorTileBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.precision.CoordinatePrecisionReducerFilter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import si.uom.SI;
 
 public class GeoJsonWMSBuilder implements VectorTileBuilder {
 
@@ -53,7 +53,7 @@ public class GeoJsonWMSBuilder implements VectorTileBuilder {
         jsonWriter.setAxisOrder(CRS.getAxisOrder(mapCrs));
 
         Unit<?> unit = mapCrs.getCoordinateSystem().getAxis(0).getUnit();
-        Unit<?> standardUnit = unit.getStandardUnit();
+        Unit<?> standardUnit = unit.getSystemUnit();
 
         PrecisionModel pm = null;
         if (SI.RADIAN.equals(standardUnit)) {

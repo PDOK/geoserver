@@ -8,13 +8,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
-import javax.measure.unit.UnitFormat;
+import javax.measure.Unit;
+import javax.measure.format.UnitFormat;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
@@ -34,6 +31,9 @@ import org.geoserver.web.netcdf.NetCDFExtensionPanel;
 import org.geoserver.web.netcdf.NetCDFPanel;
 import org.geotools.coverage.io.netcdf.cf.Entry;
 import org.geotools.coverage.io.netcdf.cf.NetCDFCFParser;
+import si.uom.NonSI;
+import si.uom.SI;
+import tec.uom.se.format.SimpleUnitFormat;
 
 /**
  * Extension of the {@link NetCDFPanel} adding support for setting the Layer name and Unit of
@@ -81,7 +81,7 @@ public class NetCDFOutSettingsEditor extends NetCDFPanel<NetCDFLayerSettingsCont
                         }
 
                         List<String> unitNames = new ArrayList<String>();
-                        UnitFormat format = UnitFormat.getInstance(Locale.ENGLISH);
+                        UnitFormat format = SimpleUnitFormat.getInstance();
                         for (Unit<?> unit : UNITS) {
                             unitNames.add(format.format(unit));
                         }

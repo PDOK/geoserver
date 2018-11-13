@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
+import org.geoserver.GeoServerConfigurationLock;
 import org.geoserver.catalog.impl.CatalogImpl;
 import org.geoserver.config.util.XStreamPersisterFactory;
 import org.geoserver.config.util.XStreamPersisterInitializer;
@@ -239,6 +240,10 @@ public class JDBCConfigTestSupport {
 
         GeoServerExtensionsHelper.init(appContext);
         GeoServerExtensionsHelper.singleton(
+                "configurationLock",
+                new GeoServerConfigurationLock(),
+                GeoServerConfigurationLock.class);
+        GeoServerExtensionsHelper.singleton(
                 "JDBCConfigXStreamPersisterInitializer",
                 new JDBCConfigXStreamPersisterInitializer(),
                 XStreamPersisterInitializer.class);
@@ -392,7 +397,7 @@ public class JDBCConfigTestSupport {
                 };
 
         @Bean
-        public PlatformTransactionManager transactionManager() {
+        public PlatformTransactionManager jdbcConfigTransactionManager() {
             return new DataSourceTransactionManager(dataSource());
         }
 

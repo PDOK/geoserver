@@ -10,6 +10,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 import static org.junit.Assert.assertFalse;
 
+import javax.xml.namespace.QName;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.custommonkey.xmlunit.XpathEngine;
 import org.geoserver.data.test.MockData;
@@ -105,7 +106,7 @@ public class AggregateProcessTest extends WPSTestSupport {
                         + "        <wps:Body>\n"
                         + "          <wfs:GetFeature service=\"WFS\" version=\"1.0.0\" outputFormat=\"GML2\">\n"
                         + "            <wfs:Query typeName=\""
-                        + getLayerId(MockData.PRIMITIVEGEOFEATURE)
+                        + getWFSQueryLayerId(MockData.PRIMITIVEGEOFEATURE)
                         + "\"/>\n"
                         + "          </wfs:GetFeature>\n"
                         + "        </wps:Body>\n"
@@ -200,7 +201,7 @@ public class AggregateProcessTest extends WPSTestSupport {
                 + "        <wps:Body>\n"
                 + "          <wfs:GetFeature service=\"WFS\" version=\"1.0.0\" outputFormat=\"GML2\">\n"
                 + "            <wfs:Query typeName=\""
-                + getLayerId(MockData.PRIMITIVEGEOFEATURE)
+                + getWFSQueryLayerId(MockData.PRIMITIVEGEOFEATURE)
                 + "\"/>\n"
                 + "          </wfs:GetFeature>\n"
                 + "        </wps:Body>\n"
@@ -303,12 +304,44 @@ public class AggregateProcessTest extends WPSTestSupport {
         assertTrue(aggregationResults.size() == 5);
     }
 
-    private JSONObject executeJsonRequest(String wpsRequest) throws Exception {
-        MockHttpServletResponse response = postAsServletResponse("wps?", wpsRequest);
+    protected JSONObject executeJsonRequest(String wpsRequest) throws Exception {
+        MockHttpServletResponse response =
+                postAsServletResponse(getWorkspaceAndServicePath(), wpsRequest);
         String content = response.getContentAsString();
         assertFalse(content.isEmpty());
         Object jsonObject = new JSONParser().parse(content);
         assertNotNull(jsonObject);
         return (JSONObject) jsonObject;
+    }
+
+    protected String getWorkspaceAndServicePath() {
+        return "wps?";
+    }
+
+    protected String getWFSQueryLayerId(QName layerName) {
+        return getLayerId(layerName);
+    }
+
+    /**
+     * Extends AggregateProcessTest to support local workspace resolution cases
+     *
+     * @author Geosolutions
+     */
+    public static class LocalWSTest extends AggregateProcessTest {
+
+        @Override
+        protected String getWorkspaceAndServicePath() {
+            return MockData.PRIMITIVEGEOFEATURE.getPrefix() + "/wps?";
+        }
+
+        @Override
+        protected String root() {
+            return MockData.PRIMITIVEGEOFEATURE.getPrefix() + "/wps?";
+        }
+
+        @Override
+        protected String getWFSQueryLayerId(QName layerName) {
+            return layerName.getLocalPart();
+        }
     }
 }

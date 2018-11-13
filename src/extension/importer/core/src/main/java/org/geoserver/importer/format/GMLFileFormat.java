@@ -47,6 +47,7 @@ import org.geotools.util.Converters;
 import org.geotools.wfs.v1_0.WFSConfiguration;
 import org.geotools.xml.Configuration;
 import org.geotools.xml.PullParser;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;

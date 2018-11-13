@@ -101,6 +101,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.Feature;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.referencing.FactoryException;
@@ -298,7 +299,7 @@ public class RenderedImageMapOutputFormatTest extends WMSTestSupport {
                                 .getFeatureSource(null, null);
         Envelope env = fs.getBounds();
         SimpleFeatureCollection features = fs.getFeatures();
-        SimpleFeatureCollection delayedCollection = new DelayedFeatureCollection(features, 10);
+        SimpleFeatureCollection delayedCollection = new DelayedFeatureCollection(features, 50);
         map.addLayer(new FeatureLayer(delayedCollection, basicStyle));
 
         LOGGER.info(

@@ -14,6 +14,7 @@ import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.collection.DecoratingFeatureCollection;
 import org.geotools.feature.collection.DecoratingFeatureIterator;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.Feature;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;

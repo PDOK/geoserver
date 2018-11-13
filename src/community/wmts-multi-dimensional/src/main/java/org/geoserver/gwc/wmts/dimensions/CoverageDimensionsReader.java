@@ -7,9 +7,16 @@ package org.geoserver.gwc.wmts.dimensions;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.function.Function;
 import org.geoserver.catalog.CoverageInfo;
+import org.geoserver.catalog.StructuredCoverageViewReader;
+import org.geoserver.feature.RetypingFeatureCollection;
 import org.geoserver.gwc.wmts.Tuple;
 import org.geotools.coverage.grid.io.DimensionDescriptor;
 import org.geotools.coverage.grid.io.GranuleSource;
@@ -17,7 +24,10 @@ import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.StructuredGridCoverage2DReader;
 import org.geotools.data.Query;
 import org.geotools.data.memory.MemoryFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.collection.SortedSimpleFeatureCollection;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -25,13 +35,19 @@ import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory2;
+import org.opengis.filter.sort.SortBy;
+import org.opengis.filter.sort.SortOrder;
 
 /**
  * This class allow us to abstract from the type of different raster readers (structured and non
  * structured ones).
  */
 abstract class CoverageDimensionsReader {
+
+    private static final FilterFactory2 FILTER_FACTORY = CommonFactoryFinder.getFilterFactory2();
 
     public enum DataType {
         TEMPORAL,
@@ -43,12 +59,14 @@ abstract class CoverageDimensionsReader {
 
     abstract String getGeometryAttributeName();
 
-    abstract Tuple<String, FeatureCollection> getValues(
-            String dimensionName, Filter filter, DataType dataType);
+    public abstract Tuple<String, FeatureCollection> getValues(
+            String dimensionName, Query query, DataType dataType, SortOrder sortOrder);
 
     List<Object> readWithDuplicates(String dimensionName, Filter filter, DataType dataType) {
         // getting the feature collection with the values and the attribute name
-        Tuple<String, FeatureCollection> values = getValues(dimensionName, filter, dataType);
+        Query query = new Query(null, filter);
+        Tuple<String, FeatureCollection> values =
+                getValues(dimensionName, query, dataType, SortOrder.ASCENDING);
         if (values == null) {
             return Collections.emptyList();
         }
@@ -58,7 +76,9 @@ abstract class CoverageDimensionsReader {
 
     Set<Object> readWithoutDuplicates(String dimensionName, Filter filter, DataType dataType) {
         // getting the feature collection with the values and the attribute name
-        Tuple<String, FeatureCollection> values = getValues(dimensionName, filter, dataType);
+        Query query = new Query(null, filter);
+        Tuple<String, FeatureCollection> values =
+                getValues(dimensionName, query, dataType, SortOrder.ASCENDING);
         if (values == null) {
             return new TreeSet<>();
         }
@@ -144,7 +164,7 @@ abstract class CoverageDimensionsReader {
          */
         @Override
         public Tuple<String, FeatureCollection> getValues(
-                String dimensionName, Filter filter, DataType dataType) {
+                String dimensionName, Query query, DataType dataType, SortOrder sortOrder) {
             try {
                 // opening the source and descriptors for our raster
                 GranuleSource source = reader.getGranules(reader.getGridCoverageNames()[0], true);
@@ -153,15 +173,19 @@ abstract class CoverageDimensionsReader {
                 // let's find our dimension and query the data
                 for (DimensionDescriptor descriptor : descriptors) {
                     if (dimensionName.equalsIgnoreCase(descriptor.getName())) {
-                        // we found our dimension descriptor, creating a query
-                        Query query = new Query(source.getSchema().getName().getLocalPart());
-                        if (filter != null) {
-                            query.setFilter(filter);
-                        }
-                        // reading the features using the build query
-                        FeatureCollection featureCollection = source.getGranules(query);
                         // get the features attribute that contain our dimension values
                         String attributeName = descriptor.getStartAttribute();
+                        // we found our dimension descriptor, creating a query
+                        Query internalQuery = new Query(query);
+                        internalQuery.setTypeName(source.getSchema().getName().getLocalPart());
+                        internalQuery
+                                .getHints()
+                                .put(StructuredCoverageViewReader.QUERY_FIRST_BAND, true);
+                        internalQuery.setSortBy(
+                                new SortBy[] {FILTER_FACTORY.sort(attributeName, sortOrder)});
+                        // reading the features using the build query
+                        FeatureCollection featureCollection = source.getGranules(internalQuery);
+
                         return Tuple.tuple(attributeName, featureCollection);
                     }
                 }
@@ -180,6 +204,7 @@ abstract class CoverageDimensionsReader {
                 if (filter != null) {
                     query.setFilter(filter);
                 }
+                query.getHints().put(StructuredCoverageViewReader.QUERY_FIRST_BAND, true);
                 // reading the features using the build query
                 FeatureCollection featureCollection = source.getGranules(query);
                 return featureCollection.getBounds();
@@ -260,7 +285,7 @@ abstract class CoverageDimensionsReader {
 
         @Override
         public Tuple<String, FeatureCollection> getValues(
-                String dimensionName, Filter filter, DataType dataType) {
+                String dimensionName, Query query, DataType dataType, SortOrder sortOrder) {
             String metaDataValue;
             try {
                 metaDataValue = reader.getMetadataValue(dimensionName.toUpperCase() + "_DOMAIN");
@@ -278,18 +303,33 @@ abstract class CoverageDimensionsReader {
             dataType = normalizeDataType(rawValues[0], dataType);
             Tuple<SimpleFeatureType, Function<String, Object>> featureTypeAndConverter =
                     getFeatureTypeAndConverter(dimensionName, rawValues[0], dataType);
-            MemoryFeatureCollection featureCollection =
+            MemoryFeatureCollection memoryCollection =
                     new MemoryFeatureCollection(featureTypeAndConverter.first);
             for (int i = 0; i < rawValues.length; i++) {
                 SimpleFeatureBuilder featureBuilder =
                         new SimpleFeatureBuilder(featureTypeAndConverter.first);
                 featureBuilder.add(featureTypeAndConverter.second.apply(rawValues[i]));
                 SimpleFeature feature = featureBuilder.buildFeature(String.valueOf(i));
-                if (filter == null || filter.evaluate(feature)) {
-                    featureCollection.add(feature);
+                if (query.getFilter() == null || query.getFilter().evaluate(feature)) {
+                    memoryCollection.add(feature);
                 }
             }
-            return Tuple.tuple(getDimensionAttributesNames(dimensionName).first, featureCollection);
+            AttributeDescriptor dimensionAttribute =
+                    featureTypeAndConverter.first.getAttributeDescriptors().get(0);
+            SimpleFeatureCollection features =
+                    new SortedSimpleFeatureCollection(
+                            memoryCollection,
+                            new SortBy[] {
+                                FILTER_FACTORY.sort(dimensionAttribute.getLocalName(), sortOrder)
+                            });
+            if (query.getPropertyNames() != Query.ALL_NAMES) {
+                SimpleFeatureType target =
+                        SimpleFeatureTypeBuilder.retype(
+                                memoryCollection.getSchema(), query.getPropertyNames());
+                features = new RetypingFeatureCollection(memoryCollection, target);
+            }
+
+            return Tuple.tuple(getDimensionAttributesNames(dimensionName).first, features);
         }
 
         @Override

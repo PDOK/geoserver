@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.geoserver.catalog.AuthorityURLInfo;
+import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.LayerIdentifierInfo;
 import org.geoserver.config.impl.ServiceInfoImpl;
 
@@ -63,6 +64,8 @@ public class WMSInfoImpl extends ServiceInfoImpl implements WMSInfo {
     private String rootLayerTitle;
 
     private String rootLayerAbstract;
+
+    private Integer maxRequestedDimensionValues;
 
     public WMSInfoImpl() {
         authorityURLs = new ArrayList<AuthorityURLInfo>(2);
@@ -230,5 +233,15 @@ public class WMSInfoImpl extends ServiceInfoImpl implements WMSInfo {
     @Override
     public void setFeaturesReprojectionDisabled(boolean featuresReprojectionDisabled) {
         this.featuresReprojectionDisabled = featuresReprojectionDisabled;
+    }
+
+    public int getMaxRequestedDimensionValues() {
+        return maxRequestedDimensionValues == null
+                ? DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES
+                : maxRequestedDimensionValues;
+    }
+
+    public void setMaxRequestedDimensionValues(int maxRequestedDimensionValues) {
+        this.maxRequestedDimensionValues = maxRequestedDimensionValues;
     }
 }

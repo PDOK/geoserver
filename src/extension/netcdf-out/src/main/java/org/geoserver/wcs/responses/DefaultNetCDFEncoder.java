@@ -14,9 +14,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import javax.measure.converter.ConversionException;
-import javax.measure.converter.UnitConverter;
-import javax.measure.unit.Unit;
+import javax.measure.UnconvertibleException;
+import javax.measure.Unit;
+import javax.measure.UnitConverter;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 import org.geoserver.wcs.responses.NetCDFDimensionsManager.NetCDFDimensionMapping;
@@ -31,6 +31,7 @@ import org.geotools.coverage.GridSampleDimension;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
 import org.geotools.resources.coverage.CoverageUtilities;
+import tec.uom.se.format.SimpleUnitFormat;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.ma2.Index;
@@ -166,7 +167,7 @@ public class DefaultNetCDFEncoder extends AbstractNetCDFEncoder {
                                 .replace("m3", "m^3")
                                 .replace("s2", "s^2");
                 try {
-                    Unit outputUoM = Unit.valueOf(unitString);
+                    Unit outputUoM = SimpleUnitFormat.getInstance().parse(unitString);
                     if (outputUoM != null && !inputUoM.equals(outputUoM)) {
                         if (!inputUoM.isCompatible(outputUoM)) {
                             if (LOGGER.isLoggable(Level.WARNING)) {
@@ -181,7 +182,7 @@ public class DefaultNetCDFEncoder extends AbstractNetCDFEncoder {
                             unitConverter = inputUoM.getConverterTo(outputUoM);
                         }
                     }
-                } catch (ConversionException ce) {
+                } catch (UnconvertibleException ce) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
                         LOGGER.severe(
                                 "Unable to create a converter for the specified unit: "

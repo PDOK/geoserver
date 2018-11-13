@@ -26,6 +26,7 @@ import org.geotools.styling.Style;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 import org.geotools.util.Version;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.filter.Filter;
 import org.opengis.filter.sort.SortBy;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;

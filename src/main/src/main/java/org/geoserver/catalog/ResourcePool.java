@@ -38,13 +38,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.measure.converter.UnitConverter;
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-import javax.measure.unit.Unit;
+import javax.measure.Unit;
+import javax.measure.UnitConverter;
+import javax.measure.quantity.Length;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.SerializationUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.xsd.XSDElementDeclaration;
 import org.eclipse.xsd.XSDParticle;
 import org.eclipse.xsd.XSDSchema;
@@ -135,6 +134,8 @@ import org.springframework.context.ApplicationContext;
 import org.vfny.geoserver.global.GeoServerFeatureLocking;
 import org.vfny.geoserver.util.DataStoreUtils;
 import org.xml.sax.EntityResolver;
+import si.uom.NonSI;
+import si.uom.SI;
 
 /**
  * Provides access to resources such as datastores, coverage readers, and feature types.
@@ -1060,9 +1061,13 @@ public class ResourcePool {
             SimpleFeatureType sft = (SimpleFeatureType) ft;
             // create the feature type so it lines up with the "declared" schema
             SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();
+            tb.init(sft);
+            // Handle any aliases defined in info
             tb.setName(info.getName());
             tb.setNamespaceURI(info.getNamespace().getURI());
 
+            // Handle the attributes manually
+            tb.setAttributes((AttributeDescriptor[]) null);
             if (info.getAttributes() == null || info.getAttributes().isEmpty()) {
                 // take this to mean just load all native
                 for (PropertyDescriptor pd : ft.getDescriptors()) {
@@ -1413,10 +1418,10 @@ public class ResourcePool {
             // to the measure, we are going to use a very rough estimate (cylindrical earth model)
             // TODO: maybe look at the layer bbox and get a better estimate computed at the center
             // of the bbox
-            UnitConverter converter = mt.getUnit().getConverterTo(SI.METER);
+            UnitConverter converter = mt.getUnit().asType(Length.class).getConverterTo(SI.METRE);
             double tolMeters = converter.convert(mt.doubleValue());
             return tolMeters * OGC_METERS_TO_DEGREES;
-        } else if (targetUnit != null && targetUnit.isCompatible(SI.METER)) {
+        } else if (targetUnit != null && targetUnit.isCompatible(SI.METRE)) {
             // ok, we assume the target is not a geographic one, but we might
             // have to convert between meters and feet maybe
             UnitConverter converter = mt.getUnit().getConverterTo(targetUnit);

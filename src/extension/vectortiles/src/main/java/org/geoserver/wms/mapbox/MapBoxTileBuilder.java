@@ -16,6 +16,7 @@ import org.geoserver.wms.WMSMapContent;
 import org.geoserver.wms.map.RawMap;
 import org.geoserver.wms.vector.VectorTileBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Geometry;
 
 /** @author Niels Charlier */
 public class MapBoxTileBuilder implements VectorTileBuilder {

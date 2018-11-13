@@ -34,6 +34,8 @@ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.gml3.GML;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.io.WKTReader;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

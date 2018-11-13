@@ -76,14 +76,21 @@ public abstract class RabbitMQSender implements NotificationSender, Serializable
             }
         }
 
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri(this.uri);
-        String vHost =
-                (this.virtualHost != null && !this.virtualHost.isEmpty() ? this.virtualHost : "/");
-        factory.setVirtualHost(vHost);
-        factory.setSaslConfig(new CustomSaslConfig());
-        conn = factory.newConnection();
-        channel = conn.createChannel();
+        try {
+            ConnectionFactory factory = new ConnectionFactory();
+            factory.setUri(this.uri);
+            String vHost =
+                    (this.virtualHost != null && !this.virtualHost.isEmpty()
+                            ? this.virtualHost
+                            : "/");
+            factory.setVirtualHost(vHost);
+            factory.setSaslConfig(new CustomSaslConfig());
+            conn = factory.newConnection();
+            channel = conn.createChannel();
+        } catch (Exception e) {
+            LOGGER.log(
+                    Level.WARNING, "Error while trying to initialize RabbitMQ Sender Connecton", e);
+        }
     }
 
     public void close() throws Exception {

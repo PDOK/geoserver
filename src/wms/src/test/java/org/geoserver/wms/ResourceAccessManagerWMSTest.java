@@ -46,6 +46,8 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.text.cql2.CQL;
 import org.geotools.util.logging.Logging;
 import org.junit.Test;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import org.springframework.mock.web.MockHttpServletResponse;

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource.Type;
@@ -760,7 +760,9 @@ public class Resources {
 
         @Override
         public Resource parent() {
-            return new SerializableResourceWrapper(delegate.parent());
+            return delegate.parent() == null
+                    ? null
+                    : new SerializableResourceWrapper(delegate.parent());
         }
 
         @Override
@@ -809,6 +811,9 @@ public class Resources {
     public static Resource serializable(Resource resource) {
         if (resource instanceof Serializable) {
             return resource;
+        }
+        if (resource == null) {
+            return null;
         }
         return new SerializableResourceWrapper(resource);
     }

@@ -13,6 +13,7 @@ import org.geoserver.catalog.FeatureTypeInfo;
 import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 /**

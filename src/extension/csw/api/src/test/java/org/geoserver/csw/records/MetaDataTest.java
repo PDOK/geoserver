@@ -16,6 +16,7 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.Test;
+import org.locationtech.jts.geom.MultiPolygon;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.filter.FilterFactory2;

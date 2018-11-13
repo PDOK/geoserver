@@ -169,7 +169,7 @@ public class DataStoreFormat extends VectorFormat {
         }
         return dataStore;
     }
-    
+
     public FeatureSource getFeatureSource(ImportData data, ImportTask task) throws IOException {
         return getDataStore(data, task).getFeatureSource(task.getOriginalLayerName());
     }

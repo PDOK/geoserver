@@ -35,6 +35,8 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.filter.Filter;

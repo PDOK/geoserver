@@ -17,6 +17,7 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+import javax.activation.MimetypesFileTypeMap;
 import org.geoserver.platform.resource.Resource;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.styling.ResourceLocator;
@@ -35,6 +36,17 @@ import org.xml.sax.EntityResolver;
 public abstract class StyleHandler {
 
     protected static StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
+
+    protected static String[] IMAGE_EXTENSIONS = new String[] {"png", "jpg", "jpeg", "gif", "svg"};
+
+    protected static MimetypesFileTypeMap IMAGE_TYPES = new MimetypesFileTypeMap();
+
+    static {
+        IMAGE_TYPES.addMimeTypes("image/png png");
+        IMAGE_TYPES.addMimeTypes("image/jpg jpg jpeg");
+        IMAGE_TYPES.addMimeTypes("image/gif gif");
+        IMAGE_TYPES.addMimeTypes("image/svg+xml svg");
+    }
 
     String name;
     String format;
@@ -195,5 +207,13 @@ public abstract class StyleHandler {
         }
 
         throw new IllegalArgumentException("Unable to turn " + input + " into reader");
+    }
+
+    public String[] imageExtensions() {
+        return IMAGE_EXTENSIONS;
+    }
+
+    public String insertImageCode(String imageFileName) {
+        return imageFileName;
     }
 }

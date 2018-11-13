@@ -43,6 +43,7 @@ import org.geoserver.opensearch.eo.OpenSearchEoService;
 import org.geoserver.opensearch.eo.OpenSearchParameters;
 import org.geoserver.opensearch.eo.OpenSearchParameters.DateRelation;
 import org.geoserver.opensearch.eo.OpenSearchParameters.GeometryRelation;
+import org.geoserver.opensearch.eo.ProductClass;
 import org.geoserver.opensearch.eo.SearchRequest;
 import org.geoserver.opensearch.eo.store.OpenSearchAccess;
 import org.geoserver.ows.KvpRequestReader;
@@ -56,6 +57,11 @@ import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.ConverterFactory;
 import org.geotools.util.Converters;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.MultiValuedFilter.MatchAction;
@@ -107,6 +113,7 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         super(SearchRequest.class);
         this.oseo = service;
         this.gs = gs;
+        setRepeatedParameters(true);
     }
 
     @Override
@@ -532,7 +539,8 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         }
 
         // product parameter?
-        for (OpenSearchAccess.ProductClass pc : OpenSearchAccess.ProductClass.values()) {
+        OSEOInfo info = gs.getService(OSEOInfo.class);
+        for (ProductClass pc : info.getProductClasses()) {
             if (pc.getPrefix().equals(prefix)) {
                 return true;
             }
@@ -545,11 +553,32 @@ public class SearchRequestKvpReader extends KvpRequestReader {
         // support two types of filters, equality and range filters
         Class<?> type = parameter.getType();
 
-        PropertyName pn = OpenSearchParameters.getFilterPropertyFor(FF, parameter);
+        PropertyName pn =
+                OpenSearchParameters.getFilterPropertyFor(
+                        gs.getService(OSEOInfo.class), FF, parameter);
 
+        if (value instanceof String[]) {
+            String[] values = (String[]) value;
+            List<Filter> filters = new ArrayList<>();
+            for (String v : values) {
+                Filter filter = buildEOFilterForSingleValue(parameter, v, type, pn);
+                filters.add(filter);
+            }
+            return FF.and(filters);
+        } else {
+            return buildEOFilterForSingleValue(parameter, (String) value, type, pn);
+        }
+    }
+
+    private Filter buildEOFilterForSingleValue(
+            Parameter<?> parameter, String value, Class<?> type, PropertyName pn) {
         // for numeric and range parameters check the range syntax
-        String input = (String) value;
-        if (Date.class.isAssignableFrom(type) || Number.class.isAssignableFrom(type)) {
+        String input = value;
+        Class target = type;
+        if (type != null && type.isArray()) {
+            target = target.getComponentType();
+        }
+        if (Date.class.isAssignableFrom(target) || Number.class.isAssignableFrom(target)) {
             Matcher matcher;
             if ((matcher = FULL_RANGE_PATTERN.matcher(input)).matches()) {
                 String opening = matcher.group(1);
@@ -561,21 +590,27 @@ public class SearchRequestKvpReader extends KvpRequestReader {
                 Object v1 = parseParameter(parameter, s1);
                 Object v2 = parseParameter(parameter, s2);
 
-                Filter f1, f2;
-                Literal l1 = FF.literal(v1);
-                Literal l2 = FF.literal(v2);
-                if ("[".equals(opening)) {
-                    f1 = FF.greaterOrEqual(pn, l1);
+                if (type.isArray()) {
+                    // cannot express that the same element in the array must be
+                    // at the same time greater than and lower than, fall back on using
+                    // a between filter
+                    return FF.between(pn, FF.literal(v1), FF.literal(v2), MatchAction.ANY);
                 } else {
-                    f1 = FF.greater(pn, l1);
+                    Filter f1, f2;
+                    Literal l1 = FF.literal(v1);
+                    Literal l2 = FF.literal(v2);
+                    if ("[".equals(opening)) {
+                        f1 = FF.greaterOrEqual(pn, l1);
+                    } else {
+                        f1 = FF.greater(pn, l1);
+                    }
+                    if ("]".equals(closing)) {
+                        f2 = FF.lessOrEqual(pn, l2);
+                    } else {
+                        f2 = FF.less(pn, l2);
+                    }
+                    return FF.and(f1, f2);
                 }
-                if ("]".equals(closing)) {
-                    f2 = FF.lessOrEqual(pn, l2);
-                } else {
-                    f2 = FF.less(pn, l2);
-                }
-
-                return FF.and(f1, f2);
             } else if ((matcher = LEFT_RANGE_PATTERN.matcher(input)).matches()) {
                 String opening = matcher.group(1);
                 String s1 = matcher.group(2);
@@ -629,7 +664,12 @@ public class SearchRequestKvpReader extends KvpRequestReader {
     }
 
     private Object parseParameter(Parameter<?> parameter, String value) {
-        Object converted = Converters.convert(value, parameter.getType(), SAFE_CONVERSION_HINTS);
+        Class target = parameter.getType();
+        // for searches on array types
+        if (target != null && target.isArray()) {
+            target = target.getComponentType();
+        }
+        Object converted = Converters.convert(value, target, SAFE_CONVERSION_HINTS);
         if (converted == null) {
             throw new OWS20Exception(
                     "Value '"

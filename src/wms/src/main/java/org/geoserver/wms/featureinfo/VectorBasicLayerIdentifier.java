@@ -33,6 +33,8 @@ import org.geotools.renderer.lite.MetaBufferEstimator;
 import org.geotools.styling.Rule;
 import org.geotools.styling.Style;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.Feature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;

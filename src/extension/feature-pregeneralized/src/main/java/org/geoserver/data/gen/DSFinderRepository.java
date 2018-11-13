@@ -22,10 +22,10 @@ import org.opengis.feature.type.Name;
 /**
  * Implementation of {@link Repository}
  *
- * <p>The class makes a lookup in the GoeServer catalog.
+ * <p>The class makes a lookup in the GeoServer catalog.
  *
  * <p>If nothing is found, the class interprets the data source name as a file name or an URL for a
- * property file containing the ds creation parameters
+ * property file containing the data source creation parameters
  *
  * <p>For shape files ending with .shp or SHP, the shape file could be passed as name
  *

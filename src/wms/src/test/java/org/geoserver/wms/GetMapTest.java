@@ -19,6 +19,8 @@ import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.filter.function.EnvFunction;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Point;
 import org.opengis.filter.FilterFactory;
 
 /**

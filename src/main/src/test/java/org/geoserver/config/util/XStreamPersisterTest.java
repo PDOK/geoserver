@@ -17,8 +17,6 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.thoughtworks.xstream.XStream;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.measure.unit.SI;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -90,11 +87,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Text;
 import org.xml.sax.SAXException;
+import si.uom.SI;
 
 public class XStreamPersisterTest {
 
@@ -645,7 +645,7 @@ public class XStreamPersisterTest {
         ft.setAbstract("abstract");
         ft.setSRS("EPSG:4326");
         ft.setNativeCRS(CRS.decode("EPSG:4326"));
-        ft.setLinearizationTolerance(new Measure(10, SI.METER));
+        ft.setLinearizationTolerance(new Measure(10, SI.METRE));
 
         ByteArrayOutputStream out = out();
         persister.save(ft, out);
@@ -658,7 +658,7 @@ public class XStreamPersisterTest {
         assertEquals(ds, ft.getStore());
         assertEquals(ns, ft.getNamespace());
         assertEquals("EPSG:4326", ft.getSRS());
-        assertEquals(new Measure(10, SI.METER), ft.getLinearizationTolerance());
+        assertEquals(new Measure(10, SI.METRE), ft.getLinearizationTolerance());
         assertTrue(CRS.equalsIgnoreMetadata(CRS.decode("EPSG:4326"), ft.getNativeCRS()));
     }
 
@@ -1038,6 +1038,36 @@ public class XStreamPersisterTest {
         assertNotNull(vt2.getNativeSrid(geometryName));
     }
 
+    /* Test for GEOS-8929 */
+    @Test
+    public void testOldJTSBindingConversion() throws Exception {
+        Catalog catalog = new CatalogImpl();
+        CatalogFactory cFactory = catalog.getFactory();
+
+        WorkspaceInfo ws = cFactory.createWorkspace();
+        ws.setName("foo");
+        catalog.add(ws);
+
+        NamespaceInfo ns = cFactory.createNamespace();
+        ns.setPrefix("acme");
+        ns.setURI("http://acme.org");
+        catalog.add(ns);
+
+        DataStoreInfo ds = cFactory.createDataStore();
+        ds.setWorkspace(ws);
+        ds.setName("foo");
+        catalog.add(ds);
+
+        persister.setCatalog(catalog);
+        FeatureTypeInfo ft =
+                persister.load(
+                        getClass().getResourceAsStream("/org/geoserver/config/old_jts_binding.xml"),
+                        FeatureTypeInfo.class);
+        assertNotNull(ft);
+        assertEquals(
+                org.locationtech.jts.geom.LineString.class, ft.getAttributes().get(0).getBinding());
+    }
+
     @Test
     public void testCRSConverter() throws Exception {
         CoordinateReferenceSystem crs = CRS.decode("EPSG:4326");
@@ -1218,14 +1248,14 @@ public class XStreamPersisterTest {
         Map<String, String> types =
                 new HashMap<String, String>() {
                     {
-                        put("southernmost_point", "com.vividsolutions.jts.geom.Geometry");
-                        put("location_polygon", "com.vividsolutions.jts.geom.Geometry");
-                        put("centroid", "com.vividsolutions.jts.geom.Geometry");
-                        put("northernmost_point", "com.vividsolutions.jts.geom.Geometry");
-                        put("easternmost_point", "com.vividsolutions.jts.geom.Geometry");
-                        put("location", "com.vividsolutions.jts.geom.Geometry");
-                        put("location_original", "com.vividsolutions.jts.geom.Geometry");
-                        put("westernmost_point", "com.vividsolutions.jts.geom.Geometry");
+                        put("southernmost_point", "org.locationtech.jts.geom.Geometry");
+                        put("location_polygon", "org.locationtech.jts.geom.Geometry");
+                        put("centroid", "org.locationtech.jts.geom.Geometry");
+                        put("northernmost_point", "org.locationtech.jts.geom.Geometry");
+                        put("easternmost_point", "org.locationtech.jts.geom.Geometry");
+                        put("location", "org.locationtech.jts.geom.Geometry");
+                        put("location_original", "org.locationtech.jts.geom.Geometry");
+                        put("westernmost_point", "org.locationtech.jts.geom.Geometry");
                     }
                 };
 

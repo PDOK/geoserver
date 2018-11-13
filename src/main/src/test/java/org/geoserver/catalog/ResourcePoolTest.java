@@ -11,7 +11,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Point;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,7 +30,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.reflect.FieldUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.easymock.Capture;
 import org.easymock.classextension.EasyMock;
 import org.geoserver.catalog.util.ReaderUtils;
@@ -59,6 +58,7 @@ import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.data.wfs.WFSDataStoreFactory;
 import org.geotools.factory.GeoTools;
 import org.geotools.factory.Hints;
+import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.NameImpl;
 import org.geotools.feature.collection.DecoratingFeatureCollection;
 import org.geotools.feature.collection.SortedSimpleFeatureCollection;
@@ -78,10 +78,12 @@ import org.geotools.util.URLs;
 import org.geotools.util.Version;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.locationtech.jts.geom.Point;
 import org.opengis.coverage.grid.GridCoverageReader;
 import org.opengis.feature.Feature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
+import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.sort.SortBy;
 import org.opengis.style.ExternalGraphic;
@@ -774,5 +776,22 @@ public class ResourcePoolTest extends GeoServerSystemTestSupport {
             Object delegate = field.get(fc);
             fc = (SimpleFeatureCollection) delegate;
         }
+    }
+
+    @Test
+    public void testDefaultGeometry() throws IOException {
+        FeatureTypeInfo featureType =
+                getCatalog().getResourceByName("cdf", "Nulls", FeatureTypeInfo.class);
+        GeometryDescriptor schemaDefaultGeometry =
+                featureType.getFeatureType().getGeometryDescriptor();
+
+        FeatureIterator i = featureType.getFeatureSource(null, null).getFeatures().features();
+        GeometryDescriptor featureDefaultGeometry =
+                i.next().getDefaultGeometryProperty().getDescriptor();
+
+        assertNotNull(schemaDefaultGeometry);
+        assertNotNull(featureDefaultGeometry);
+        assertEquals("pointProperty", schemaDefaultGeometry.getLocalName());
+        assertEquals(schemaDefaultGeometry, featureDefaultGeometry);
     }
 }

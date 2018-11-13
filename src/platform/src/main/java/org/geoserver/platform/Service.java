@@ -35,6 +35,9 @@ public final class Service {
     /** List of operations provided by the service */
     final List<String> operations;
 
+    /** Optional capabilities backlink in case the service is not a traditional OWS service */
+    String customCapabilitiesLink;
+
     /**
      * Creates a new service descriptor.
      *
@@ -85,6 +88,14 @@ public final class Service {
 
     public List<String> getOperations() {
         return operations;
+    }
+
+    public String getCustomCapabilitiesLink() {
+        return customCapabilitiesLink;
+    }
+
+    public void setCustomCapabilitiesLink(String customCapabilitiesLink) {
+        this.customCapabilitiesLink = customCapabilitiesLink;
     }
 
     public boolean equals(Object obj) {

@@ -5,12 +5,11 @@
  */
 package org.geoserver.importer.transform;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.geoserver.importer.FeatureDataConverter;
 import org.geoserver.importer.ImportTask;
 import org.geoserver.importer.format.KMLFileFormat;
@@ -18,6 +17,7 @@ import org.geotools.data.DataStore;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.kml.Folder;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;

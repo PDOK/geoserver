@@ -3,7 +3,7 @@
 Automation with the administration REST API
 ============================================
 
-The OpenSearch module sports full automation REST API that can be used to
+The OpenSearch module supports full automation REST API that can be used to
 create collections, ingest products and eventually their granules.
 The full API is available at this URL:
 
@@ -130,7 +130,6 @@ expand while generating output. Here is a description of the variable, and where
        saved in the database)
      - A product sample image
 
-
 Usage of the API for search and integrated OGC service publishing
 -----------------------------------------------------------------
 
@@ -186,11 +185,11 @@ the collection structure:
     		2,
     		3,
     		4,
-        5,
-        6,
-        7,
-        8
-    	],
+    		5,
+    		6,
+    		7,
+    		8
+            ],
     	"browseBands": [
     		4,
     		3,

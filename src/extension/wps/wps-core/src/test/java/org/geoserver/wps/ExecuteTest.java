@@ -16,10 +16,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.io.WKTReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,6 +65,10 @@ import org.geotools.xml.PreventLocalEntityResolver;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.w3c.dom.Document;
@@ -654,6 +654,52 @@ public class ExecuteTest extends WPSTestSupport {
     }
 
     @Test
+    public void testFeatureCollectionFileReferenceError() throws Exception {
+        URL collectionURL = getClass().getResource("my-secret.xml");
+        String xml =
+                "<wps:Execute service='WPS' version='1.0.0' xmlns:wps='http://www.opengis.net/wps/1.0.0' xmlns:xlink=\"http://www.w3.org/1999/xlink\" "
+                        + "xmlns:ows='http://www.opengis.net/ows/1.1'>"
+                        + "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>"
+                        + "<wps:DataInputs>"
+                        + "<wps:Input>"
+                        + "<ows:Identifier>features</ows:Identifier>"
+                        + "  <wps:Reference mimeType=\"text/xml; subtype=wfs-collection/1.1\" "
+                        + "xlink:href=\""
+                        + collectionURL.toExternalForm()
+                        + "\"/>\n"
+                        + "</wps:Input>"
+                        + "<wps:Input>"
+                        + "<ows:Identifier>distance</ows:Identifier>"
+                        + "<wps:Data>"
+                        + "<wps:LiteralData>10</wps:LiteralData>"
+                        + "</wps:Data>"
+                        + "</wps:Input>"
+                        + "</wps:DataInputs>"
+                        + "<wps:ResponseForm>"
+                        + "<wps:ResponseDocument storeExecuteResponse='false'>"
+                        + "<wps:Output>"
+                        + "<ows:Identifier>result</ows:Identifier>"
+                        + "</wps:Output>"
+                        + "</wps:ResponseDocument>"
+                        + "</wps:ResponseForm>"
+                        + "</wps:Execute>";
+
+        // System.out.println(postAsServletResponse("wps", xml).getOutputStreamContent());
+
+        Document d = postAsDOM("wps", xml);
+        // print(d);
+        checkValidationErrors(d);
+
+        assertEquals("wps:ExecuteResponse", d.getDocumentElement().getNodeName());
+
+        assertXpathExists("/wps:ExecuteResponse/wps:Status/wps:ProcessFailed", d);
+        assertXpathEvaluatesTo(
+                "Failed to retrieve value for input features",
+                "/wps:ExecuteResponse/wps:Status/wps:ProcessFailed/ows:ExceptionReport/ows:Exception/ows:ExceptionText",
+                d);
+    }
+
+    @Test
     public void testFeatureCollectionFileReferenceKVP() throws Exception {
         URL collectionURL = getClass().getResource("states-FeatureCollection.xml");
         String request =
@@ -675,6 +721,32 @@ public class ExecuteTest extends WPSTestSupport {
         assertXpathExists("/wps:ExecuteResponse/wps:Status/wps:ProcessSucceeded", d);
         assertXpathExists(
                 "/wps:ExecuteResponse/wps:ProcessOutputs/wps:Output/wps:Data/wps:ComplexData/wfs:FeatureCollection",
+                d);
+    }
+
+    @Test
+    public void testFeatureCollectionFileReferenceKVPError() throws Exception {
+        URL collectionURL = getClass().getResource("my-secret.xml");
+        String request =
+                "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:BufferFeatureCollection"
+                        + "&DataInputs="
+                        + urlEncode(
+                                "features=@mimetype=application/wfs-collection-1.1@xlink:href="
+                                        + collectionURL.toExternalForm()
+                                        + ";distance=10")
+                        + "&ResponseDocument="
+                        + urlEncode("result");
+
+        Document d = getAsDOM(request);
+        // print(d);
+        checkValidationErrors(d);
+
+        assertEquals("wps:ExecuteResponse", d.getDocumentElement().getNodeName());
+
+        assertXpathExists("/wps:ExecuteResponse/wps:Status/wps:ProcessFailed", d);
+        assertXpathEvaluatesTo(
+                "Failed to retrieve value for input features",
+                "/wps:ExecuteResponse/wps:Status/wps:ProcessFailed/ows:ExceptionReport/ows:Exception/ows:ExceptionText",
                 d);
     }
 

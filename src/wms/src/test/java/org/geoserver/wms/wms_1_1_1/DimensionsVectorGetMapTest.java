@@ -22,11 +22,14 @@ import org.custommonkey.xmlunit.XMLUnit;
 import org.custommonkey.xmlunit.XpathEngine;
 import org.geoserver.catalog.DimensionDefaultValueSetting;
 import org.geoserver.catalog.DimensionDefaultValueSetting.Strategy;
+import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.DimensionPresentation;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.config.GeoServer;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.wms.WMSDimensionsTestSupport;
+import org.geoserver.wms.WMSInfo;
 import org.geoserver.wms.map.GIFMapResponse;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -203,6 +206,74 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
     }
 
     @Test
+    public void testElevationIntervalResolutionTooManyDefault() throws Exception {
+        // adding a extra elevation that is simply not there, should not break
+        setupVectorDimension(
+                ResourceInfo.ELEVATION,
+                "elevation",
+                DimensionPresentation.LIST,
+                null,
+                UNITS,
+                UNIT_SYMBOL);
+        MockHttpServletResponse response =
+                getAsServletResponse(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&elevation=0.0/4.0/0.01");
+
+        assertEquals("application/vnd.ogc.se_xml", response.getContentType());
+        Document dom = dom(response, true);
+        // print(dom);
+        String text =
+                checkLegacyException(dom, ServiceException.INVALID_PARAMETER_VALUE, "elevation");
+        assertThat(
+                text,
+                containsString(
+                        "More than "
+                                + DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES
+                                + " elevations"));
+    }
+
+    @Test
+    public void testElevationIntervalResolutionTooManyCustom() throws Exception {
+        GeoServer gs = getGeoServer();
+        WMSInfo wms = gs.getService(WMSInfo.class);
+        wms.setMaxRequestedDimensionValues(2);
+        gs.save(wms);
+        try {
+            // adding a extra elevation that is simply not there, should not break
+            setupVectorDimension(
+                    ResourceInfo.ELEVATION,
+                    "elevation",
+                    DimensionPresentation.LIST,
+                    null,
+                    UNITS,
+                    UNIT_SYMBOL);
+            MockHttpServletResponse response =
+                    getAsServletResponse(
+                            "wms?service=WMS&version=1.1.1&request=GetMap"
+                                    + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                    + "&layers="
+                                    + getLayerId(V_TIME_ELEVATION)
+                                    + "&elevation=0.0/4.0/0.01");
+
+            assertEquals("application/vnd.ogc.se_xml", response.getContentType());
+            Document dom = dom(response, true);
+            // print(dom);
+            String text =
+                    checkLegacyException(
+                            dom, ServiceException.INVALID_PARAMETER_VALUE, "elevation");
+            assertThat(text, containsString("More than 2 elevations"));
+        } finally {
+            wms.setMaxRequestedDimensionValues(
+                    DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES);
+            gs.save(wms);
+        }
+    }
+
+    @Test
     public void testTimeDefault() throws Exception {
         setupVectorDimension(
                 ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
@@ -241,6 +312,7 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
         assertPixel(image, 60, 30, Color.BLACK);
     }
 
+    @Test
     public void testTimeCurrentForEmptyLayer() throws Exception {
         setupVectorDimension(
                 "TimeElevationEmpty",
@@ -287,9 +359,165 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
     }
 
     @Test
+    public void testTimeSingleNoNearestClose() throws Exception {
+        // check it works the same if we enable nearest match
+        setupVectorDimension(
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
+        BufferedImage image =
+                getAsImage(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&time=2011-05-02T01:00:00Z",
+                        "image/png");
+
+        // not an exact match, should not get anything
+        assertPixel(image, 20, 10, Color.WHITE);
+        assertPixel(image, 60, 10, Color.WHITE);
+        assertPixel(image, 20, 30, Color.WHITE);
+        assertPixel(image, 60, 30, Color.WHITE);
+    }
+
+    @Test
+    public void testTimeSingleNearestClose() throws Exception {
+        // check it works the same if we enable nearest match
+        setupVectorDimension(
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true);
+        BufferedImage image =
+                getAsImage(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&time=2011-05-02T01:00:00Z",
+                        "image/png");
+        assertWarningCount(1);
+        assertNearestTimeWarning(getLayerId(V_TIME_ELEVATION), "2011-05-02T00:00:00.000Z");
+
+        // we should get only the second (nearest match)
+        assertPixel(image, 20, 10, Color.WHITE);
+        assertPixel(image, 60, 10, Color.BLACK);
+        assertPixel(image, 20, 30, Color.WHITE);
+        assertPixel(image, 60, 30, Color.WHITE);
+    }
+
+    @Test
+    public void testTimeSingleNearestAcceptableRange() throws Exception {
+        // check it works the same if we enable nearest match
+        setupVectorDimension(
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
+
+        String baseURL =
+                "wms?service=WMS&version=1.1.1&request=GetMap"
+                        + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                        + "&layers="
+                        + getLayerId(V_TIME_ELEVATION);
+
+        // big enough range
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true, "P1D");
+        getAsImage(baseURL + "&time=2011-05-02T01:00:00Z", "image/png");
+        assertWarningCount(1);
+        assertNearestTimeWarning(getLayerId(V_TIME_ELEVATION), "2011-05-02T00:00:00.000Z");
+
+        // too small range, won't match
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true, "PT1M");
+        getAsImage(baseURL + "&time=2011-05-02T01:00:00Z", "image/png");
+        assertWarningCount(1);
+        assertNoNearestWarning(getLayerId(V_TIME_ELEVATION), ResourceInfo.TIME);
+
+        // big enough towards future
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true, "PT0M/P1D");
+        getAsImage(baseURL + "&time=2011-05-02T01:00:00Z", "image/png");
+        assertWarningCount(1);
+        assertNearestTimeWarning(getLayerId(V_TIME_ELEVATION), "2011-05-03T00:00:00.000Z");
+    }
+
+    @Test
+    public void testTimeSingleNearestAfter() throws Exception {
+        // check it works the same if we enable nearest match
+        setupVectorDimension(
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true);
+        BufferedImage image =
+                getAsImage(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&time=2013-05-02",
+                        "image/png");
+
+        assertWarningCount(1);
+        assertNearestTimeWarning(getLayerId(V_TIME_ELEVATION), "2011-05-04T00:00:00.000Z");
+
+        // we should get only the last
+        assertPixel(image, 20, 10, Color.WHITE);
+        assertPixel(image, 60, 10, Color.WHITE);
+        assertPixel(image, 20, 30, Color.WHITE);
+        assertPixel(image, 60, 30, Color.BLACK);
+    }
+
+    @Test
+    public void testTimeSingleNearestBefore() throws Exception {
+        // check it works the same if we enable nearest match
+        setupVectorDimension(
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
+        setupNearestMatch(V_TIME_ELEVATION, ResourceInfo.TIME, true);
+        BufferedImage image =
+                getAsImage(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&time=1990-05-02",
+                        "image/png");
+
+        assertWarningCount(1);
+        assertNearestTimeWarning(getLayerId(V_TIME_ELEVATION), "2011-05-01T00:00:00.000Z");
+
+        // we should get only the first
+        assertPixel(image, 20, 10, Color.BLACK);
+        assertPixel(image, 60, 10, Color.WHITE);
+        assertPixel(image, 20, 30, Color.WHITE);
+        assertPixel(image, 60, 30, Color.WHITE);
+    }
+
+    @Test
     public void testTimeListMulti() throws Exception {
         setupVectorDimension(
-                ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
         BufferedImage image =
                 getAsImage(
                         "wms?service=WMS&version=1.1.1&request=GetMap"
@@ -310,7 +538,12 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
     public void testTimeListExtra() throws Exception {
         // adding a extra elevation that is simply not there, should not break
         setupVectorDimension(
-                ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
+                ResourceInfo.TIME,
+                "time",
+                DimensionPresentation.LIST,
+                null,
+                ResourceInfo.TIME_UNIT,
+                null);
         BufferedImage image =
                 getAsImage(
                         "wms?service=WMS&version=1.1.1&request=GetMap"
@@ -479,7 +712,6 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
 
     @Test
     public void testTimeIntervalResolution() throws Exception {
-        // adding a extra elevation that is simply not there, should not break
         setupVectorDimension(
                 ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
         BufferedImage image =
@@ -496,6 +728,60 @@ public class DimensionsVectorGetMapTest extends WMSDimensionsTestSupport {
         assertPixel(image, 60, 10, Color.WHITE);
         assertPixel(image, 20, 30, Color.BLACK);
         assertPixel(image, 60, 30, Color.WHITE);
+    }
+
+    @Test
+    public void testTimeIntervalResolutionTooManyDefault() throws Exception {
+        setupVectorDimension(
+                ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
+        MockHttpServletResponse response =
+                getAsServletResponse(
+                        "wms?service=WMS&version=1.1.1&request=GetMap"
+                                + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                + "&layers="
+                                + getLayerId(V_TIME_ELEVATION)
+                                + "&time=2011-05-01/2011-06-01/PT1H");
+        assertEquals("application/vnd.ogc.se_xml", response.getContentType());
+        Document dom = dom(response, true);
+        // print(dom);
+        String text = checkLegacyException(dom, ServiceException.INVALID_PARAMETER_VALUE, "time");
+        assertThat(
+                text,
+                containsString(
+                        "More than "
+                                + DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES
+                                + " times"));
+    }
+
+    @Test
+    public void testTimeIntervalResolutionTooManyCustom() throws Exception {
+        GeoServer gs = getGeoServer();
+        WMSInfo wms = gs.getService(WMSInfo.class);
+        wms.setMaxRequestedDimensionValues(2);
+        gs.save(wms);
+        try {
+            setupVectorDimension(
+                    ResourceInfo.TIME, "time", DimensionPresentation.LIST, null, null, null);
+            MockHttpServletResponse response =
+                    getAsServletResponse(
+                            "wms?service=WMS&version=1.1.1&request=GetMap"
+                                    + "&bbox=-180,-90,180,90&styles=&Format=image/png&width=80&height=40&srs=EPSG:4326"
+                                    + "&layers="
+                                    + getLayerId(V_TIME_ELEVATION)
+                                    + "&time=2011-05-01/2011-05-04/P1D",
+                            "image/png");
+
+            assertEquals("application/vnd.ogc.se_xml", response.getContentType());
+            Document dom = dom(response, true);
+            // print(dom);
+            String text =
+                    checkLegacyException(dom, ServiceException.INVALID_PARAMETER_VALUE, "time");
+            assertThat(text, containsString("More than 2 times"));
+        } finally {
+            wms.setMaxRequestedDimensionValues(
+                    DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES);
+            gs.save(wms);
+        }
     }
 
     @Test

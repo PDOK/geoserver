@@ -72,6 +72,7 @@ import org.geotools.util.Version;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;

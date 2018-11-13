@@ -45,6 +45,7 @@ import org.geoserver.catalog.util.ReaderDimensionsAccessor;
 import org.geoserver.config.GeoServer;
 import org.geoserver.data.util.CoverageUtils;
 import org.geoserver.ows.util.RequestUtils;
+import org.geoserver.platform.ServiceException;
 import org.geoserver.wcs.response.Wcs10CapsTransformer;
 import org.geoserver.wcs.response.Wcs10DescribeCoverageTransformer;
 import org.geoserver.wcs.responses.CoverageResponseDelegate;
@@ -359,6 +360,16 @@ public class DefaultWebCoverageService100 implements WebCoverageService100 {
                 if (timeValues.isEmpty()) {
                     Date date = dimensions.getMaxTime();
                     timeValues.add(date);
+                }
+                WCSInfo info = geoServer.getService(WCSInfo.class);
+                int maxValues = info.getMaxRequestedDimensionValues();
+                if (maxValues > 0 && maxValues < timeValues.size()) {
+                    throw new ServiceException(
+                            "More than "
+                                    + maxValues
+                                    + " times specified in the request, bailing out.",
+                            ServiceException.INVALID_PARAMETER_VALUE,
+                            "time");
                 }
 
                 readParameters =

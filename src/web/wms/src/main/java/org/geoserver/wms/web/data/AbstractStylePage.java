@@ -8,42 +8,82 @@ package org.geoserver.wms.web.data;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.wicket.Component;
 import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.attributes.AjaxRequestAttributes;
+import org.apache.wicket.ajax.form.OnChangeAjaxBehavior;
 import org.apache.wicket.ajax.markup.html.form.AjaxSubmitLink;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.tabs.AjaxTabbedPanel;
 import org.apache.wicket.extensions.markup.html.tabs.AbstractTab;
 import org.apache.wicket.extensions.markup.html.tabs.ITab;
 import org.apache.wicket.extensions.markup.html.tabs.PanelCachingTab;
+import org.apache.wicket.markup.head.CssReferenceHeaderItem;
+import org.apache.wicket.markup.head.IHeaderResponse;
+import org.apache.wicket.markup.head.JavaScriptHeaderItem;
+import org.apache.wicket.markup.head.OnDomReadyHeaderItem;
 import org.apache.wicket.markup.html.WebMarkupContainer;
+import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.FormComponent;
+import org.apache.wicket.markup.html.form.TextField;
+import org.apache.wicket.markup.html.form.upload.FileUpload;
+import org.apache.wicket.markup.html.form.upload.FileUploadField;
+import org.apache.wicket.markup.html.form.validation.AbstractFormValidator;
+import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.link.Link;
+import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.request.IRequestParameters;
 import org.apache.wicket.request.mapper.parameter.PageParameters;
-import org.geoserver.catalog.*;
+import org.apache.wicket.request.resource.PackageResourceReference;
+import org.apache.wicket.request.resource.ResourceReference;
+import org.apache.wicket.resource.FileSystemResourceReference;
+import org.apache.wicket.util.io.IOUtils;
+import org.apache.wicket.util.string.StringValue;
+import org.apache.wicket.util.string.Strings;
+import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.DataStoreInfo;
+import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.ResourcePool;
+import org.geoserver.catalog.SLDNamedLayerValidator;
+import org.geoserver.catalog.StyleHandler;
+import org.geoserver.catalog.StyleInfo;
+import org.geoserver.catalog.Styles;
+import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.catalog.impl.LayerInfoImpl;
 import org.geoserver.config.GeoServer;
 import org.geoserver.config.GeoServerDataDirectory;
 import org.geoserver.platform.resource.Resource;
+import org.geoserver.platform.resource.Resources;
 import org.geoserver.web.ComponentAuthorizer;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.wicket.CodeMirrorEditor;
 import org.geoserver.web.wicket.GeoServerAjaxFormLink;
+import org.geoserver.web.wicket.GeoServerDialog;
 import org.geoserver.web.wicket.ParamResourceModel;
 import org.geotools.styling.StyledLayerDescriptor;
 import org.xml.sax.SAXParseException;
@@ -58,6 +98,192 @@ import org.xml.sax.SAXParseException;
  */
 @SuppressWarnings("serial")
 public abstract class AbstractStylePage extends GeoServerSecuredPage {
+
+    static final Pattern HEX_COLOR = Pattern.compile("^#(?:[0-9a-fA-F]{3}){1,2}$");
+
+    static class ChooseColorPanel extends Panel {
+
+        final TextField<String> chooser;
+        final String initialColor;
+
+        public ChooseColorPanel(String id, String initialColor) {
+            super(id);
+            chooser = new TextField<>("chooser", new Model<>());
+            chooser.setOutputMarkupId(true);
+            this.initialColor = initialColor;
+            add(chooser);
+        }
+
+        @Override
+        public void renderHead(IHeaderResponse response) {
+            super.renderHead(response);
+            response.render(
+                    CssReferenceHeaderItem.forReference(
+                            new PackageResourceReference(
+                                    AbstractStylePage.class, "js/spectrum/spectrum.css")));
+            response.render(
+                    JavaScriptHeaderItem.forReference(
+                            new PackageResourceReference(
+                                    AbstractStylePage.class, "js/spectrum/spectrum.js")));
+            String enableSpectrum =
+                    "$(\"#chooser\").spectrum({\n"
+                            + "    color: \""
+                            + initialColor
+                            + "\",\n"
+                            + "    showInput: true,\n"
+                            + "    flat: true,\n"
+                            + "    className: \"full-spectrum\",\n"
+                            + "    showInitial: true,\n"
+                            + "    showPalette: true,\n"
+                            + "    showSelectionPalette: true,\n"
+                            + "    showButtons: false,\n"
+                            + "    preferredFormat: \"hex\",\n"
+                            + "    clickoutFiresChange: true,\n"
+                            + "    palette: [\n"
+                            + "        [\"#000\",\"#444\",\"#666\",\"#999\",\"#ccc\",\"#eee\",\"#f3f3f3\",\"#fff\"],\n"
+                            + "        [\"#f00\",\"#f90\",\"#ff0\",\"#0f0\",\"#0ff\",\"#00f\",\"#90f\",\"#f0f\"],\n"
+                            + "        [\"#f4cccc\",\"#fce5cd\",\"#fff2cc\",\"#d9ead3\",\"#d0e0e3\",\"#cfe2f3\",\"#d9d2e9\",\"#ead1dc\"],\n"
+                            + "        [\"#ea9999\",\"#f9cb9c\",\"#ffe599\",\"#b6d7a8\",\"#a2c4c9\",\"#9fc5e8\",\"#b4a7d6\",\"#d5a6bd\"],\n"
+                            + "        [\"#e06666\",\"#f6b26b\",\"#ffd966\",\"#93c47d\",\"#76a5af\",\"#6fa8dc\",\"#8e7cc3\",\"#c27ba0\"],\n"
+                            + "        [\"#c00\",\"#e69138\",\"#f1c232\",\"#6aa84f\",\"#45818e\",\"#3d85c6\",\"#674ea7\",\"#a64d79\"],\n"
+                            + "        [\"#900\",\"#b45f06\",\"#bf9000\",\"#38761d\",\"#134f5c\",\"#0b5394\",\"#351c75\",\"#741b47\"],\n"
+                            + "        [\"#600\",\"#783f04\",\"#7f6000\",\"#274e13\",\"#0c343d\",\"#073763\",\"#20124d\",\"#4c1130\"]],\n"
+                            + "    move: function (color) {\n"
+                            + "          $(\"#chooser\").spectrum(\"set\", color);\n"
+                            + "    }\n"
+                            + "});";
+            response.render(new OnDomReadyHeaderItem(enableSpectrum));
+        }
+    }
+
+    class ChooseImagePanel extends Panel {
+        private WorkspaceInfo ws;
+
+        public ChooseImagePanel(String id, WorkspaceInfo ws) {
+            super(id);
+            this.ws = ws;
+        }
+
+        @Override
+        protected void onInitialize() {
+            super.onInitialize();
+
+            add(new FeedbackPanel("feedback").setOutputMarkupId(true));
+
+            SortedSet<String> imageSet = new TreeSet<String>();
+            GeoServerDataDirectory dd =
+                    GeoServerApplication.get().getBeanOfType(GeoServerDataDirectory.class);
+            for (Resource r : dd.getStyles(ws).list()) {
+                if (ArrayUtils.contains(
+                        styleHandler().imageExtensions(),
+                        FilenameUtils.getExtension(r.name()).toLowerCase())) {
+                    imageSet.add(r.name());
+                }
+            }
+
+            FileUploadField upload =
+                    new FileUploadField("upload", new Model<ArrayList<FileUpload>>());
+
+            Model<String> imageModel = new Model<String>();
+            DropDownChoice<String> image =
+                    new DropDownChoice<String>(
+                            "image", imageModel, new ArrayList<String>(imageSet));
+
+            URI stylesDir = dd.getStyles(ws).dir().toURI();
+
+            Image display =
+                    new Image(
+                            "display",
+                            new IModel<ResourceReference>() {
+
+                                @Override
+                                public ResourceReference getObject() {
+                                    if (imageModel.getObject() != null) {
+                                        try {
+                                            return new FileSystemResourceReference(
+                                                    imageModel.getObject(),
+                                                    FileSystemResourceReference.getPath(
+                                                            stylesDir.resolve(
+                                                                    imageModel.getObject())));
+                                        } catch (IOException | URISyntaxException e) {
+                                            LOGGER.log(Level.WARNING, e.getMessage(), e);
+                                            return null;
+                                        }
+                                    } else {
+                                        return null;
+                                    }
+                                }
+
+                                @Override
+                                public void setObject(ResourceReference object) {}
+
+                                @Override
+                                public void detach() {}
+                            });
+            display.setOutputMarkupPlaceholderTag(true).setVisible(false);
+
+            image.setNullValid(true)
+                    .setOutputMarkupId(true)
+                    .add(
+                            new OnChangeAjaxBehavior() {
+                                @Override
+                                protected void onUpdate(AjaxRequestTarget target) {
+                                    upload.setModelObject(null);
+                                    display.setVisible(image.getModelObject() != null);
+                                    target.add(upload);
+                                    target.add(display);
+                                }
+                            });
+
+            upload.setOutputMarkupId(true)
+                    .add(
+                            new OnChangeAjaxBehavior() {
+                                @Override
+                                protected void onUpdate(AjaxRequestTarget target) {
+                                    image.setModelObject(null);
+                                    display.setVisible(false);
+                                    target.add(image);
+                                    target.add(display);
+                                }
+                            });
+
+            add(image);
+            add(display);
+            add(upload);
+
+            findParent(Form.class)
+                    .add(
+                            new AbstractFormValidator() {
+                                @Override
+                                public FormComponent<?>[] getDependentFormComponents() {
+                                    return new FormComponent<?>[] {image, upload};
+                                }
+
+                                @Override
+                                public void validate(Form<?> form) {
+                                    if (image.getConvertedInput() == null
+                                            && (upload.getConvertedInput() == null
+                                                    || upload.getConvertedInput().isEmpty())) {
+                                        form.error(
+                                                new ParamResourceModel("missingImage", getPage())
+                                                        .getString());
+                                    }
+                                }
+                            });
+        }
+
+        public String getChoice() {
+            return get("image").getDefaultModelObjectAsString();
+        }
+
+        public FileUpload getFileUpload() {
+            return ((FileUploadField) get("upload")).getFileUpload();
+        }
+
+        public FeedbackPanel getFeedback() {
+            return (FeedbackPanel) get("feedback");
+        }
+    }
 
     protected Form<StyleInfo> styleForm;
 
@@ -304,6 +530,8 @@ public abstract class AbstractStylePage extends GeoServerSecuredPage {
                         return link;
                     }
                 };
+        tabbedPanel.setMarkupId("style-context");
+        tabbedPanel.setOutputMarkupId(true);
 
         styleForm.add(tabbedPanel);
 
@@ -316,9 +544,127 @@ public abstract class AbstractStylePage extends GeoServerSecuredPage {
                                 new PropertyModel<String>(this, "rawStyle")));
         // force the id otherwise this blasted thing won't be usable from other forms
         editor.setTextAreaMarkupId("editor");
+        editor.setMarkupId("style-editor");
         editor.setOutputMarkupId(true);
         editor.setRequired(true);
         styleForm.add(editor);
+
+        // insert picture button
+        GeoServerDialog dialog = new GeoServerDialog("dialog");
+        dialog.setOutputMarkupId(true);
+        add(dialog);
+        GeoServerDialog.DialogDelegate imagePanelDelegate =
+                new GeoServerDialog.DialogDelegate() {
+
+                    private ChooseImagePanel imagePanel;
+
+                    @Override
+                    protected Component getContents(String id) {
+                        return imagePanel =
+                                new ChooseImagePanel(id, styleModel.getObject().getWorkspace());
+                    }
+
+                    @Override
+                    protected boolean onSubmit(AjaxRequestTarget target, Component contents) {
+                        String imageFileName = imagePanel.getChoice();
+                        if (Strings.isEmpty(imageFileName)) {
+                            FileUpload fu = imagePanel.getFileUpload();
+                            imageFileName = fu.getClientFileName();
+                            int teller = 0;
+                            GeoServerDataDirectory dd =
+                                    GeoServerApplication.get()
+                                            .getBeanOfType(GeoServerDataDirectory.class);
+                            Resource res = dd.getStyles(style.getWorkspace(), imageFileName);
+                            while (Resources.exists(res)) {
+                                imageFileName =
+                                        FilenameUtils.getBaseName(fu.getClientFileName())
+                                                + "."
+                                                + (++teller)
+                                                + "."
+                                                + FilenameUtils.getExtension(
+                                                        fu.getClientFileName());
+                                res = dd.getStyles(style.getWorkspace(), imageFileName);
+                            }
+                            try (InputStream is = fu.getInputStream()) {
+                                try (OutputStream os = res.out()) {
+                                    IOUtils.copy(is, os);
+                                }
+                            } catch (IOException e) {
+                                error(e.getMessage());
+                                target.add(imagePanel.getFeedback());
+                                return false;
+                            }
+                        }
+                        target.appendJavaScript(
+                                "replaceSelection('"
+                                        + styleHandler().insertImageCode(imageFileName)
+                                        + "');");
+                        return true;
+                    }
+
+                    @Override
+                    public void onError(AjaxRequestTarget target, Form<?> form) {
+                        target.add(imagePanel.getFeedback());
+                    }
+                };
+        editor.addCustomButton(
+                new ParamResourceModel("insertImage", getPage()).getString(),
+                "button-picture",
+                target -> {
+                    dialog.setTitle(new ParamResourceModel("insertImage", getPage()));
+                    dialog.setInitialWidth(385);
+                    dialog.setInitialHeight(175);
+
+                    dialog.showOkCancel(target, imagePanelDelegate);
+                });
+
+        editor.addCustomButton(
+                new ParamResourceModel("chooseColor", getPage()).getString(),
+                "button-color",
+                target -> {
+                    IRequestParameters queryParameters =
+                            target.getPage().getRequest().getQueryParameters();
+                    StringValue cmSelection = queryParameters.getParameterValue("cmSelection");
+                    String defaultColor;
+                    if (cmSelection != null) {
+                        defaultColor = cmSelection.toString();
+                    } else {
+                        defaultColor = "#000";
+                    }
+                    dialog.setTitle(new ParamResourceModel("chooseColor", getPage()));
+                    dialog.setInitialWidth(410);
+                    dialog.setInitialHeight(270);
+
+                    dialog.showOkCancel(
+                            target,
+                            new GeoServerDialog.DialogDelegate() {
+
+                                private ChooseColorPanel chooserPanel;
+
+                                @Override
+                                protected Component getContents(String id) {
+                                    return chooserPanel = new ChooseColorPanel(id, defaultColor);
+                                }
+
+                                @Override
+                                protected boolean onSubmit(
+                                        AjaxRequestTarget target, Component contents) {
+                                    String chosenColor = chooserPanel.chooser.getModelObject();
+                                    if (chosenColor != null) {
+                                        // it's easy to double click a color in the editor, but it
+                                        // won't select the #, work around that to allow a seamless
+                                        // editing experience
+                                        if (HEX_COLOR.matcher("#" + defaultColor).matches()
+                                                && chosenColor.startsWith("#")) {
+                                            chosenColor = chosenColor.substring(1);
+                                        }
+                                        target.appendJavaScript(
+                                                "replaceSelection('" + chosenColor + "');");
+                                    }
+                                    return true;
+                                }
+                            });
+                });
 
         add(validateLink());
         add(

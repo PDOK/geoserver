@@ -19,6 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.geoserver.catalog.StyleGenerator.ColorRamp.Entry;
 import org.geotools.styling.StyledLayerDescriptor;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
 

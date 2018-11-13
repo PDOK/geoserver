@@ -61,6 +61,7 @@ import org.geotools.xml.Configuration;
 import org.geotools.xml.Parser;
 import org.geotools.xml.transform.TransformerBase;
 import org.junit.Assert;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.feature.Feature;
 import org.opengis.feature.type.FeatureType;
 import org.springframework.mock.web.MockHttpServletResponse;

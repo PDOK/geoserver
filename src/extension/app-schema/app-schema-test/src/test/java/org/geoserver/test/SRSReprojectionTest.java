@@ -10,17 +10,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
 import java.io.IOException;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.complex.AppSchemaDataAccess;
 import org.geotools.data.complex.FeatureTypeMapping;
 import org.geotools.data.complex.filter.ComplexFilterSplitter;
+import org.geotools.data.jdbc.FilterToSQLException;
 import org.geotools.filter.FilterFactoryImplNamespaceAware;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.gml.producer.CoordinateFormatter;
@@ -29,6 +25,11 @@ import org.geotools.jdbc.NestedFilterToSQL;
 import org.geotools.referencing.CRS;
 import org.geotools.util.NullProgressListener;
 import org.junit.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.filter.Filter;
 import org.opengis.filter.spatial.BBOX;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -219,7 +220,7 @@ public class SRSReprojectionTest extends AbstractAppSchemaTestSupport {
     }
 
     @Test
-    public void testNestedSpatialFilterEncoding() throws IOException {
+    public void testNestedSpatialFilterEncoding() throws IOException, FilterToSQLException {
         FeatureTypeInfo ftInfo = getCatalog().getFeatureTypeByName("ex", "geomContainer");
         FeatureSource fs = ftInfo.getFeatureSource(new NullProgressListener(), null);
         AppSchemaDataAccess da = (AppSchemaDataAccess) fs.getDataStore();
@@ -261,20 +262,25 @@ public class SRSReprojectionTest extends AbstractAppSchemaTestSupport {
                         bounds.getMaxY(),
                         "EPSG:4283");
 
-        // Filter involving nested geometry attribute --> CANNOT be encoded
+        // Filter involving nested geometry attribute --> CAN be encoded
         ComplexFilterSplitter splitter =
                 new ComplexFilterSplitter(store.getFilterCapabilities(), rootMapping);
         splitter.visit(intersects, null);
         Filter preFilter = splitter.getFilterPre();
         Filter postFilter = splitter.getFilterPost();
 
-        assertEquals(Filter.INCLUDE, preFilter);
-        assertEquals(intersects, postFilter);
+        assertEquals(intersects, preFilter);
+        assertEquals(Filter.INCLUDE, postFilter);
 
         // filter must be "unrolled" (i.e. reverse mapped) first
         Filter unrolled = AppSchemaDataAccess.unrollFilter(intersects, rootMapping);
 
         // Filter is nested
         assertTrue(NestedFilterToSQL.isNestedFilter(unrolled));
+
+        // Encode nested filter
+        NestedFilterToSQL nestedFilterToSQL = createNestedFilterEncoder(rootMapping);
+        String encodedFilter = nestedFilterToSQL.encodeToString(unrolled);
+        assertTrue(encodedFilter.contains("EXISTS"));
     }
 }

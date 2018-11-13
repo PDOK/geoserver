@@ -17,6 +17,8 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.wfs.v1_0.WFSConfiguration;
 import org.geotools.xml.Parser;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.springframework.mock.web.MockHttpServletResponse;
 

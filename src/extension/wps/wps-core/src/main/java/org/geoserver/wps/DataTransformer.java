@@ -39,6 +39,14 @@ import org.geoserver.wps.transmute.LiteralTransmuter;
 import org.geoserver.wps.transmute.Transmuter;
 import org.geotools.data.Parameter;
 import org.geotools.process.ProcessFactory;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.type.Name;
 
 /**

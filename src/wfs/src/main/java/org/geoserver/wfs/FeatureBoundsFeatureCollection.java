@@ -15,6 +15,7 @@ import org.geotools.feature.DecoratingFeature;
 import org.geotools.feature.IllegalAttributeException;
 import org.geotools.feature.collection.AbstractFeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.GeometryDescriptor;

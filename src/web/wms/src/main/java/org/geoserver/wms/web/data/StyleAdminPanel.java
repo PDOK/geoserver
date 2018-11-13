@@ -181,7 +181,7 @@ public class StyleAdminPanel extends StyleEditTabPanel {
 
         IModel<String> formatBinding = styleModel.bind("format");
         formatChoice =
-                new Select2DropDownChoice<String>(
+                new Select2DropDownChoice<>(
                         "format",
                         formatBinding,
                         new StyleFormatsModel(),

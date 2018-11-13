@@ -22,6 +22,9 @@ public interface ResourceInfo extends CatalogInfo {
     /** The time dimension */
     static final String TIME = "time";
 
+    /** The default time unit */
+    static final String TIME_UNIT = "ISO8601";
+
     /** The elevation dimension */
     static final String ELEVATION = "elevation";
 

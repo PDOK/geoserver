@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import org.geoserver.ows.util.XmlCharsetDetector;
 import org.geoserver.platform.resource.Resource;
+import org.locationtech.jts.geom.Envelope;
 import org.w3c.dom.Element;
 
 /**

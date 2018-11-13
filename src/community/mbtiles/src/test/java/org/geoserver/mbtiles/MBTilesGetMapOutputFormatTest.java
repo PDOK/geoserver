@@ -28,6 +28,7 @@ import org.geotools.mbtiles.MBTilesTile;
 import org.geotools.referencing.CRS;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;

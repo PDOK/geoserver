@@ -8,7 +8,6 @@ package org.geoserver.wfs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import javax.measure.unit.SI;
 import org.custommonkey.xmlunit.XpathEngine;
 import org.custommonkey.xmlunit.exceptions.XpathException;
 import org.geoserver.catalog.FeatureTypeInfo;
@@ -16,6 +15,7 @@ import org.geoserver.data.test.SystemTestData;
 import org.geotools.measure.Measure;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import si.uom.SI;
 
 public class GetFeatureCurvesTest extends WFSCurvesTestSupport {
 
@@ -59,7 +59,7 @@ public class GetFeatureCurvesTest extends WFSCurvesTestSupport {
         // now alter the feature type and set a linearization tolerance
         FeatureTypeInfo ft = getCatalog().getFeatureTypeByName(getLayerId(CURVELINES));
         ft.setCircularArcPresent(true);
-        ft.setLinearizationTolerance(new Measure(1, SI.METER));
+        ft.setLinearizationTolerance(new Measure(1, SI.METRE));
         getCatalog().save(ft);
 
         dom =

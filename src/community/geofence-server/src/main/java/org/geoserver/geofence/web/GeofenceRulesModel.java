@@ -23,6 +23,7 @@ import org.geoserver.geofence.services.RuleAdminService;
 import org.geoserver.geofence.services.dto.ShortRule;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.wicket.GeoServerDataProvider;
+import org.locationtech.jts.geom.MultiPolygon;
 
 /**
  * Functions as between webgui and internal geofence db

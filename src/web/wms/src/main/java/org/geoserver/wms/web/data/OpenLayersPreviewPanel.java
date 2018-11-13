@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.wicket.Component;
 import org.apache.wicket.WicketRuntimeException;
 import org.apache.wicket.ajax.AjaxRequestTarget;
@@ -98,6 +98,7 @@ public class OpenLayersPreviewPanel extends StyleEditTabPanel implements IHeader
                     }
                 });
         add(olPreview);
+        olPreview.setMarkupId("olPreview");
         setOutputMarkupId(true);
 
         CheckBox previewStyleGroup =
@@ -179,8 +180,8 @@ public class OpenLayersPreviewPanel extends StyleEditTabPanel implements IHeader
         context.put("maxx", bbox.getMaxX());
         context.put("maxy", bbox.getMaxY());
         context.put("id", olPreview.getMarkupId());
-        context.put("layer", getStylePage().getLayerInfo().getResource().getName());
-        context.put("style", getStylePage().getStyleInfo().getName());
+        context.put("layer", getStylePage().getLayerInfo().prefixedName());
+        context.put("style", getStylePage().getStyleInfo().prefixedName());
 
         String styleUrl;
         String proxyBaseUrl = GeoServerExtensions.getProperty("PROXY_BASE_URL");

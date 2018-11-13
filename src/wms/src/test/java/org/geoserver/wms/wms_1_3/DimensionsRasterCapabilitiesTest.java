@@ -148,6 +148,7 @@ public class DimensionsRasterCapabilitiesTest extends WMSDimensionsTestSupport {
         assertXpathEvaluatesTo("ISO8601", "//wms:Layer/wms:Dimension/@units", dom);
         // check we have the wms:Dimension
         assertXpathEvaluatesTo("time", "//wms:Layer/wms:Dimension/@name", dom);
+        assertXpathEvaluatesTo("", "//wms:Layer/wms:Dimension/@nearestValue", dom);
         assertXpathEvaluatesTo(
                 DimensionDefaultValueSetting.TIME_CURRENT,
                 "//wms:Layer/wms:Dimension/@default",
@@ -156,6 +157,24 @@ public class DimensionsRasterCapabilitiesTest extends WMSDimensionsTestSupport {
                 "2008-10-31T00:00:00.000Z,2008-11-01T00:00:00.000Z",
                 "//wms:Layer/wms:Dimension",
                 dom);
+    }
+
+    @Test
+    public void testTimeNearestMatch() throws Exception {
+        setupRasterDimension(
+                WATTEMP, ResourceInfo.TIME, DimensionPresentation.LIST, null, null, null);
+        setupNearestMatch(WATTEMP, ResourceInfo.TIME, true);
+
+        Document dom = dom(get("wms?request=getCapabilities&version=1.3.0"), false);
+        // print(dom);
+
+        // check dimension has been declared
+        assertXpathEvaluatesTo("1", "count(//wms:Layer/wms:Dimension)", dom);
+        assertXpathEvaluatesTo("time", "//wms:Layer/wms:Dimension/@name", dom);
+        assertXpathEvaluatesTo("ISO8601", "//wms:Layer/wms:Dimension/@units", dom);
+        // check we have the wms:Dimension
+        assertXpathEvaluatesTo("time", "//wms:Layer/wms:Dimension/@name", dom);
+        assertXpathEvaluatesTo("1", "//wms:Layer/wms:Dimension/@nearestValue", dom);
     }
 
     @Test

@@ -17,6 +17,8 @@ import org.geotools.feature.FeatureIterator;
 import org.geotools.filter.FunctionImpl;
 import org.geotools.filter.capability.FunctionNameImpl;
 import org.geotools.filter.text.ecql.ECQL;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryComponentFilter;
 import org.opengis.feature.Feature;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.Name;

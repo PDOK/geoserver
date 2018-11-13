@@ -4,18 +4,30 @@
  */
 package org.geoserver.opensearch.eo;
 
+import static org.geoserver.opensearch.eo.ProductClass.GENERIC;
+import static org.geoserver.opensearch.eo.ProductClass.OPTICAL;
+import static org.geoserver.opensearch.eo.ProductClass.RADAR;
 import static org.geoserver.opensearch.eo.store.OpenSearchAccess.EO_NAMESPACE;
-import static org.geoserver.opensearch.eo.store.OpenSearchAccess.ProductClass.EOP_GENERIC;
-import static org.geoserver.opensearch.eo.store.OpenSearchAccess.ProductClass.OPTICAL;
-import static org.geoserver.opensearch.eo.store.OpenSearchAccess.ProductClass.RADAR;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Polygon;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -25,13 +37,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.easymock.EasyMock;
+import org.geoserver.config.GeoServer;
 import org.geoserver.opensearch.eo.store.JDBCOpenSearchAccess;
 import org.geoserver.opensearch.eo.store.OpenSearchAccess;
-import org.geoserver.opensearch.eo.store.OpenSearchAccess.ProductClass;
+import org.geoserver.platform.GeoServerExtensionsHelper;
 import org.geotools.data.DataAccessFinder;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.DataUtilities;
@@ -44,11 +58,12 @@ import org.geotools.feature.AttributeImpl;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.NameImpl;
 import org.geotools.jdbc.JDBCDataStore;
-import org.geotools.jdbc.JDBCDataStoreFactory;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -72,22 +87,36 @@ public class JDBCOpenSearchAccessTest {
 
     static final Name LAYER_NAME = new NameImpl(TEST_NAMESPACE, OpenSearchAccess.LAYER);
 
+    public static final ProductClass GS_PRODUCT =
+            new ProductClass("geoServer", "gs", "http://www.geoserver.org/eo/test");
+
+    protected static Properties getFixture() {
+        Properties properties = GSFixtureUtilitiesDelegate.loadFixture("oseo-postgis");
+        properties.put("Expose primary keys", "true");
+        properties.put("dbtype", "postgis");
+        return properties;
+    }
+
     @BeforeClass
     public static void setupStore() throws IOException, SQLException {
-        Map<String, Serializable> params = new HashMap<>();
-        params.put("dbtype", "h2");
-        File dbFolder = new File("./target/oseo_db_store_test");
-        FileUtils.deleteQuietly(dbFolder);
-        dbFolder.mkdir();
-        File dbFile = new File(dbFolder, "oseo_db_store_test");
-        params.put("database", dbFile.getAbsolutePath());
-        params.put(JDBCDataStoreFactory.EXPOSE_PK.key, "true");
+        Assume.assumeNotNull(getFixture());
+
+        Map params = new HashMap<>();
+        params.putAll(getFixture());
         h2 = (JDBCDataStore) DataStoreFinder.getDataStore(params);
         JDBCOpenSearchAccessTest.populateTestDatabase(h2, true);
 
         Name name = new NameImpl("test", "jdbcStore");
         SerializableDefaultRepository repository = new SerializableDefaultRepository();
         repository.register(name, h2);
+
+        // prepare the custom product class
+        GeoServer geoServer = EasyMock.createNiceMock(GeoServer.class);
+        GeoServerExtensionsHelper.singleton("geoServer", geoServer, GeoServer.class);
+        OSEOInfoImpl impl = new OSEOInfoImpl();
+        impl.getProductClasses().add(GS_PRODUCT);
+        EasyMock.expect(geoServer.getService(OSEOInfo.class)).andReturn(impl).anyTimes();
+        EasyMock.replay(geoServer);
 
         // create the OpenSeach wrapper store
         params = new HashMap<>();
@@ -100,9 +129,9 @@ public class JDBCOpenSearchAccessTest {
 
     @After
     public void resetCollectionLayer() throws IOException, SQLException {
-        String s1 = "DELETE public.collection_layer";
+        String s1 = "DELETE from \"collection_layer\"";
         String s2 =
-                "INSERT into public.collection_layer\n"
+                "INSERT into \"collection_layer\"\n"
                         + "(\"cid\", \"workspace\", \"layer\", \"separateBands\", \"bands\", \"browseBands\", \"heterogeneousCRS\", \"mosaicCRS\")\n"
                         + "VALUES(17, 'gs', 'sentinel2', true, 'B01,B02,B03,B04,B05,B06,B07,B08,B09,B10,B11,B12', 'B04,B03,B02', true, 'EPSG:4326')";
         try (Connection conn = h2.getConnection(Transaction.AUTO_COMMIT);
@@ -119,16 +148,34 @@ public class JDBCOpenSearchAccessTest {
             // setup for fast import
 
             // SET CACHE_SIZE (a large cache is faster)
-            st.execute("SET LOG 0");
-            st.execute("SET LOCK_MODE 0 ");
-            st.execute("SET UNDO_LOG 0");
-            st.execute("SET CACHE_SIZE 512000");
+            //            st.execute("SET LOG 0");
+            //            st.execute("SET LOCK_MODE 0 ");
+            //            st.execute("SET UNDO_LOG 0");
+            //            st.execute("SET CACHE_SIZE 512000");
             createTables(conn);
             populateCollections(conn);
             populateProducts(conn);
             if (addGranuleTable) {
                 populateGranules(conn);
             }
+            addCustomProductClass(conn);
+
+            //            // add spatial indexes
+            //            st.execute(
+            //                    "CALL AddGeometryColumn(SCHEMA(), 'COLLECTION', 'footprint', 4326,
+            // 'POLYGON', 2)");
+            //            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'COLLECTION', 'footprint',
+            // 4326)");
+            //            st.execute(
+            //                    "CALL AddGeometryColumn(SCHEMA(), 'PRODUCT', 'footprint', 4326,
+            // 'POLYGON', 2)");
+            //            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'PRODUCT', 'footprint',
+            // 4326)");
+            //            st.execute(
+            //                    "CALL AddGeometryColumn(SCHEMA(), 'GRANULE', 'the_geom', 4326,
+            // 'POLYGON', 2)");
+            //            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'GRANULE', 'the_geom',
+            // 4326)");
         }
     }
 
@@ -170,38 +217,37 @@ public class JDBCOpenSearchAccessTest {
         List<String> statements = loadScriptCommands("/postgis.sql");
         try (Statement st = conn.createStatement(); ) {
             for (String statement : statements) {
-                /* Skip statements H2 does not support */
-                if (statement.contains("GIST") || statement.contains("create extension")) {
-                    continue;
-                }
-                if (statement.contains("geography(Polygon, 4326)")) {
-                    statement = statement.replace("geography(Polygon, 4326)", "POLYGON");
-                } else if (statement.contains("geometry(Polygon, 4326)")) {
-                    statement = statement.replace("geometry(Polygon, 4326)", "POLYGON");
-                }
+                //                /* Skip statements H2 does not support */
+                //                if (statement.contains("GIST") || statement.contains("create
+                // extension")) {
+                //                    continue;
+                //                }
+                //                if (statement.contains("geography(Polygon, 4326)")) {
+                //                    statement = statement.replace("geography(Polygon, 4326)",
+                // "POLYGON");
+                //                } else if (statement.contains("geometry(Polygon, 4326)")) {
+                //                    statement = statement.replace("geometry(Polygon, 4326)",
+                // "POLYGON");
+                //                }
+                //                if (statement.contains("float[]")) {
+                //                    statement = statement.replace("float[]", "ARRAY");
+                //                }
+                //                if (statement.contains("varchar[]")) {
+                //                    statement = statement.replace("varchar[]", "ARRAY");
+                //                }
                 st.execute(statement);
             }
-            // add spatial indexes
-            st.execute(
-                    "CALL AddGeometryColumn(SCHEMA(), 'COLLECTION', 'footprint', 4326, 'POLYGON', 2)");
-            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'COLLECTION', 'footprint', 4326)");
-            st.execute(
-                    "CALL AddGeometryColumn(SCHEMA(), 'PRODUCT', 'footprint', 4326, 'POLYGON', 2)");
-            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'PRODUCT', 'footprint', 4326)");
-            st.execute(
-                    "CALL AddGeometryColumn(SCHEMA(), 'GRANULE', 'the_geom', 4326, 'POLYGON', 2)");
-            st.execute("CALL CreateSpatialIndex(SCHEMA(), 'GRANULE', 'the_geom', 4326)");
         }
     }
 
     /** Adds the collection data into the H2 database */
     static void populateCollections(Connection conn) throws SQLException, IOException {
-        runScript("/collection_h2_data.sql", conn);
+        runScript("/collection_test_data.sql", conn);
     }
 
     /** Adds the product data into the H2 database */
     static void populateProducts(Connection conn) throws SQLException, IOException {
-        runScript("/product_h2_data.sql", conn);
+        runScript("/product_test_data.sql", conn);
     }
 
     /**
@@ -212,14 +258,22 @@ public class JDBCOpenSearchAccessTest {
      * @throws IOException
      */
     static void populateGranules(Connection conn) throws SQLException, IOException {
-        runScript("/granule_h2_data.sql", conn);
+        runScript("/granule_test_data.sql", conn);
+    }
+
+    static void addCustomProductClass(Connection conn) throws SQLException, IOException {
+        runScript("/custom_product_class.sql", conn);
     }
 
     static void runScript(String script, Connection conn) throws IOException, SQLException {
         List<String> statements = loadScriptCommands(script);
         try (Statement st = conn.createStatement(); ) {
             for (String statement : statements) {
-                st.execute(statement);
+                try {
+                    st.execute(statement);
+                } catch (SQLException e) {
+                    throw new IOException("Failed to run " + statement, e);
+                }
             }
         }
     }
@@ -247,15 +301,16 @@ public class JDBCOpenSearchAccessTest {
 
         // get the schema
         assertPropertyNamespace(schema, "cloudCover", OPTICAL.getNamespace());
-        assertPropertyNamespace(schema, "track", EOP_GENERIC.getNamespace());
+        assertPropertyNamespace(schema, "track", GENERIC.getNamespace());
         assertPropertyNamespace(schema, "polarisationMode", RADAR.getNamespace());
+        assertPropertyNamespace(schema, "test", GS_PRODUCT.getNamespace());
     }
 
     @Test
     public void testTypeNames() throws Exception {
         List<Name> names = osAccess.getNames();
-        // product, collection, SENTINEL1, SENTINEL2, LANDSAT8
-        assertEquals(16, names.size());
+        // product, collection, SENTINEL1, SENTINEL2, LANDSAT8, ATM1,
+        assertEquals(18, names.size());
         Set<String> localNames = new HashSet<>();
         for (Name name : names) {
             assertEquals(TEST_NAMESPACE, name.getNamespaceURI());
@@ -268,6 +323,8 @@ public class JDBCOpenSearchAccessTest {
                         "product",
                         "SENTINEL1",
                         "LANDSAT8",
+                        "GS_TEST",
+                        "ATMTEST",
                         "SENTINEL2__B01",
                         "SENTINEL2__B02",
                         "SENTINEL2__B03",
@@ -301,6 +358,12 @@ public class JDBCOpenSearchAccessTest {
     }
 
     @Test
+    public void testCustomClassSchema() throws Exception {
+        FeatureType schema = osAccess.getSchema(new NameImpl(TEST_NAMESPACE, "GS_TEST"));
+        assertGranulesViewSchema(schema, GS_PRODUCT);
+    }
+
+    @Test
     public void testSentinel1Granules() throws Exception {
         FeatureSource<FeatureType, Feature> featureSource =
                 osAccess.getFeatureSource(new NameImpl(TEST_NAMESPACE, "SENTINEL1"));
@@ -330,6 +393,19 @@ public class JDBCOpenSearchAccessTest {
                 null);
     }
 
+    @Test
+    public void testCustomProductClassGranules() throws Exception {
+        FeatureSource<FeatureType, Feature> featureSource =
+                osAccess.getFeatureSource(new NameImpl(TEST_NAMESPACE, "GS_TEST"));
+        assertEquals(0, featureSource.getCount(Query.ALL));
+        FeatureCollection<FeatureType, Feature> fc = featureSource.getFeatures();
+        assertGranulesViewSchema(fc.getSchema(), GS_PRODUCT);
+        assertEquals(0, fc.size());
+        fc.accepts(
+                f -> {},
+                null); // just check trying to scroll over the feature does not make it blow
+    }
+
     private void assertGranulesViewSchema(FeatureType schema, ProductClass expectedClass)
             throws IOException {
         assertThat(schema, instanceOf(SimpleFeatureType.class));
@@ -338,8 +414,8 @@ public class JDBCOpenSearchAccessTest {
         Map<String, Class> mappings = new HashMap<>();
         for (AttributeDescriptor ad : ft.getAttributeDescriptors()) {
             final String adName = ad.getLocalName();
-            for (ProductClass pc : ProductClass.values()) {
-                if (pc == EOP_GENERIC || pc == expectedClass) {
+            for (ProductClass pc : ProductClass.DEFAULT_PRODUCT_CLASSES) {
+                if (pc == GENERIC || pc == expectedClass) {
                     continue;
                 } else {
                     assertThat(adName, not(startsWith(pc.getPrefix())));

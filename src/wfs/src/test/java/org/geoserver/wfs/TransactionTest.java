@@ -28,6 +28,7 @@ import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Point;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;

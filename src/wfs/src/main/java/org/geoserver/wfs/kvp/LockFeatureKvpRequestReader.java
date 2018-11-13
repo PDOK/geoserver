@@ -4,14 +4,12 @@
  */
 package org.geoserver.wfs.kvp;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.xml.namespace.QName;
 import net.opengis.wfs.LockFeatureType;
 import net.opengis.wfs.LockType;
 import net.opengis.wfs.WfsFactory;
@@ -21,6 +19,7 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.wfs.WFSException;
 import org.geoserver.wfs.request.Query;
 import org.geotools.xml.EMFUtils;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 
@@ -104,13 +103,10 @@ public class LockFeatureKvpRequestReader extends BaseFeatureKvpRequestReader {
         Envelope bbox = (Envelope) kvp.get("bbox");
 
         List<LockType> queries = ((LockFeatureType) eObject).getLock();
-        List filters = new ArrayList();
-
         for (Iterator it = queries.iterator(); it.hasNext(); ) {
             LockType lock = (LockType) it.next();
 
-            QName typeName = lock.getTypeName();
-            Filter filter = bboxFilter(typeName, bbox);
+            Filter filter = bboxFilter(bbox);
             lock.setFilter(filter);
         }
     }

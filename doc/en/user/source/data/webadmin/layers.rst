@@ -262,6 +262,8 @@ WFS Settings
 
      The list will be used only for the capabilities document generation, but will not be used to limit the actual target SRS usage in GetFeature requests.
 
+* **Encode coordinates measures**-Checking this setting will cause coordinate measures ("M") to be encoded in WFS output formats that support measures. The default (not checked) is to not encode coordinates measures.  
+
 WCS Settings
 ^^^^^^^^^^^^
 
@@ -309,6 +311,11 @@ For each enabled dimension the following configuration options are available:
   * **reference value**—Tries to use the given reference value as-is, regardless of whether its actually available in the data or not.
 
 * **Reference value**—The default value specifier. Only shown for the default value strategies where its used.
+* **Nearest match**—Whether to enable, or not, WMS nearest match support on this dimension. Currently supported only on the time dimension.
+* **Acceptable interval**—A maximum search distance from the specified value (available only when nearest match is enabled). 
+  Can be empty (no limit), a single value (symmetric search) or using a ``before/after`` syntax to 
+  specify an asymmetric search range. Time distances should specified using the ISO period syntax. For example, ``PT1H/PT0H`` allows to search up to one hour before the user specified value,
+  but not after.
 
 For time dimension the value must be in ISO 8601 DateTime format ``yyyy-MM-ddThh:mm:ss.SSSZ`` For elevation dimension, the value must be and integer of floating point number.
 

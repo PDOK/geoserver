@@ -360,4 +360,17 @@ public class SLDHandler extends StyleHandler {
 
         return new Object[] {new Version(version), reader};
     }
+
+    @Override
+    public String insertImageCode(String imageFileName) {
+        return new StringBuffer("<ExternalGraphic>\\n")
+                .append("<OnlineResource xlink:type=\"simple\" xlink:href=\"")
+                .append(imageFileName)
+                .append("\" />\\n")
+                .append("<Format>")
+                .append(IMAGE_TYPES.getContentType(imageFileName))
+                .append("</Format>\\n")
+                .append("</ExternalGraphic>\\n")
+                .toString();
+    }
 }

@@ -16,6 +16,7 @@ import org.geotools.factory.GeoTools;
 import org.geotools.filter.visitor.SimplifyingFilterVisitor;
 import org.geotools.resources.coverage.FeatureUtilities;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.filter.Filter;
 import org.opengis.filter.spatial.Intersects;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;

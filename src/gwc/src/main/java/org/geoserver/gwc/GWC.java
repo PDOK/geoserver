@@ -21,10 +21,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import com.vividsolutions.jts.densify.Densifier;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -35,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -140,6 +137,10 @@ import org.geowebcache.storage.DefaultStorageFinder;
 import org.geowebcache.storage.StorageBroker;
 import org.geowebcache.storage.StorageException;
 import org.geowebcache.storage.TileRange;
+import org.locationtech.jts.densify.Densifier;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.MultiValuedFilter.MatchAction;
@@ -408,6 +409,37 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         BoundingBox bounds = null; // all of them
         String format = null; // all of them
         truncate(layerName, styleName, gridSetId, bounds, format);
+    }
+
+    /**
+     * Truncates the cache for the default style of the given layer
+     *
+     * @param layerName
+     */
+    public void truncateByLayerDefaultStyle(final String layerName) {
+        checkNotNull(layerName, "layerName can't be null");
+        log.fine("truncating '" + layerName + "' for default style");
+
+        final TileLayer layer = getTileLayerByName(layerName);
+        final Set<String> gridSetIds = layer.getGridSubsets(); // all of them
+        final List<MimeType> mimeTypes = layer.getMimeTypes(); // all of them
+        final BoundingBox bounds = null; // all of them
+        final Map<String, String> parameters = null; // only default style
+
+        for (String gridSetId : gridSetIds) {
+            GridSubset gridSubset = layer.getGridSubset(gridSetId);
+            if (gridSubset == null) {
+                // layer may no longer have this gridsubset, but we want to truncate any remaining
+                // tiles
+                GridSet gridSet = gridSetBroker.get(gridSetId);
+                gridSubset = GridSubsetFactory.createGridSubSet(gridSet);
+            }
+
+            for (MimeType mime : mimeTypes) {
+                String formatName = mime.getFormat();
+                truncate(layer, bounds, gridSubset, formatName, parameters);
+            }
+        }
     }
 
     public void truncate(final String layerName, final ReferencedEnvelope bounds)
@@ -2125,7 +2157,7 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
         }
 
         for (String gridSetId : gridsetIds) {
-            tld.removeGridset(gridSetId);
+            gridSetBroker.remove(gridSetId);
         }
     }
 
@@ -2643,5 +2675,14 @@ public class GWC implements DisposableBean, InitializingBean, ApplicationContext
     /** @return the gwcEnvironment */
     public GeoWebCacheEnvironment getGwcEnvironment() {
         return gwcEnvironment;
+    }
+
+    /**
+     * Returns the list of pending tasks in the tile breeder
+     *
+     * @return
+     */
+    public Iterator<GWCTask> getPendingTasks() {
+        return tileBreeder.getPendingTasks();
     }
 }

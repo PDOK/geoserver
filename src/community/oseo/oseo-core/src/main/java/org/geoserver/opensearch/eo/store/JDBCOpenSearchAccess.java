@@ -5,7 +5,6 @@
 package org.geoserver.opensearch.eo.store;
 
 import com.google.common.base.Objects;
-import com.vividsolutions.jts.geom.Polygon;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +16,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.geoserver.config.GeoServer;
+import org.geoserver.opensearch.eo.ProductClass;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataUtilities;
@@ -45,6 +46,7 @@ import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.jdbc.JDBCDataStore;
 import org.geotools.jdbc.SQLDialect;
 import org.geotools.jdbc.VirtualTable;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -99,13 +101,15 @@ public class JDBCOpenSearchAccess implements OpenSearchAccess {
 
     List<Name> typeNames;
 
-    public JDBCOpenSearchAccess(Repository repository, Name delegateStoreName, String namespaceURI)
+    private GeoServer geoServer;
+
+    public JDBCOpenSearchAccess(
+            Repository repository, Name delegateStoreName, String namespaceURI, GeoServer geoServer)
             throws IOException {
-        // TODO: maybe get a direct Catalog reference so that we can lookup by store id, which is
-        // stable though renames?
         this.repository = repository;
         this.delegateStoreName = delegateStoreName;
         this.namespaceURI = namespaceURI;
+        this.geoServer = geoServer;
 
         // check the expected feature types are available
         DataStore delegate = getDelegateStore();
@@ -242,7 +246,7 @@ public class JDBCOpenSearchAccess implements OpenSearchAccess {
             if (name.startsWith(EO_PREFIX)) {
                 name = "eop" + name.substring(2);
             }
-            for (ProductClass pc : ProductClass.values()) {
+            for (ProductClass pc : ProductClass.getProductClasses(geoServer)) {
                 String prefix = pc.getPrefix();
                 if (name.startsWith(prefix)) {
                     name = name.substring(prefix.length());
@@ -467,7 +471,7 @@ public class JDBCOpenSearchAccess implements OpenSearchAccess {
         String sensorType = (String) collectionFeature.getAttribute("eoSensorType");
         ProductClass productClass = null;
         if (sensorType != null) {
-            productClass = OpenSearchAccess.ProductClass.valueOf(sensorType);
+            productClass = ProductClass.getProductClassFromName(geoServer, sensorType);
         }
 
         final String dbSchema = delegate.getDatabaseSchema();
@@ -608,7 +612,7 @@ public class JDBCOpenSearchAccess implements OpenSearchAccess {
     }
 
     private boolean matchesAnyProductClass(String localName) {
-        for (ProductClass pc : ProductClass.values()) {
+        for (ProductClass pc : ProductClass.getProductClasses(geoServer)) {
             if (localName.startsWith(pc.getPrefix())) {
                 return true;
             }

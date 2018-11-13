@@ -121,6 +121,7 @@ import org.geotools.util.logging.Logging;
 import org.geotools.xml.PreventLocalEntityResolver;
 import org.geotools.xml.XSD;
 import org.junit.After;
+import org.junit.Before;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -176,6 +177,13 @@ import org.xml.sax.SAXParseException;
  */
 @TestSetup(run = TestSetupFrequency.ONCE)
 public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemTestData> {
+
+    private MockHttpServletResponse lastResponse;
+
+    @Before
+    public void clearLastResponse() {
+        this.lastResponse = null;
+    }
 
     protected SystemTestData createTestData() throws Exception {
         return new SystemTestData();
@@ -254,7 +262,7 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         System.setSecurityManager(null);
 
         // setup quiet logging (we need to to this here because Data
-        // is loaded before GoeServer has a chance to setup logging for good)
+        // is loaded before GeoServer has a chance to setup logging for good)
         try {
             Logging.ALL.setLoggerFactory(Log4JLoggerFactory.getInstance());
         } catch (Exception e) {
@@ -1566,7 +1574,20 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         response.setCharacterEncoding(charset);
 
         dispatch(request, response);
+
+        this.lastResponse = response;
+
         return response;
+    }
+
+    /**
+     * Returns the last MockHttpServletRequest response. Warning, not thread safe. Last response is
+     * cleared at before each test method run.
+     *
+     * @return
+     */
+    protected MockHttpServletResponse getLastResponse() {
+        return lastResponse;
     }
 
     protected DispatcherServlet getDispatcher() throws Exception {
@@ -1845,6 +1866,33 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
         getCatalog().save(info);
     }
 
+    /**
+     * Adds nearest match support to the specified layer.
+     *
+     * @param layer The layer name
+     * @param dimensionName The dimension name (key in the resource metadata map)
+     * @param nearestMatch Whether to enable or disable nearest match
+     */
+    protected void setupNearestMatch(QName layer, String dimensionName, boolean nearestMatch) {
+        setupNearestMatch(layer, dimensionName, nearestMatch, null);
+    }
+
+    /**
+     * Adds nearest match support to the specified layer.
+     *
+     * @param layer The layer name
+     * @param dimensionName The dimension name (key in the resource metadata map)
+     * @param nearestMatch Whether to enable or disable nearest match
+     */
+    protected void setupNearestMatch(
+            QName layer, String dimensionName, boolean nearestMatch, String acceptableInterval) {
+        ResourceInfo info = getCatalog().getResourceByName(getLayerId(layer), ResourceInfo.class);
+        DimensionInfo di = info.getMetadata().get(dimensionName, DimensionInfo.class);
+        di.setNearestMatchEnabled(nearestMatch);
+        di.setAcceptableInterval(acceptableInterval);
+        getCatalog().save(info);
+    }
+
     //
     // xml validation helpers
     //
@@ -1920,6 +1968,26 @@ public class GeoServerSystemTestSupport extends GeoServerBaseTestSupport<SystemT
      */
     protected void checkOws10Exception(Document dom, String exceptionCode) throws Exception {
         checkOws10Exception(dom, exceptionCode, null);
+    }
+
+    /**
+     * Performs basic checks a pre OWS 1.0 exception, to ensure it's well formed and ensuring that a
+     * particular exceptionCode is used.
+     */
+    protected String checkLegacyException(Document dom, String exceptionCode, String locator)
+            throws Exception {
+        Element root = dom.getDocumentElement();
+        assertEquals("ServiceExceptionReport", root.getNodeName());
+        assertEquals(1, dom.getElementsByTagName("ServiceException").getLength());
+
+        Element ex = (Element) dom.getElementsByTagName("ServiceException").item(0);
+        if (exceptionCode != null) {
+            assertEquals(exceptionCode, ex.getAttribute("code"));
+        }
+        if (locator != null) {
+            assertEquals(locator, ex.getAttribute("locator"));
+        }
+        return ex.getTextContent();
     }
 
     /**

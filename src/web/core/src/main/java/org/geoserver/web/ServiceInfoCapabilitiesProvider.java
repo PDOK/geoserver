@@ -30,7 +30,12 @@ public class ServiceInfoCapabilitiesProvider implements CapabilitiesHomePageLink
 
         List<Service> extensions = GeoServerExtensions.extensions(Service.class);
         for (Service si : extensions) {
-            if (si.getOperations().contains("GetCapabilities")) {
+            if (si.getCustomCapabilitiesLink() != null) {
+                String serviceId = si.getId();
+                String capsLink = si.getCustomCapabilitiesLink();
+                CapsInfo ci = new CapsInfo(serviceId, si.getVersion(), capsLink);
+                serviceInfoLinks.add(ci);
+            } else if (si.getOperations().contains("GetCapabilities")) {
                 String serviceId = si.getId();
                 String capsLink =
                         "../ows?service="

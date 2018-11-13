@@ -251,10 +251,7 @@ public class CatalogLayerEventListener implements CatalogListener {
         final List<Object> newValues = preModifyEvent.getNewValues();
 
         log.finer("Handling modify event for " + source);
-        if (source instanceof FeatureTypeInfo
-                || source instanceof CoverageInfo
-                || source instanceof WMSLayerInfo
-                || source instanceof LayerGroupInfo) {
+        if (source instanceof ResourceInfo || source instanceof LayerGroupInfo) {
             /*
              * Handle changing the filter definition, this is the kind of change that affects the
              * full output contents
@@ -380,7 +377,7 @@ public class CatalogLayerEventListener implements CatalogListener {
                                 + oldStyleName
                                 + " to "
                                 + defaultStyle);
-                mediator.truncateByLayerAndStyle(layerName, oldStyleName);
+                mediator.truncateByLayerDefaultStyle(layerName);
             }
         } else {
             StyleInfo styleInfo = li.getDefaultStyle();
@@ -392,6 +389,7 @@ public class CatalogLayerEventListener implements CatalogListener {
             for (StyleInfo s : li.getStyles()) {
                 styles.add(s.prefixedName());
             }
+            styles.add(defaultStyle);
             ImmutableSet<String> cachedStyles = tileLayerInfo.cachedStyles();
             if (!styles.equals(cachedStyles)) {
                 // truncate no longer existing cached styles
@@ -406,9 +404,7 @@ public class CatalogLayerEventListener implements CatalogListener {
                     mediator.truncateByLayerAndStyle(layerName, oldCachedStyle);
                 }
                 // reset STYLES parameter filter
-                final boolean createParamIfNotExists = true;
-                TileLayerInfoUtil.updateStringParameterFilter(
-                        tileLayerInfo, "STYLES", createParamIfNotExists, defaultStyle, styles);
+                TileLayerInfoUtil.checkAutomaticStyles(li, tileLayerInfo);
                 save = true;
             }
         }

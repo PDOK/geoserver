@@ -33,6 +33,8 @@ import org.geoserver.data.test.SystemTestData;
 import org.geoserver.wcs2_0.kvp.WCSKVPTestSupport;
 import org.geoserver.web.netcdf.NetCDFSettingsContainer;
 import org.geoserver.web.netcdf.layer.NetCDFLayerSettingsContainer;
+import org.geotools.imageio.netcdf.utilities.NetCDFUtilities;
+import org.junit.Assume;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import ucar.ma2.DataType;
@@ -223,8 +225,8 @@ public class GHRSSTWCSTest extends WCSKVPTestSupport {
                     dataset,
                     "sea_surface_temperature",
                     new double[] {301, 302, 303, 304, 305, 306, 307, 308, 309},
-                    2e-4);
-            assertValues(dataset, "wind_speed", new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9}, 1e-1);
+                    2e-3);
+            assertValues(dataset, "wind_speed", new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9}, 0.2);
         } finally {
             // FileUtils.deleteQuietly(file);
         }
@@ -252,5 +254,23 @@ public class GHRSSTWCSTest extends WCSKVPTestSupport {
             assertNotNull(attribute);
             assertEquals(value, attribute.getValue(0));
         }
+    }
+
+    /** Test NetCDF output from a coverage view having the required GHRSST bands/variables */
+    @Test
+    public void testGHRSSTSubset() throws Exception {
+        // test requires NetCDF-4 native libs to be available
+        Assume.assumeTrue(NetCDFUtilities.isNC4CAvailable());
+
+        // this used to crash
+        MockHttpServletResponse response =
+                getAsServletResponse(
+                        "ows?request=GetCoverage&service=WCS&version=2.0.1"
+                                + "&coverageid="
+                                + getLayerId(SST).replace(":", "__")
+                                + "&subset=Long(-10,10)&subset=Lat(-10,10)"
+                                + "&format=application/x-netcdf4");
+        assertEquals(200, response.getStatus());
+        assertEquals("application/x-netcdf4", response.getContentType());
     }
 }

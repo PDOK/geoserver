@@ -59,6 +59,7 @@ The editor page provides several options for submitting a new style:
 
      Uploading an file from the local system
 
+
 When creating a style, only the :guilabel:`Data` tab will be available. Click :guilabel:`Apply` on the new style to stay on the Style Editor page and gain access to all tabs.
 
 .. _styling_webadmin_remove:
@@ -143,6 +144,11 @@ The style editor supports line numbering, automatic indentation, and real-time s
      - Auto-format the editor contents
    * - .. image:: img/styles_editor_fontsize.png
      - Change the font size in the editor
+   * - .. image:: img/styles_editor_image.png
+     - Insert image into style (choose existing or upload)
+   * - .. image:: img/styles_editor_height.png
+     - Change height of style editor (disabled in full screen mode)
+
 
 During editing and especially after editing is complete, you will want to check validation of the syntax. This can be done by clicking the :guilabel:`Validate` button at the bottom.
 
@@ -306,3 +312,21 @@ The Layer Attributes tab will display a list of attributes for the given associa
 .. figure:: img/styles_editor_data_layerattributes.png
 
    Layer Attributes tab
+
+Style Editor: full screen side by side mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The style editor page has now a "outwards arrows" button on the top right side of the window:
+
+.. figure:: img/fullscreen-button.png
+
+   The new fullscreen functionality
+
+Pressing it will cause the editor and preview to go side by side and use the entire browser window
+space:
+
+.. figure:: img/fullscreen-mode.png
+
+   Side by side style editing
+
+The button turns into a "inwards arrows" icon, pressing it resumes the original editing mode.

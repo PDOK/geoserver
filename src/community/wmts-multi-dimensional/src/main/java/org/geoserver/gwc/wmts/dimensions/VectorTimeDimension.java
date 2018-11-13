@@ -4,6 +4,7 @@
  */
 package org.geoserver.gwc.wmts.dimensions;
 
+import java.util.Date;
 import org.geoserver.catalog.DimensionDefaultValueSetting;
 import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.LayerInfo;
@@ -20,5 +21,10 @@ public class VectorTimeDimension extends VectorDimension {
     @Override
     protected String getDefaultValueFallbackAsString() {
         return DimensionDefaultValueSetting.TIME_CURRENT;
+    }
+
+    @Override
+    public Class getDimensionType() {
+        return Date.class;
     }
 }

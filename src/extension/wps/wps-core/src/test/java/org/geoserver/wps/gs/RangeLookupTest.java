@@ -17,6 +17,7 @@ import org.geotools.gce.arcgrid.ArcGridFormat;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridCoverage;
 import org.springframework.mock.web.MockHttpServletResponse;
 

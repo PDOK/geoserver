@@ -8,6 +8,7 @@ package org.geoserver.wms;
 import java.util.List;
 import java.util.Set;
 import org.geoserver.catalog.AuthorityURLInfo;
+import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.LayerIdentifierInfo;
 import org.geoserver.config.ServiceInfo;
 
@@ -181,5 +182,26 @@ public interface WMSInfo extends ServiceInfo {
     default boolean isFeaturesReprojectionDisabled() {
         // deactivate features reprojection by default
         return true;
+    }
+
+    /**
+     * Returns the maximum number of dimension items that can be requested by a client without
+     * getting a service exception. The default is
+     * {DimensionInfo#DEFAULT_MAX_REQUESTED_DIMENSION_VALUES} that is, no limit.
+     *
+     * @return
+     */
+    default int getMaxRequestedDimensionValues() {
+        return DimensionInfo.DEFAULT_MAX_REQUESTED_DIMENSION_VALUES;
+    }
+
+    /**
+     * Sets the maximum number of dimension items that can be requested by a client without. Zero or
+     * negative will disable the limit.
+     *
+     * @param maxRequestedDimensionValues Any integer number
+     */
+    default void setMaxRequestedDimensionValues(int maxRequestedDimensionValues) {
+        // if not implemented nothing is done
     }
 }

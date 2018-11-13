@@ -5,8 +5,6 @@
  */
 package org.geoserver.test.onlineTest.setup;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTWriter;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,10 +12,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.geotools.data.property.PropertyFeatureReader;
 import org.geotools.feature.IllegalAttributeException;
 import org.geotools.resources.Classes;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.WKTWriter;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;

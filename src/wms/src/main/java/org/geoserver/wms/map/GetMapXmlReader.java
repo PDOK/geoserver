@@ -50,6 +50,7 @@ import org.geotools.styling.StyledLayer;
 import org.geotools.styling.StyledLayerDescriptor;
 import org.geotools.styling.UserLayer;
 import org.geotools.util.logging.Logging;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
@@ -546,7 +547,7 @@ public class GetMapXmlReader extends org.geoserver.ows.XmlRequestReader {
                     "GetMap XML parser - node 'BoundingBox' in GetMap tag should have 2 coordinates in it");
         }
 
-        com.vividsolutions.jts.geom.Envelope env = new com.vividsolutions.jts.geom.Envelope();
+        org.locationtech.jts.geom.Envelope env = new org.locationtech.jts.geom.Envelope();
         final int size = coordList.size();
 
         for (int i = 0; i < size; i++) {

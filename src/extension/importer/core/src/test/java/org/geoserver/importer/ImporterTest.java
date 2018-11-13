@@ -25,6 +25,7 @@ public class ImporterTest extends ImporterTestSupport {
         revertLayer(SystemTestData.PRIMITIVEGEOFEATURE);
     }
 
+    @Test
     public void testCreateContextSingleFile() throws Exception {
         File dir = unpack("shape/archsites_epsg_prj.zip");
 
@@ -38,6 +39,7 @@ public class ImporterTest extends ImporterTestSupport {
         assertEquals(file, task.getData());
     }
 
+    @Test
     public void testCreateContextDirectoryHomo() throws Exception {
         File dir = unpack("shape/archsites_epsg_prj.zip");
         unpack("shape/bugsites_esri_prj.tar.gz", dir);
@@ -53,6 +55,7 @@ public class ImporterTest extends ImporterTestSupport {
         assertEquals(d.part("bugsites"), task.getData());
     }
 
+    @Test
     public void testCreateContextDirectoryHetero() throws Exception {
         File dir = unpack("shape/archsites_epsg_prj.zip");
         unpack("geotiff/EmissiveCampania.tif.bz2", dir);
@@ -69,6 +72,7 @@ public class ImporterTest extends ImporterTestSupport {
         assertTrue(files.containsAll(d.getFiles()));
     }
 
+    @Test
     public void testCreateContextFromArchive() throws Exception {
         File file = file("shape/archsites_epsg_prj.zip");
         Archive arch = new Archive(file);
@@ -77,6 +81,7 @@ public class ImporterTest extends ImporterTestSupport {
         assertEquals(1, context.getTasks().size());
     }
 
+    @Test
     public void testCreateContextIgnoreHidden() throws Exception {
         File dir = unpack("shape/archsites_epsg_prj.zip");
         FileUtils.touch(new File(dir, ".DS_Store"));

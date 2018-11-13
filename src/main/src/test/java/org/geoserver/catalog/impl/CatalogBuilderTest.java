@@ -62,6 +62,7 @@ import org.geotools.referencing.operation.builder.GridToEnvelopeMapper;
 import org.geotools.referencing.operation.projection.MapProjection;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.junit.Test;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
