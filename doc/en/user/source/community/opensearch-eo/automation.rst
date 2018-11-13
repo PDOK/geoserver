@@ -142,9 +142,15 @@ In this case the following approach should is recommended:
 * Create at least one product in the collection in the REST API, using the
   ZIP file POST upload and providing a full ``granules.json`` content with all
   the granules of said product
-* Post a layer publishing description file to ``/oseo/collection/<COLLECTION>/layer``
+* Post a layer publishing description file to ``/oseo/collection/{COLLECTION}/layers``
   to have the module setup a set of mosaic configuration files, store, layer with
   eventual coverage view and style
+
+A collection can have multiple layers:
+
+* Getting the ``/oseo/collection/{COLLECTION}/layers`` resource returns a list of the available ones
+* ``/oseo/collection/{COLLECTION}/layers/{layer}`` returns the specific configuration (PUT can be used to modify it, and DELETE to remove it).
+* Creation of a layer configuration can be done either by post-ing to ``/oseo/collection/{COLLECTION}/layers`` or by put-int to ``/oseo/collection/{COLLECTION}/layers/{layer}``.
 
 The layer configuration specification will have different contents depending on
 the collection structure:
@@ -168,7 +174,7 @@ the collection structure:
     	"workspace": "gs",
     	"layer": "test123",
     	"separateBands": false,
-    	"browseBands": [1],
+    	"browseBands": ["test123[0]"],
     	"heterogeneousCRS": false
     }
 
@@ -180,21 +186,25 @@ the collection structure:
     	"workspace": "gs",
     	"layer": "test123",
     	"separateBands": true,
-    	"bands": [
-    		1,
-    		2,
-    		3,
-    		4,
-    		5,
-    		6,
-    		7,
-    		8
-            ],
-    	"browseBands": [
-    		4,
-    		3,
-    		2
-    	],
+        "bands": [
+            "VNIR",
+            "QUALITY",
+            "CLOUDSHADOW",
+            "HAZE",
+            "SNOW"
+        ],
+        "browseBands": [
+            "VNIR[0]", "VNIR[1]", "SNOW"
+        ],
     	"heterogeneousCRS": true,
     	"mosaicCRS": "EPSG:4326"
     }
+
+In terms of band naming the "bands" parameter contains coverage names as used in the "band" column 
+of the granules table, in case a granule contains multiple bands, they can be referred by either
+using the full name, in which case they will be all picked, or by using zero-based indexes like 
+``BANDNAME[INDEX]``, which allows to pick a particular band.
+
+The same syntax is meant to be used in the ``browseBands`` property. In case the source is not
+split band, the ``browseBands`` can still be used to select specific bands, using the layer
+name as the coverage name, e.g. "test123[0]" to select the first band of the coverage.

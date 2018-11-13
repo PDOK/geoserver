@@ -29,6 +29,7 @@ import net.razorvine.pickle.PickleException;
 import net.razorvine.pickle.PickleUtils;
 import net.razorvine.pickle.Pickler;
 import net.razorvine.pickle.Unpickler;
+import net.sf.json.JSONNull;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.ssl.SSLContexts;
@@ -180,6 +181,15 @@ public class XMPPClient extends RemoteProcessClient {
 
         // Complex and Raw data types
         // ----
+        PRIMITIVE_NAME_TYPE_MAP.put(
+                "complex",
+                new Object[] {
+                    RawData.class,
+                    CType.COMPLEX,
+                    new StringRawData("", "application/octet-stream"),
+                    "application/octet-stream",
+                    ".bin"
+                });
         PRIMITIVE_NAME_TYPE_MAP.put(
                 "application/xml",
                 new Object[] {
@@ -617,6 +627,12 @@ public class XMPPClient extends RemoteProcessClient {
              */
             pendingRequests.add(
                     new RemoteRequestDescriptor(serviceName, input, metadata, pid, baseURL));
+
+            // NOTIFY LISTENERS
+            for (RemoteProcessClientListener listener : getRemoteClientListeners()) {
+                listener.progress(pid, 0.0);
+                listener.setTask(pid, "Blocked: no resources available for execution!");
+            }
         }
 
         return pid;
@@ -652,7 +668,9 @@ public class XMPPClient extends RemoteProcessClient {
                 }
             }
 
-            fixedInputs.put(key, fixedValue);
+            if (value != null && !(value instanceof JSONNull)) {
+                fixedInputs.put(key, fixedValue);
+            }
         }
 
         return fixedInputs;
@@ -932,6 +950,8 @@ public class XMPPClient extends RemoteProcessClient {
                 boolean isRequestValid = false;
                 for (RemoteProcessClientListener process : getRemoteClientListeners()) {
                     if (process.getPID().equals(pid)) {
+                        process.progress(pid, 0.0);
+                        process.setTask(pid, "Blocked: no resources available for execution!");
                         isRequestValid = true;
                         break;
                     }
@@ -1625,7 +1645,27 @@ class XMPPPacketListener implements PacketListener {
                     for (XMPPMessage xmppMessage :
                             GeoServerExtensions.extensions(XMPPMessage.class)) {
                         if (xmppMessage.canHandle(signalArgs)) {
-                            xmppMessage.handleSignal(xmppClient, packet, message, signalArgs);
+                            try {
+                                xmppMessage.handleSignal(xmppClient, packet, message, signalArgs);
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING, e.getMessage(), e);
+
+                                Map<String, Object> metadata = new HashMap<String, Object>();
+                                metadata.put("serviceJID", packet.getFrom());
+
+                                final String pID =
+                                        (signalArgs != null ? signalArgs.get("id") : null);
+
+                                // NOTIFY SERVICE for aborting the computation as soon as possible
+                                final String serviceJID = message.getFrom();
+                                xmppClient.sendMessage(serviceJID, "topic=abort");
+
+                                // NOTIFY LISTENERS
+                                for (RemoteProcessClientListener listener :
+                                        xmppClient.getRemoteClientListeners()) {
+                                    listener.exceptionOccurred(pID, e, metadata);
+                                }
+                            }
                         }
                     }
                 }

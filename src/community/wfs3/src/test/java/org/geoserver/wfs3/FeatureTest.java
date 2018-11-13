@@ -7,15 +7,19 @@ package org.geoserver.wfs3;
 import static org.hamcrest.CoreMatchers.both;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 import com.jayway.jsonpath.DocumentContext;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import net.minidev.json.JSONArray;
+import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.data.test.MockData;
 import org.geoserver.ows.util.KvpUtils;
 import org.geoserver.ows.util.ResponseUtils;
@@ -38,8 +42,16 @@ public class FeatureTest extends WFS3TestSupport {
         assertEquals("self", selfRels.get(0));
         // check alternate link
         List alternatefRels = json.read("links[?(@.type == 'application/json')].rel");
-        assertEquals(1, alternatefRels.size());
+        assertEquals(2, alternatefRels.size());
         assertEquals("alternate", alternatefRels.get(0));
+        assertEquals("collection", alternatefRels.get(1));
+        // check collection link
+        List selfLink = json.read("links[?(@.rel == 'collection')].href");
+        assertThat(selfLink.size(), greaterThan(0));
+        assertThat(
+                (String) selfLink.get(0),
+                startsWith(
+                        "http://localhost:8080/geoserver/wfs3/collections/" + roadSegments + "?"));
     }
 
     @Test
@@ -58,10 +70,11 @@ public class FeatureTest extends WFS3TestSupport {
         List selfRels = json.read("links[?(@.type == 'application/geo+json')].rel");
         assertEquals(1, selfRels.size());
         assertEquals("self", selfRels.get(0));
-        // check alternate link
+        // check json links
         List alternatefRels = json.read("links[?(@.type == 'application/json')].rel");
-        assertEquals(1, alternatefRels.size());
+        assertEquals(2, alternatefRels.size());
         assertEquals("alternate", alternatefRels.get(0));
+        assertEquals("collection", alternatefRels.get(1));
     }
 
     @Test
@@ -69,6 +82,20 @@ public class FeatureTest extends WFS3TestSupport {
         String roadSegments = getEncodedName(MockData.PRIMITIVEGEOFEATURE);
         DocumentContext json =
                 getAsJSONPath("wfs3/collections/" + roadSegments + "/items?bbox=35,0,60,3", 200);
+        assertEquals("FeatureCollection", json.read("type", String.class));
+        // should return only f002 and f003
+        assertEquals(2, (int) json.read("features.length()", Integer.class));
+        assertEquals(
+                1, json.read("features[?(@.id == 'PrimitiveGeoFeature.f001')]", List.class).size());
+        assertEquals(
+                1, json.read("features[?(@.id == 'PrimitiveGeoFeature.f002')]", List.class).size());
+    }
+
+    @Test
+    public void testBBoxDatelineCrossingFilter() throws Exception {
+        String roadSegments = getEncodedName(MockData.PRIMITIVEGEOFEATURE);
+        DocumentContext json =
+                getAsJSONPath("wfs3/collections/" + roadSegments + "/items?bbox=170,0,60,3", 200);
         assertEquals("FeatureCollection", json.read("type", String.class));
         // should return only f002 and f003
         assertEquals(2, (int) json.read("features.length()", Integer.class));
@@ -157,8 +184,9 @@ public class FeatureTest extends WFS3TestSupport {
         assertEquals(expected, href);
         // check alternate link
         List alternatefRels = json.read("links[?(@.type == 'application/json')].rel");
-        assertEquals(1, alternatefRels.size());
+        assertEquals(2, alternatefRels.size());
         assertEquals("alternate", alternatefRels.get(0));
+        assertEquals("collection", alternatefRels.get(1));
     }
 
     @Test
@@ -299,5 +327,44 @@ public class FeatureTest extends WFS3TestSupport {
         Map<String, Object> expectedKVP = KvpUtils.parseQueryString(expectedPath);
         Map<String, Object> actualKVP = KvpUtils.parseQueryString(expectedPath);
         assertEquals(expectedKVP, actualKVP);
+    }
+
+    @Test
+    public void testSpecialCharsInTypeName() throws Exception {
+        FeatureTypeInfo genericEntity =
+                getCatalog().getFeatureTypeByName(getLayerId(MockData.GENERICENTITY));
+        genericEntity.setName("EntitéGénérique");
+        getCatalog().save(genericEntity);
+        try {
+            String encodedLocalName = URLEncoder.encode(genericEntity.getName(), "UTF-8");
+            String typeName = MockData.GENERICENTITY.getPrefix() + "__" + encodedLocalName;
+            String encodedFeatureId = encodedLocalName + ".f004";
+            DocumentContext json =
+                    getAsJSONPath(
+                            "wfs3/collections/" + typeName + "/items/" + encodedFeatureId, 200);
+
+            assertEquals("Feature", json.read("type", String.class));
+            // check self link
+            String geoJsonLinkPath = "links[?(@.type == 'application/geo+json')]";
+            List selfRels = json.read(geoJsonLinkPath + ".rel");
+            assertEquals(1, selfRels.size());
+            assertEquals("self", selfRels.get(0));
+            String href = (String) ((List) json.read(geoJsonLinkPath + "href")).get(0);
+            String expected =
+                    "http://localhost:8080/geoserver/wfs3/collections/"
+                            + typeName
+                            + "/items/"
+                            + encodedFeatureId
+                            + "?f=application%2Fgeo%2Bjson";
+            assertEquals(expected, href);
+            // check alternate link
+            List alternatefRels = json.read("links[?(@.type == 'application/json')].rel");
+            assertEquals(2, alternatefRels.size());
+            assertEquals("alternate", alternatefRels.get(0));
+            assertEquals("collection", alternatefRels.get(1));
+        } finally {
+            genericEntity.setName(MockData.GENERICENTITY.getLocalPart());
+            getCatalog().save(genericEntity);
+        }
     }
 }

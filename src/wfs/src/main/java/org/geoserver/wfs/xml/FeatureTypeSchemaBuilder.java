@@ -54,9 +54,9 @@ import org.geotools.feature.NameImpl;
 import org.geotools.gml2.GMLConfiguration;
 import org.geotools.gml3.v3_2.GML;
 import org.geotools.wfs.v2_0.WFS;
-import org.geotools.xml.Configuration;
-import org.geotools.xml.Schemas;
 import org.geotools.xs.XS;
+import org.geotools.xsd.Configuration;
+import org.geotools.xsd.Schemas;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.AttributeType;
@@ -192,36 +192,11 @@ public abstract class FeatureTypeSchemaBuilder {
             schema.setTargetNamespace(targetNamespace);
             schema.getQNamePrefixToNamespaceMap().put(targetPrefix, targetNamespace);
 
-            boolean simple = true;
-            for (int i = 0; i < featureTypeInfos.length && simple; i++) {
-                try {
-                    simple = featureTypeInfos[i].getFeatureType() instanceof SimpleFeatureType;
-                } catch (IOException e) {
-                    // ignore so that broken feature types don't prevent others from continuing to
-                    // work
-                }
-            }
+            boolean simple = isSimpleFeature(featureTypeInfos);
 
             if (!simple) {
                 // complex features may belong to different workspaces
-                WorkspaceInfo localWorkspace = LocalWorkspace.get();
-                if (localWorkspace != null) {
-                    // deactivate workspace filtering
-                    LocalWorkspace.remove();
-                }
-                // add secondary namespaces from the full catalog
-                try {
-                    for (NamespaceInfo nameSpaceinfo : catalog.getNamespaces()) {
-                        if (!schema.getQNamePrefixToNamespaceMap()
-                                .containsKey(nameSpaceinfo.getPrefix())) {
-                            schema.getQNamePrefixToNamespaceMap()
-                                    .put(nameSpaceinfo.getPrefix(), nameSpaceinfo.getURI());
-                        }
-                    }
-                } finally {
-                    // make sure local workspace filtering is repositioned
-                    LocalWorkspace.set(localWorkspace);
-                }
+                addAllNamespacesFromCatalog(schema);
             }
 
             // would result in some xsd:include or xsd:import if schema location is specified
@@ -280,6 +255,11 @@ public abstract class FeatureTypeSchemaBuilder {
                 }
             }
         } else {
+            // if complex features, add all namespaces
+            if (!isSimpleFeature(featureTypeInfos)) {
+                addAllNamespacesFromCatalog(schema);
+            }
+
             // different namespaces, write out import statements
 
             // set the first namespace as the target one
@@ -382,6 +362,39 @@ public abstract class FeatureTypeSchemaBuilder {
             }
         }
         return schema;
+    }
+
+    private void addAllNamespacesFromCatalog(XSDSchema schema) {
+        WorkspaceInfo localWorkspace = LocalWorkspace.get();
+        if (localWorkspace != null) {
+            // deactivate workspace filtering
+            LocalWorkspace.remove();
+        }
+        // add secondary namespaces from the full catalog
+        try {
+            for (NamespaceInfo nameSpaceinfo : catalog.getNamespaces()) {
+                if (!schema.getQNamePrefixToNamespaceMap().containsKey(nameSpaceinfo.getPrefix())) {
+                    schema.getQNamePrefixToNamespaceMap()
+                            .put(nameSpaceinfo.getPrefix(), nameSpaceinfo.getURI());
+                }
+            }
+        } finally {
+            // make sure local workspace filtering is repositioned
+            LocalWorkspace.set(localWorkspace);
+        }
+    }
+
+    private boolean isSimpleFeature(FeatureTypeInfo[] featureTypeInfos) {
+        boolean simple = true;
+        for (int i = 0; i < featureTypeInfos.length && simple; i++) {
+            try {
+                simple = featureTypeInfos[i].getFeatureType() instanceof SimpleFeatureType;
+            } catch (IOException e) {
+                // ignore so that broken feature types don't prevent others from continuing to
+                // work
+            }
+        }
+        return simple;
     }
 
     protected void importGMLSchema(XSDSchema schema, XSDFactory factory, String baseUrl) {

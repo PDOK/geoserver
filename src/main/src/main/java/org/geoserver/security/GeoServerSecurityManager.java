@@ -1719,6 +1719,16 @@ public class GeoServerSecurityManager implements ApplicationContextAware, Applic
 
     /** Checks the specified password against the master password. */
     public boolean checkMasterPassword(char[] passwd) {
+        try {
+            if (!this.masterPasswordProviderHelper
+                    .loadConfig(this.masterPasswordConfig.getProviderName())
+                    .isLoginEnabled()) {
+                return false;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load master password provider config", e);
+        }
+
         GeoServerDigestPasswordEncoder pwEncoder =
                 loadPasswordEncoder(GeoServerDigestPasswordEncoder.class);
         if (masterPasswdDigest == null) {
@@ -2019,7 +2029,10 @@ public class GeoServerSecurityManager implements ApplicationContextAware, Applic
      * @throws IOException
      */
     public boolean dumpMasterPassword(Resource file) throws IOException {
-
+        if (file.getType() != Resource.Type.UNDEFINED) {
+            LOGGER.warning("Master password dump attempted to overwrite existing resource");
+            return false;
+        }
         if (checkAuthenticationForAdminRole() == false) {
             LOGGER.warning("Unautorized user tries to dump master password");
             return false;

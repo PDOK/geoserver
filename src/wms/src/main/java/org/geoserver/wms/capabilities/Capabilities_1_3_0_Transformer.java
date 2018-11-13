@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.geoserver.catalog.AttributionInfo;
 import org.geoserver.catalog.AuthorityURLInfo;
 import org.geoserver.catalog.Catalog;
@@ -1161,7 +1161,7 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                         } else {
                             LOGGER.log(
                                     Level.WARNING,
-                                    "Skipping a null layer group during caps during caps document generation",
+                                    "Skipping a null layer group during caps document generation",
                                     e);
                         }
 

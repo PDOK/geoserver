@@ -26,6 +26,7 @@ import org.geoserver.security.config.PreAuthenticatedUserNameFilterConfig.PreAut
 import org.geoserver.security.filter.*;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geoserver.security.impl.GeoServerUser;
+import org.geoserver.security.password.MasterPasswordProviderConfig;
 import org.geoserver.test.RunTestSetup;
 import org.geoserver.test.SystemTest;
 import org.geotools.data.Base64;
@@ -97,6 +98,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -118,6 +120,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         modifyChain(pattern, false, true, GeoServerSecurityFilterChain.ROLE_FILTER);
         // check success
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -155,6 +158,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -185,6 +189,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         request.addHeader(
                 "Authorization",
                 "Basic " + new String(Base64.encodeBytes(("unknwon:" + testPassword).getBytes())));
+        request.setMethod("GET");
         getProxy().doFilter(request, response, chain);
         tmp = response.getHeader("WWW-Authenticate");
         assertNotNull(tmp);
@@ -202,8 +207,17 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
+
+        // We need to enable Master Root login first
+        MasterPasswordProviderConfig masterPasswordConfig =
+                getSecurityManager()
+                        .loadMasterPassswordProviderConfig(
+                                getSecurityManager().getMasterPasswordConfig().getProviderName());
+        masterPasswordConfig.setLoginEnabled(true);
+        getSecurityManager().saveMasterPasswordProviderConfig(masterPasswordConfig);
 
         request.addHeader(
                 "Authorization",
@@ -230,6 +244,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user with wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -258,6 +273,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         getSecurityManager().getAuthenticationCache().removeAll();
         updateUser("ug1", testUserName, false);
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -287,6 +303,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -314,6 +331,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -330,6 +348,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check success
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.addHeader(
@@ -354,6 +373,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -372,6 +392,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check unknown user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.addHeader("X-Credentials", "private-user=wronguser&private-pw=" + testPassword);
@@ -388,6 +409,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         String masterPassword = URLEncoder.encode(getMasterPassword(), "UTF-8");
@@ -412,6 +434,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user with wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -434,6 +457,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         getSecurityManager().getAuthenticationCache().removeAll();
         updateUser("ug1", testUserName, false);
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.addHeader(
@@ -456,6 +480,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -484,6 +509,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -504,6 +530,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
             getSecurityManager().saveFilter(config);
             // test preauthenticated with various role sources
             request = createRequest("/foo/bar");
+            request.setMethod("GET");
             response = new MockHttpServletResponse();
             chain = new MockFilterChain();
             request.setUserPrincipal(
@@ -545,6 +572,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         }
         // test root
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.setUserPrincipal(
@@ -577,6 +605,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // test preauthenticated with active role service
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.setUserPrincipal(
@@ -613,6 +642,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -645,6 +675,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -663,6 +694,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
             config.setRoleSource(rs);
             getSecurityManager().saveFilter(config);
             request = createRequest("/foo/bar");
+            request.setMethod("GET");
             response = new MockHttpServletResponse();
             chain = new MockFilterChain();
             request.addHeader("principal", testUserName);
@@ -694,6 +726,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
             config.setRoleSource(rs);
             request = createRequest("/foo/bar");
+            request.setMethod("GET");
             response = new MockHttpServletResponse();
             chain = new MockFilterChain();
             request.addHeader("principal", "unknwon");
@@ -718,6 +751,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         config.setRoleSource(PreAuthenticatedUserNameRoleSource.UserGroupService);
         getSecurityManager().saveFilter(config);
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addHeader("principal", testUserName);
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
@@ -737,6 +771,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -761,6 +796,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -781,6 +817,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // test successful login
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -806,6 +843,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -828,6 +866,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check unknown user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -850,8 +889,17 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
+
+        // We need to enable Master Root login first
+        MasterPasswordProviderConfig masterPasswordConfig =
+                getSecurityManager()
+                        .loadMasterPassswordProviderConfig(
+                                getSecurityManager().getMasterPasswordConfig().getProviderName());
+        masterPasswordConfig.setLoginEnabled(true);
+        getSecurityManager().saveMasterPasswordProviderConfig(masterPasswordConfig);
 
         headerValue =
                 clientDigestString(
@@ -876,6 +924,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check root user with wrong password
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -901,6 +950,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // check disabled user
         updateUser("ug1", testUserName, false);
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -925,6 +975,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -951,6 +1002,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
@@ -962,6 +1014,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check success
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
@@ -986,6 +1039,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         Cookie cookie = (Cookie) response.getCookies()[0];
 
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         request.setCookies(cookie);
         response = new MockHttpServletResponse();
@@ -1009,6 +1063,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // send cookie + auth header
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         request.setCookies(cookie);
         response = new MockHttpServletResponse();
@@ -1033,9 +1088,18 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check no remember me for root user
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
+
+        // We need to enable Master Root login first
+        MasterPasswordProviderConfig masterPasswordConfig =
+                getSecurityManager()
+                        .loadMasterPassswordProviderConfig(
+                                getSecurityManager().getMasterPasswordConfig().getProviderName());
+        masterPasswordConfig.setLoginEnabled(true);
+        getSecurityManager().saveMasterPasswordProviderConfig(masterPasswordConfig);
 
         request.addHeader(
                 "Authorization",
@@ -1064,6 +1128,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         updateUser("ug1", "abc@xyz.com", false);
 
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         request.setCookies(cookie);
         response = new MockHttpServletResponse();
@@ -1109,6 +1174,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -1127,6 +1193,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check success
         request = createRequest("/j_spring_security_check_foo");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         request.setMethod("POST");
@@ -1160,6 +1227,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
                         getSecurityManager()
                                 .loadFilter(GeoServerSecurityFilterChain.FORM_LOGOUT_FILTER);
         request = createRequest("/j_spring_security_logout_foo");
+        request.setMethod("GET");
         HttpSession session = request.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -1293,6 +1361,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -1330,6 +1399,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.addParameter("_spring_security_remember_me", "yes");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
@@ -1384,6 +1454,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
                         getSecurityManager()
                                 .loadFilter(GeoServerSecurityFilterChain.FORM_LOGOUT_FILTER);
         request = createRequest("/j_spring_security_logout_foo");
+        request.setMethod("GET");
         session = request.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, ctx);
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -1405,6 +1476,15 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         request.addParameter("_spring_security_remember_me", "yes");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
+
+        // We need to enable Master Root login first
+        MasterPasswordProviderConfig masterPasswordConfig =
+                getSecurityManager()
+                        .loadMasterPassswordProviderConfig(
+                                getSecurityManager().getMasterPasswordConfig().getProviderName());
+        masterPasswordConfig.setLoginEnabled(true);
+        getSecurityManager().saveMasterPasswordProviderConfig(masterPasswordConfig);
+
         request.setMethod("POST");
         request.addParameter(config.getUsernameParameterName(), GeoServerUser.ROOT_USERNAME);
         request.addParameter(config.getPasswordParameterName(), getMasterPassword());
@@ -1431,6 +1511,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         updateUser("ug1", testUserName, false);
 
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         request.setCookies(cookie);
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
@@ -1466,6 +1547,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -1484,6 +1566,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
             config.setRoleSource(rs);
             getSecurityManager().saveFilter(config);
             request = createRequest("/foo/bar");
+            request.setMethod("GET");
             response = new MockHttpServletResponse();
             chain = new MockFilterChain();
             if (rs == J2EERoleSource.Header) {
@@ -1524,6 +1607,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
             config.setRoleSource(rs);
             request = createRequest("/foo/bar");
+            request.setMethod("GET");
             response = new MockHttpServletResponse();
             chain = new MockFilterChain();
             if (rs == J2EERoleSource.J2EE) {
@@ -1557,6 +1641,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         config.setRoleSource(J2EERoleSource.UserGroupService);
         getSecurityManager().saveFilter(config);
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         setCertifacteForUser(testUserName, request);
@@ -1576,6 +1661,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         // Test anonymous
         insertAnonymousFilter();
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
         getProxy().doFilter(request, response, chain);
@@ -1608,6 +1694,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // Test entry point, must be digest
         MockHttpServletRequest request = createRequest("/foo/bar");
+        request.setMethod("GET");
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
 
@@ -1628,6 +1715,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // test successful login for digest
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -1653,6 +1741,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
 
         // check success for basic authentication
         request = createRequest("/foo/bar");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
         chain = new MockFilterChain();
 
@@ -1692,6 +1781,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         getSecurityManager().saveSecurityConfig(secConfig);
 
         MockHttpServletRequest request = createRequest("/foo/bar?request=getCapabilities&a=b");
+        request.setMethod("GET");
         request.setProtocol("https");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -1700,6 +1790,7 @@ public class AuthenticationFilterTest extends AbstractAuthenticationProviderTest
         assertEquals(HttpServletResponse.SC_OK, response.getStatus());
 
         request = createRequest("/foo/bar?request=getCapabilities&a=b");
+        request.setMethod("GET");
         response = new MockHttpServletResponse();
 
         authchain = new MockFilterChain();

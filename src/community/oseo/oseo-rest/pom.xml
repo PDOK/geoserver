@@ -8,25 +8,20 @@
   <parent>
     <groupId>org.geoserver.community</groupId>
     <artifactId>gs-oseo</artifactId>
-    <version>2.14-SNAPSHOT</version>
+    <version>2.15-SNAPSHOT</version>
   </parent>
 
   <groupId>org.geoserver.community</groupId>
   <artifactId>gs-oseo-rest</artifactId>
   <name>OpenSearch for EO REST configuration API</name>
   <packaging>jar</packaging>
-  <version>2.14-SNAPSHOT</version>
+  <version>2.15-SNAPSHOT</version>
 
   <dependencies>
     <dependency>
       <groupId>org.geoserver.community</groupId>
       <artifactId>gs-oseo-core</artifactId>
       <version>${gs.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.geoserver</groupId>
-      <artifactId>gs-rest</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.geoserver</groupId>

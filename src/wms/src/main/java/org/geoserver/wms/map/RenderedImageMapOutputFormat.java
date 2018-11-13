@@ -73,6 +73,7 @@ import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.gce.imagemosaic.ImageMosaicFormat;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.image.ImageWorker;
+import org.geotools.image.util.ColorUtilities;
 import org.geotools.map.Layer;
 import org.geotools.map.StyleLayer;
 import org.geotools.parameter.Parameter;
@@ -87,7 +88,6 @@ import org.geotools.renderer.lite.RenderingTransformationHelper;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.renderer.lite.gridcoverage2d.ChannelSelectionUpdateStyleVisitor;
 import org.geotools.renderer.lite.gridcoverage2d.GridCoverageRenderer;
-import org.geotools.resources.image.ColorUtilities;
 import org.geotools.styling.RasterSymbolizer;
 import org.geotools.styling.Style;
 import org.geotools.util.logging.Logging;
@@ -1292,11 +1292,6 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
             // background
             if (bgColorIndex == -1) {
                 // we need to expand the image to RGB
-                image = worker.forceComponentColorModel().getRenderedImage();
-                if (transparent) {
-                    image = addAlphaChannel(image);
-                    worker.setImage(image);
-                }
                 bgValues =
                         new double[] {
                             bgColor.getRed(),
@@ -1304,6 +1299,12 @@ public class RenderedImageMapOutputFormat extends AbstractMapOutputFormat {
                             bgColor.getBlue(),
                             transparent ? 0 : 255
                         };
+                worker.setBackground(bgValues);
+                image = worker.forceComponentColorModel().getRenderedImage();
+                if (transparent && !image.getColorModel().hasAlpha()) {
+                    image = addAlphaChannel(image);
+                    worker.setImage(image);
+                }
                 cm = image.getColorModel();
             } else {
                 // we found the background color in the original image palette therefore we set its

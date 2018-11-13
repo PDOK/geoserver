@@ -10,8 +10,13 @@ import org.geoserver.wfs3.response.CollectionDocument;
 import org.geoserver.wfs3.response.CollectionsDocument;
 import org.geoserver.wfs3.response.ConformanceDocument;
 import org.geoserver.wfs3.response.LandingPageDocument;
+import org.geoserver.wfs3.response.TilingSchemeDescriptionDocument;
+import org.geoserver.wfs3.response.TilingSchemesDocument;
+import org.geotools.util.Version;
 
 public interface WebFeatureService30 {
+
+    static final Version V3 = new Version("3.0.0");
 
     /**
      * Returns the landing page of WFS 3.0
@@ -60,4 +65,13 @@ public interface WebFeatureService30 {
      * @return
      */
     FeatureCollectionResponse getFeature(GetFeatureType request);
+
+    /** Tiling Schemes available list */
+    TilingSchemesDocument tilingSchemes(TilingSchemesRequest request);
+
+    /** Tiling Scheme detail */
+    TilingSchemeDescriptionDocument describeTilingScheme(TilingSchemeDescriptionRequest request);
+
+    /** Queries Features for the requested tile coordinate */
+    FeatureCollectionResponse getTile(GetFeatureType request);
 }
