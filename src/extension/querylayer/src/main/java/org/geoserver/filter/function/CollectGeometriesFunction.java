@@ -4,9 +4,6 @@
  */
 package org.geoserver.filter.function;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
 import java.util.Iterator;
 import java.util.List;
 import org.geotools.filter.FunctionImpl;

@@ -6,7 +6,6 @@ package org.geoserver.wms.mapbox;
 
 import static org.geoserver.wms.mapbox.MapBoxTileBuilderFactory.MIME_TYPE;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.awt.Rectangle;
 import java.io.IOException;
 import java.util.Map;

@@ -5,9 +5,6 @@
  */
 package org.geoserver.kml.regionate;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;

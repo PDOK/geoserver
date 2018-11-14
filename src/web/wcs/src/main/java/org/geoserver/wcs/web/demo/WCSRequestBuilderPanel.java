@@ -5,7 +5,6 @@
  */
 package org.geoserver.wcs.web.demo;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.util.Arrays;

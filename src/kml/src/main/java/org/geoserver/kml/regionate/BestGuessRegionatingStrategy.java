@@ -5,7 +5,6 @@
  */
 package org.geoserver.kml.regionate;
 
-import com.vividsolutions.jts.geom.Point;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.config.GeoServer;
 import org.geoserver.wms.WMSMapContent;

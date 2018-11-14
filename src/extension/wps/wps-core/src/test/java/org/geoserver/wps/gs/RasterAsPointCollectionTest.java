@@ -8,8 +8,6 @@ package org.geoserver.wps.gs;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Map;

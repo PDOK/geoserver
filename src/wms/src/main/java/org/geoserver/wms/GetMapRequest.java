@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.awt.image.IndexColorModel;

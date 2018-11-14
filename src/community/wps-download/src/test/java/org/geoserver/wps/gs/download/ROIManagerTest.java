@@ -5,9 +5,6 @@
  */
 package org.geoserver.wps.gs.download;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
 import junit.framework.TestCase;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;

@@ -5,8 +5,6 @@
  */
 package org.geoserver.wms.featureinfo;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Polygon;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

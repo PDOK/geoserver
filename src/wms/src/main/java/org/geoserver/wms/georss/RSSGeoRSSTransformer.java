@@ -5,8 +5,6 @@
  */
 package org.geoserver.wms.georss;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;

@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.net.MalformedURLException;

@@ -5,9 +5,6 @@
  */
 package org.geoserver.wms.svg;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.Point;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;

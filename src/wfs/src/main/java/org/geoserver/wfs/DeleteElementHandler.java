@@ -5,7 +5,6 @@
  */
 package org.geoserver.wfs;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashSet;

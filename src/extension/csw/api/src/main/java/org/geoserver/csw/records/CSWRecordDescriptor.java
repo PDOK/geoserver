@@ -5,7 +5,6 @@
  */
 package org.geoserver.csw.records;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

@@ -5,7 +5,6 @@
  */
 package org.geoserver.wfs.kvp;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.util.List;
 import org.geoserver.ows.KvpParser;
 import org.geoserver.ows.util.KvpUtils;

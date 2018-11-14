@@ -6,9 +6,6 @@
 
 package org.geoserver.test;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.gml.producer.CoordinateFormatter;
 import org.geotools.referencing.CRS;

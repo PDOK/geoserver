@@ -5,7 +5,6 @@
  */
 package org.geoserver.csw.records;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
 import java.util.Collection;
 import java.util.List;
 import junit.framework.TestCase;

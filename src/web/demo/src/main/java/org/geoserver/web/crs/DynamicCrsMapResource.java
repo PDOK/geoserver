@@ -5,7 +5,6 @@
  */
 package org.geoserver.web.crs;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.image.RenderedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

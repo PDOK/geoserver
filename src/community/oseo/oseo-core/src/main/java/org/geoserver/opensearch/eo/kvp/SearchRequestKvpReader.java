@@ -18,11 +18,6 @@ import static org.geoserver.opensearch.eo.OpenSearchParameters.TIME_END;
 import static org.geoserver.opensearch.eo.OpenSearchParameters.TIME_RELATION;
 import static org.geoserver.opensearch.eo.OpenSearchParameters.TIME_START;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.io.WKTReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

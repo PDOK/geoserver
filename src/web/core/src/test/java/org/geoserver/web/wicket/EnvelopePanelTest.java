@@ -7,7 +7,6 @@ package org.geoserver.web.wicket;
 
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Envelope;
 import org.apache.wicket.Component;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.util.tester.FormTester;

@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms.map;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import java.awt.Color;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;

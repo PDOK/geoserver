@@ -5,7 +5,6 @@
  */
 package org.geoserver.wfs.json;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;

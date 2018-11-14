@@ -4,7 +4,6 @@
  */
 package org.geoserver.importer;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.util.NoSuchElementException;
 import org.geoserver.importer.job.ProgressMonitor;
 import org.geoserver.importer.transform.VectorTransformChain;

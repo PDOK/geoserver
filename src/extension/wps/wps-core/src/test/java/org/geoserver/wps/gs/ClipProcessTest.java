@@ -8,8 +8,6 @@ package org.geoserver.wps.gs;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.ByteArrayInputStream;
 import net.opengis.wfs.FeatureCollectionType;
 import org.geoserver.wps.WPSTestSupport;

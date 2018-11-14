@@ -6,9 +6,6 @@ package org.geoserver.wfs.v1_1;
 
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
 import java.io.IOException;
 import java.util.Collections;
 import javax.xml.namespace.QName;

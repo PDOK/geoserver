@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms.featureinfo;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;

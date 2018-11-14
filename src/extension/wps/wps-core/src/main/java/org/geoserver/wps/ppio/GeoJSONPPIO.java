@@ -5,7 +5,6 @@
  */
 package org.geoserver.wps.ppio;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

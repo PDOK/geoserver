@@ -5,9 +5,6 @@
  */
 package org.geoserver.wms;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;

@@ -4,8 +4,6 @@
  */
 package org.geoserver.wfs.xml;
 
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

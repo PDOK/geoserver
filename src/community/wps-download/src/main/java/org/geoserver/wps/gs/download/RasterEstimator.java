@@ -5,9 +5,6 @@
  */
 package org.geoserver.wps.gs.download;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.PrecisionModel;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;

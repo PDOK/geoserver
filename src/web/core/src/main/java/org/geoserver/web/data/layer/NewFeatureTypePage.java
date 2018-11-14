@@ -5,7 +5,6 @@
  */
 package org.geoserver.web.data.layer;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;

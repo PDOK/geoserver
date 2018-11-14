@@ -5,7 +5,6 @@
  */
 package org.geoserver.importer.transform;
 
-import com.vividsolutions.jts.geom.Geometry;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.importer.ImportTask;
 import org.geotools.data.DataStore;

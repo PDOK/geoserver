@@ -5,8 +5,6 @@
  */
 package org.geoserver.monitor.ows.wms;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;

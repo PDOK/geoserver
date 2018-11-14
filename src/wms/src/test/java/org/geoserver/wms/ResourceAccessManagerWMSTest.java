@@ -10,8 +10,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.io.WKTReader;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.util.Collections;

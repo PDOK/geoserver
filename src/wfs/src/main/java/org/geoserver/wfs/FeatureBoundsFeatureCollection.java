@@ -5,7 +5,6 @@
  */
 package org.geoserver.wfs;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;

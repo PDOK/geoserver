@@ -5,7 +5,6 @@
  */
 package org.geoserver.wfs.xml.gml3;
 
-import com.vividsolutions.jts.geom.Geometry;
 import org.geoserver.wfs.WFSException;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.gml2.bindings.GML2ParsingUtils;

@@ -7,8 +7,6 @@ package org.geoserver.wms;
 
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Point;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;

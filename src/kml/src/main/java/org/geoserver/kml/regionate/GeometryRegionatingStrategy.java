@@ -5,10 +5,6 @@
  */
 package org.geoserver.kml.regionate;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Polygon;
 import java.util.Map;
 import java.util.logging.Level;
 import org.geoserver.catalog.FeatureTypeInfo;

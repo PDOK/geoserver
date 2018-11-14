@@ -4,7 +4,6 @@
  */
 package org.geoserver.importer.format;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;

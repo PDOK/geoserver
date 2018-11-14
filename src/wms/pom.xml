@@ -5,8 +5,8 @@
  application directory.
  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -38,8 +38,8 @@
       <artifactId>gt-svg</artifactId>
       <exclusions>
         <exclusion>
-           <groupId>xalan</groupId>
-           <artifactId>xalan</artifactId>
+          <groupId>xalan</groupId>
+          <artifactId>xalan</artifactId>
         </exclusion>
         <exclusion>
           <groupId>org.apache.xmlgraphics</groupId>
@@ -58,7 +58,7 @@
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-process</artifactId>
-    </dependency>    
+    </dependency>
     <!-- end of SVG rendering markers support -->
     <dependency>
       <groupId>com.lowagie</groupId>
@@ -80,7 +80,7 @@
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId> 
+      <artifactId>h2</artifactId>
     </dependency>
     <dependency>
       <groupId>ar.com.hjg</groupId>
@@ -100,7 +100,7 @@
       <artifactId>spring-context-support</artifactId>
       <version>${spring.version}</version>
     </dependency>
-	<dependency>
+    <dependency>
       <groupId>org.geoserver</groupId>
       <artifactId>gs-ows</artifactId>
       <classifier>tests</classifier>
@@ -123,10 +123,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-     <groupId>org.easymock</groupId>
-     <artifactId>easymockclassextension</artifactId>
-     <version>2.3</version>
-	 <scope>test</scope>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymockclassextension</artifactId>
+      <version>2.3</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>xmlunit</groupId>
@@ -140,10 +140,10 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>org.apache.pdfbox</groupId>
-        <artifactId>pdfbox</artifactId>
-        <version>2.0.4</version>
-        <scope>test</scope>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>2.0.4</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
@@ -170,7 +170,7 @@
     <testResources>
       <testResource>
         <directory>src/test/resources</directory>
-      </testResource>     
+      </testResource>
     </testResources>
     <plugins>
       <plugin>

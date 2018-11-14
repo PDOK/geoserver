@@ -5,7 +5,6 @@
  */
 package org.geoserver.kml.utils;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;

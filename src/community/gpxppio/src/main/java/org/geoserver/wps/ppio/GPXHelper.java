@@ -5,12 +5,6 @@
  */
 package org.geoserver.wps.ppio;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.Point;
 import java.util.List;
 import org.geoserver.wps.ppio.gpx.GpxType;
 import org.geoserver.wps.ppio.gpx.RteType;

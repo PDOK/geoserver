@@ -5,7 +5,6 @@
  */
 package org.geoserver.importer;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.util.List;
 import org.geoserver.catalog.AttributeTypeInfo;

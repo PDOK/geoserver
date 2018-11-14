@@ -9,8 +9,6 @@ import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.io.WKTReader;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;

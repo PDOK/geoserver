@@ -7,9 +7,6 @@ package org.geoserver.filter.function;
 
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.io.WKTReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

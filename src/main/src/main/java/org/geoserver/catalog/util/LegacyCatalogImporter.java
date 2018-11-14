@@ -5,7 +5,6 @@
  */
 package org.geoserver.catalog.util;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

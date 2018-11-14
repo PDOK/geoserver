@@ -8,7 +8,6 @@ package org.geoserver.mbtiles;
 import static org.geoserver.data.test.MockData.*;
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

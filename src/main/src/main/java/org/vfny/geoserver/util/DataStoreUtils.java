@@ -5,7 +5,6 @@
  */
 package org.vfny.geoserver.util;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;

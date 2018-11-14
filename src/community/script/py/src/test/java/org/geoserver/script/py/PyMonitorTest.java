@@ -4,8 +4,6 @@
  */
 package org.geoserver.script.py;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
 import java.util.HashMap;
 import java.util.Map;
 import org.geoserver.script.wps.ScriptProcessFactory;

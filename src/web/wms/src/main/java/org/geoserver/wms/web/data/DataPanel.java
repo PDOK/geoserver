@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms.web.data;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.util.logging.Logger;
 import org.apache.wicket.Component;

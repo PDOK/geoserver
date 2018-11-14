@@ -5,9 +5,6 @@
  */
 package org.geoserver.wcs2_0.response;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
 import java.awt.geom.AffineTransform;
 import java.io.IOException;
 import java.sql.Timestamp;

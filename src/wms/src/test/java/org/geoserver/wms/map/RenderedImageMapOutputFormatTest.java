@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;

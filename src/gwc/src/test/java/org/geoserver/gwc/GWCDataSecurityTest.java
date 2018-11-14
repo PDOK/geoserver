@@ -13,8 +13,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.io.WKTReader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -185,7 +183,7 @@ public class GWCDataSecurityTest extends WMSTestSupport {
                 coverage,
                 new CoverageAccessLimits(CatalogMode.HIDE, filter, null, null));
 
-        System.out.println(coverage.boundingBox());
+        // System.out.println(coverage.boundingBox());
     }
 
     @Test

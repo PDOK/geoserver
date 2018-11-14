@@ -5,7 +5,6 @@
  */
 package org.geoserver.wps.gs.download;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

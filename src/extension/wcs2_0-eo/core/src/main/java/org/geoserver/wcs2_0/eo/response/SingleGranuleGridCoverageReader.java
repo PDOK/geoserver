@@ -5,7 +5,6 @@
  */
 package org.geoserver.wcs2_0.eo.response;
 
-import com.vividsolutions.jts.geom.Geometry;
 import it.geosolutions.imageio.maskband.DatasetLayout;
 import java.io.IOException;
 import java.util.Date;

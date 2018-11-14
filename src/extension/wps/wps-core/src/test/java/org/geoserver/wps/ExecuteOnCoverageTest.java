@@ -8,7 +8,6 @@ package org.geoserver.wps;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;

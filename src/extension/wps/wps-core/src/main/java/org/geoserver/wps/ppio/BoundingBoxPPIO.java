@@ -5,7 +5,6 @@
  */
 package org.geoserver.wps.ppio;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.util.Arrays;
 import java.util.List;
 import net.opengis.ows11.BoundingBoxType;

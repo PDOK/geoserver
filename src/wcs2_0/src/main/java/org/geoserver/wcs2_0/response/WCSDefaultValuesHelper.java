@@ -4,8 +4,6 @@
  */
 package org.geoserver.wcs2_0.response;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Polygon;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

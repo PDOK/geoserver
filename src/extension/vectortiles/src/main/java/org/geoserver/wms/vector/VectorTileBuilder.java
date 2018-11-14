@@ -4,7 +4,6 @@
  */
 package org.geoserver.wms.vector;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.io.IOException;
 import java.util.Map;
 import org.geoserver.wms.WMSMapContent;

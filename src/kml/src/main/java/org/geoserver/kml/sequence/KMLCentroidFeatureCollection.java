@@ -5,9 +5,6 @@
  */
 package org.geoserver.kml.sequence;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import java.util.NoSuchElementException;
 import org.geoserver.kml.KmlEncodingContext;
 import org.geoserver.kml.utils.KmlCentroidBuilder;

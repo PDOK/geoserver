@@ -6,8 +6,6 @@ package org.geoserver.importer.format;
 
 import static org.junit.Assert.assertEquals;
 
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.Point;
 import java.io.File;
 import java.util.Date;
 import org.geotools.referencing.CRS;

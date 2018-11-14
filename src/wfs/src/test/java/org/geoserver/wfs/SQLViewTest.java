@@ -10,7 +10,6 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
 
-import com.vividsolutions.jts.geom.Point;
 import java.io.File;
 import java.util.Map;
 import net.sf.json.JSON;

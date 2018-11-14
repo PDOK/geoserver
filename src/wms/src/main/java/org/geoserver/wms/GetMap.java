@@ -5,7 +5,6 @@
  */
 package org.geoserver.wms;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.image.RenderedImage;
 import java.io.IOException;
 import java.text.DateFormat;

@@ -4,8 +4,6 @@
  */
 package org.geoserver.filter.function;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryComponentFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

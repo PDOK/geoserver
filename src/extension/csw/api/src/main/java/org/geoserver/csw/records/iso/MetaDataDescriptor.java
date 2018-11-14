@@ -4,7 +4,6 @@
  */
 package org.geoserver.csw.records.iso;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;

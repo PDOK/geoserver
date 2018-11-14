@@ -5,7 +5,6 @@
  */
 package org.geoserver.catalog.util;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;

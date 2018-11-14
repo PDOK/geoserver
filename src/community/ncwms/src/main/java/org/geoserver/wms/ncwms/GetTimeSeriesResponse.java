@@ -4,7 +4,6 @@
  */
 package org.geoserver.wms.ncwms;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;

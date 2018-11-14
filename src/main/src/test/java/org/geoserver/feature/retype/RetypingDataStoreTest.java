@@ -11,7 +11,6 @@ import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.io.WKTReader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;

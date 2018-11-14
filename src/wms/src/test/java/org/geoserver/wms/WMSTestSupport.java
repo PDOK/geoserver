@@ -11,7 +11,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.*;
 
-import com.vividsolutions.jts.geom.Envelope;
 import java.awt.Color;
 import java.awt.Frame;
 import java.awt.Graphics;
