@@ -24,12 +24,12 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import org.apache.commons.io.IOUtils;
 import org.geoserver.ManifestLoader.AboutModel.ManifestModel;
 import org.geoserver.config.GeoServer;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.Resource.Type;
+import org.geotools.util.SuppressFBWarnings;
 import org.geotools.util.factory.GeoTools;
 import org.geotools.util.logging.Logging;
 
@@ -58,38 +58,36 @@ public class ManifestLoader {
 
     private static ClassLoader classLoader;
 
-    /** @throws Exception */
+    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     public ManifestLoader(GeoServerResourceLoader loader) throws Exception {
 
         classLoader = loader.getClassLoader();
+        if (classLoader == null) {
+            throw new IllegalStateException(
+                    "Could not get the class loader from GeoServerResourceLoader");
+        }
 
         props = new Properties();
 
         // load from jar or classpath
-        InputStream is = null;
-        try {
-            is = classLoader.getResourceAsStream("org/geoserver/" + PROPERTIES_FILE);
+        try (InputStream is = classLoader.getResourceAsStream("org/geoserver/" + PROPERTIES_FILE)) {
             if (is != null) {
                 props.load(is);
             }
         } catch (IOException e) {
             LOGGER.log(Level.FINER, e.getMessage(), e);
-        } finally {
-            IOUtils.closeQuietly(is);
         }
         // override settings from datadir
-        try {
-            // datadir search
-            Resource resource = loader.get(PROPERTIES_FILE);
-            if (resource.getType() == Type.RESOURCE) {
-                is = resource.in();
+        // datadir search
+        Resource resource = loader.get(PROPERTIES_FILE);
+        if (resource.getType() == Type.RESOURCE) {
+            try (InputStream is = resource.in()) {
                 props.load(is);
+            } catch (IOException e2) {
+                LOGGER.log(Level.FINER, e2.getMessage(), e2);
             }
-        } catch (IOException e2) {
-            LOGGER.log(Level.FINER, e2.getMessage(), e2);
-        } finally {
-            IOUtils.closeQuietly(is);
         }
+
         try {
             resourceNameRegex =
                     Pattern.compile(
@@ -153,25 +151,18 @@ public class ManifestLoader {
         try {
             Enumeration<URL> resources = loader.getResources("META-INF/MANIFEST.MF");
             while (resources.hasMoreElements()) {
-                InputStream is = null;
-                try {
-                    URL resource = resources.nextElement();
+                URL resource = resources.nextElement();
 
-                    if (LOGGER.isLoggable(Level.FINE))
-                        LOGGER.fine("Loading resources: " + resource.getFile());
-
-                    is = resource.openStream();
-
+                if (LOGGER.isLoggable(Level.FINE))
+                    LOGGER.fine("Loading resources: " + resource.getFile());
+                try (InputStream is = resource.openStream()) {
                     manifests.put(resource.getPath(), new Manifest(is));
-
                 } catch (IOException e) {
                     // handle
                     LOGGER.log(
                             java.util.logging.Level.SEVERE,
                             "Error loading resources file: " + e.getLocalizedMessage(),
                             e);
-                } finally {
-                    IOUtils.closeQuietly(is);
                 }
             }
         } catch (IOException e) {
@@ -224,9 +215,6 @@ public class ManifestLoader {
         if (classLoader == null) {
             throw new IllegalArgumentException("Unable to run with null classLoader");
         }
-
-        // load metadata
-        Map<String, Manifest> manifests = ManifestLoader.loadManifest(classLoader);
 
         // start building the model
         AboutModel model = new AboutModel();
@@ -620,7 +608,7 @@ public class ManifestLoader {
              * A parser for {@link Manifest} bean which generates {@link ManifestModel}s
              *
              * @param name the name to assign to the generated model
-             * @param m the manifest bean to load
+             * @param manifest the manifest bean to load
              * @return the generated model
              */
             private static ManifestModel parseManifest(

@@ -5,10 +5,10 @@
  */
 package org.geoserver.csw;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -78,7 +78,7 @@ public class GetRecordsTest extends CSWSimpleTestSupport {
         assertEquals("application/xml", gr.getOutputFormat());
         assertEquals("http://www.opengis.net/cat/csw/2.0.2", gr.getOutputSchema());
         assertNotNull(gr.getDistributedSearch());
-        assertEquals(new Integer(10), gr.getDistributedSearch().getHopCount());
+        assertEquals(Integer.valueOf(10), gr.getDistributedSearch().getHopCount());
         assertEquals("http://www.geoserver.org", gr.getResponseHandler());
 
         // now onto the query

@@ -6,7 +6,7 @@ package org.geoserver.wms.vector;
 
 import static org.geotools.renderer.lite.VectorMapRenderUtils.getStyleQuery;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableSet;
@@ -102,7 +102,7 @@ public class VectorTileMapOutputFormatTest {
         when(tileBuilderFactory.newBuilder(any(Rectangle.class), any(ReferencedEnvelope.class)))
                 .thenReturn(tileBuilderMock);
 
-        outputFormat = new VectorTileMapOutputFormat(wmsMock, tileBuilderFactory);
+        outputFormat = new VectorTileMapOutputFormat(tileBuilderFactory);
         outputFormat.setClipToMapBounds(true);
 
         MemoryDataStore ds = new MemoryDataStore();

@@ -19,10 +19,10 @@ import org.geoserver.catalog.PublishedInfo;
 import org.geoserver.catalog.ResourceInfo;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WorkspaceInfo;
-import org.geoserver.catalog.Wrapper;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.security.AbstractCatalogFilter;
 import org.geotools.filter.expression.InternalVolatileFunction;
+import org.geotools.util.decorate.Wrapper;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 import org.opengis.filter.expression.Function;
@@ -176,13 +176,11 @@ public class LocalWorkspaceCatalogFilter extends AbstractCatalogFilter {
                     anySublayersVisible = true;
                     break;
                 }
-                ;
             } else if (subLayer instanceof LayerGroupInfo) {
                 if (!hideLayerGroup((LayerGroupInfo) subLayer)) {
                     anySublayersVisible = true;
                     break;
                 }
-                ;
             }
         }
 

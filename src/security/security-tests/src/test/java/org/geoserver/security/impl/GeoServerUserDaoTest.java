@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import org.geoserver.platform.resource.Files;
 import org.geoserver.security.PropertyFileWatcher;
 import org.junit.Before;
 import org.junit.Test;
@@ -141,6 +142,7 @@ public class GeoServerUserDaoTest {
         assertNotNull(dao.loadUserByUsername("newuser"));
     }
 
+    @Test
     public void addExistingUser() throws Exception {
         try {
             dao.putUser(
@@ -180,7 +182,7 @@ public class GeoServerUserDaoTest {
         temp.mkdir();
         File propFile = new File(temp, "users.properties");
         try {
-            dao.userDefinitionsFile = new PropertyFileWatcher(propFile);
+            dao.userDefinitionsFile = new PropertyFileWatcher(Files.asResource(propFile));
             dao.storeUsers();
             dao.userMap.clear();
             dao.loadUserMap();

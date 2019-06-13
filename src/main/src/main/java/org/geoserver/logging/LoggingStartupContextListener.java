@@ -45,11 +45,9 @@ public class LoggingStartupContextListener implements ServletContextListener {
                         GeoServerExtensions.getProperty(
                                 LoggingUtils.GT2_LOGGING_REDIRECTION, context));
         try {
-            if (logging == GeoToolsLoggingRedirection.JavaLogging) {
-                // no redirection needed
-            } else if (logging == GeoToolsLoggingRedirection.CommonsLogging) {
+            if (logging == GeoToolsLoggingRedirection.CommonsLogging) {
                 Logging.ALL.setLoggerFactory(CommonsLoggerFactory.getInstance());
-            } else {
+            } else if (logging != GeoToolsLoggingRedirection.JavaLogging) {
                 Logging.ALL.setLoggerFactory(Log4JLoggerFactory.getInstance());
             }
         } catch (Exception e) {
@@ -109,7 +107,6 @@ public class LoggingStartupContextListener implements ServletContextListener {
      * @return LoggingInfo loaded directly from logging.xml. Returns null if logging.xml does not
      *     exist
      */
-    @Deprecated
     public static @Nullable LoggingInfo getLogging(ResourceStore store) throws IOException {
         // Exposing this is a hack to provide JDBCConfig with the information it needs to compute
         // the "change" between logging.xml and the versions stored in JDBC. KS

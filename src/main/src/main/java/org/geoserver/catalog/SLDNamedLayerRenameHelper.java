@@ -19,6 +19,7 @@ import org.geoserver.platform.ServiceException;
 import org.geotools.styling.NamedStyle;
 import org.geotools.styling.StyledLayer;
 import org.geotools.styling.StyledLayerDescriptor;
+import org.geotools.util.SuppressFBWarnings;
 
 /** Utility for renaming named layers and styles in style groups */
 public class SLDNamedLayerRenameHelper {
@@ -137,6 +138,7 @@ public class SLDNamedLayerRenameHelper {
         return stylesToUpdate;
     }
 
+    @SuppressFBWarnings({"NP_NONNULL_PARAM_VIOLATION", "NP_NULL_PARAM_DEREF"})
     StyleInfo backupStyle(StyleInfo s) throws IOException {
         StyleInfo backup = catalog.getFactory().createStyle();
 
@@ -156,7 +158,8 @@ public class SLDNamedLayerRenameHelper {
         // copy over the style contents
         try (BufferedReader reader = catalog.getResourcePool().readStyle(s)) {
             catalog.getResourcePool()
-                    .writeStyle(backup, new ByteArrayInputStream(IOUtils.toByteArray(reader)));
+                    .writeStyle(
+                            backup, new ByteArrayInputStream(IOUtils.toByteArray(reader, "UTF-8")));
         }
         return backup;
     }

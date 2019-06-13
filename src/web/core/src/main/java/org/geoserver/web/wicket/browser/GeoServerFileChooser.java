@@ -5,6 +5,7 @@
  */
 package org.geoserver.web.wicket.browser;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
+import org.geoserver.platform.resource.Files;
+import org.geoserver.platform.resource.Resources;
 import org.geoserver.web.wicket.ParamResourceModel;
 import org.geotools.util.logging.Logging;
 
@@ -84,7 +87,12 @@ public class GeoServerFileChooser extends Panel {
 
         // first check if the file is a relative reference into the data dir
         if (selection != null) {
-            File relativeToDataDir = loader.url(selection.getPath());
+            File relativeToDataDir =
+                    Resources.find(
+                            Resources.fromURL(
+                                    Files.asResource(loader.getBaseDirectory()),
+                                    selection.getPath()),
+                            true);
             if (relativeToDataDir != null) {
                 selection = relativeToDataDir;
             }
@@ -192,7 +200,7 @@ public class GeoServerFileChooser extends Panel {
      */
     protected void directoryClicked(File file, AjaxRequestTarget target) {
         // explicitly change the root model, inform the other components the model has changed
-        GeoServerFileChooser.this.file.setObject(file);
+        this.file.setObject(file);
         fileTable.getProvider().setDirectory(new Model<File>(file));
         breadcrumbs.setSelection(file);
 
@@ -278,7 +286,7 @@ public class GeoServerFileChooser extends Panel {
                     return displayName.trim();
                 }
                 return FilenameUtils.getPrefix(f.getAbsolutePath());
-            } catch (Exception e) {
+            } catch (Exception | AWTError e) {
                 LOGGER.log(
                         Level.FINE,
                         "Failed to get file display name, "

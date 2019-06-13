@@ -24,6 +24,7 @@ import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.XMLAssert;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.geoserver.config.GeoServerDataDirectory;
+import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.resource.Resource;
 import org.geotools.image.test.ImageAssert;
 import org.hamcrest.CoreMatchers;
@@ -53,7 +54,8 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
 
     @Test
     public void testAnimateBmTime() throws Exception {
-        String xml = IOUtils.toString(getClass().getResourceAsStream("animateBlueMarble.xml"));
+        String xml =
+                IOUtils.toString(getClass().getResourceAsStream("animateBlueMarble.xml"), "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
 
@@ -101,9 +103,11 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
             props.store(os, null);
         }
         try {
-            String xml = IOUtils.toString(getClass().getResourceAsStream("animateBlueMarble.xml"));
+            String xml =
+                    IOUtils.toString(
+                            getClass().getResourceAsStream("animateBlueMarble.xml"), "UTF-8");
             Document dom = postAsDOM("wps", xml);
-            print(dom);
+            // print(dom);
             XMLAssert.assertXpathExists("//wps:ProcessFailed", dom);
             String message = XMLUnit.newXpathEngine().evaluate("//ows:ExceptionText", dom);
             assertThat(
@@ -111,12 +115,17 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
                     CoreMatchers.containsString("More than 1 times specified in the request"));
         } finally {
             assertTrue("Failed to remove download configuration file", config.delete());
+            // force reset of default configuration
+            final DownloadServiceConfigurationWatcher watcher =
+                    GeoServerExtensions.bean(DownloadServiceConfigurationWatcher.class);
+            watcher.loadConfiguration();
         }
     }
 
     @Test
     public void testAnimateDecoration() throws Exception {
-        String xml = IOUtils.toString(getClass().getResourceAsStream("animateDecoration.xml"));
+        String xml =
+                IOUtils.toString(getClass().getResourceAsStream("animateDecoration.xml"), "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
 
@@ -142,7 +151,8 @@ public class DownloadAnimationProcessTest extends BaseDownloadImageProcessTest {
     public void testAnimateTimestamped() throws Exception {
         String xml =
                 IOUtils.toString(
-                        getClass().getResourceAsStream("animateBlueMarbleTimestamped.xml"));
+                        getClass().getResourceAsStream("animateBlueMarbleTimestamped.xml"),
+                        "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wps", xml);
         assertEquals("video/mp4", response.getContentType());
 

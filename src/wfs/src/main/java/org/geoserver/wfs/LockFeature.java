@@ -25,7 +25,6 @@ import org.geotools.data.DataAccess;
 import org.geotools.data.DataStore;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.FeatureLock;
-import org.geotools.data.FeatureLockFactory;
 import org.geotools.data.FeatureLocking;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.InProcessLockingManager;
@@ -315,8 +314,6 @@ public class LockFeature {
      */
     public void release(String lockId) throws WFSException {
         try {
-            boolean refresh = false;
-
             List dataStores = catalog.getDataStores();
 
             for (Iterator i = dataStores.iterator(); i.hasNext(); ) {
@@ -346,10 +343,8 @@ public class LockFeature {
 
                 try {
                     t.addAuthorization(lockId);
+                    lockingManager.release(lockId, t);
 
-                    if (lockingManager.release(lockId, t)) {
-                        refresh = true;
-                    }
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage(), e);
                 } finally {
@@ -359,10 +354,6 @@ public class LockFeature {
                         LOGGER.log(Level.FINEST, closeException.getMessage(), closeException);
                     }
                 }
-            }
-
-            if (!refresh) {
-                // throw exception? or ignore...
             }
         } catch (Exception e) {
             throw new WFSException(e);
@@ -551,19 +542,19 @@ public class LockFeature {
 
         if (lockExpiry < 0) {
             // negative time used to query if lock is available!
-            return FeatureLockFactory.generate(handle, lockExpiry);
+            return new FeatureLock(handle, lockExpiry);
         }
 
         if (lockExpiry == 0) {
             // perma lock with no expiry!
-            return FeatureLockFactory.generate(handle, 0);
+            return new FeatureLock(handle, 0);
         }
 
         // FeatureLock is specified in minutes or seconds depending on the version
         if (request.getAdaptee() instanceof net.opengis.wfs20.LockFeatureType) {
-            return FeatureLockFactory.generate(handle, lockExpiry * 1000);
+            return new FeatureLock(handle, lockExpiry * 1000);
         } else {
-            return FeatureLockFactory.generate(handle, lockExpiry * 60 * 1000);
+            return new FeatureLock(handle, lockExpiry * 60 * 1000);
         }
     }
 }

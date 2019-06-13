@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -293,7 +294,7 @@ public class ImportJSONReader {
     }
 
     public ImportTransform transform(String json) throws IOException {
-        return transform(IOUtils.toInputStream(json));
+        return transform(IOUtils.toInputStream(json, "UTF-8"));
     }
 
     public ImportTransform transform(InputStream inputStream) throws IOException {
@@ -462,7 +463,7 @@ public class ImportJSONReader {
                 throw new IllegalArgumentException(
                         "time object must specific mode property as "
                                 + "one of "
-                                + TimeMode.values());
+                                + Arrays.asList(TimeMode.values()));
             }
 
             m.setTimeMode(TimeMode.valueOf(time.getString("mode").toUpperCase()));
@@ -483,7 +484,7 @@ public class ImportJSONReader {
         }
     }
 
-    Database database(JSONObject json) throws IOException {
+    Database database(JSONObject json) {
         throw new UnsupportedOperationException("TODO: implement");
     }
 

@@ -15,8 +15,8 @@ public interface ConfigurationListener {
      *
      * @param global The global config object.
      * @param propertyNames The names of the properties that were changed.
-     * @param oldValue The old values for the properties that were changed.
-     * @param newValue The new values for the properties that were changed.
+     * @param oldValues The old values for the properties that were changed.
+     * @param newValues The new values for the properties that were changed.
      */
     void handleGlobalChange(
             GeoServerInfo global,
@@ -43,8 +43,8 @@ public interface ConfigurationListener {
      *
      * @param settings The settings.
      * @param propertyNames The names of the properties that were changed.
-     * @param oldValue The old values for the properties that were changed.
-     * @param newValue The new values for the properties that were changed.
+     * @param oldValues The old values for the properties that were changed.
+     * @param newValues The new values for the properties that were changed.
      */
     void handleSettingsModified(
             SettingsInfo settings,
@@ -71,8 +71,8 @@ public interface ConfigurationListener {
      *
      * @param logging The logging config object.
      * @param propertyNames The names of the properties that were changed.
-     * @param oldValue The old values for the properties that were changed.
-     * @param newValue The new values for the properties that were changed.
+     * @param oldValues The old values for the properties that were changed.
+     * @param newValues The new values for the properties that were changed.
      */
     void handleLoggingChange(
             LoggingInfo logging,
@@ -88,8 +88,8 @@ public interface ConfigurationListener {
      *
      * @param service The service config object.
      * @param propertyNames The names of the properties that were changed.
-     * @param oldValue The old values for the properties that were changed.
-     * @param newValue The new values for the properties that were changed.
+     * @param oldValues The old values for the properties that were changed.
+     * @param newValues The new values for the properties that were changed.
      */
     void handleServiceChange(
             ServiceInfo service,
@@ -111,12 +111,6 @@ public interface ConfigurationListener {
      */
     void handleServiceRemove(ServiceInfo service);
 
-    /**
-     * A callback notifying when GeoServer configuration has been reloaded.
-     *
-     * <p>This method will be removed in recent version as the idea of a "reload" will not exist.
-     *
-     * @deprecated.
-     */
+    /** A callback notifying when GeoServer configuration has been reloaded. */
     void reloaded();
 }

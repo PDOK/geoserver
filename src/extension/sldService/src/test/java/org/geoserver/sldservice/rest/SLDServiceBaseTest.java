@@ -10,63 +10,35 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Map;
-import org.geoserver.catalog.ResourcePool;
-import org.geoserver.catalog.impl.FeatureTypeInfoImpl;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.rest.catalog.CatalogRESTTestSupport;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.styling.FeatureTypeStyle;
 import org.geotools.styling.NamedLayer;
 import org.geotools.styling.Rule;
 import org.geotools.styling.Style;
-import org.geotools.styling.StyleBuilder;
 import org.geotools.styling.StyledLayer;
 import org.geotools.styling.StyledLayerDescriptor;
 import org.geotools.xml.styling.SLDParser;
-import org.junit.After;
-import org.junit.Before;
 
 public abstract class SLDServiceBaseTest extends CatalogRESTTestSupport {
 
-    protected Map<String, Object> attributes = new HashMap<String, Object>();
-
-    protected Object responseEntity;
-
-    protected ResourcePool resourcePool;
-
-    protected FeatureTypeInfoImpl testFeatureTypeInfo;
-
-    protected SimpleFeatureTypeBuilder featureTypeBuilder = new SimpleFeatureTypeBuilder();
-
-    protected StyleBuilder styleBuilder = new StyleBuilder();
-
     protected SLDParser sldParser = new SLDParser(CommonFactoryFinder.getStyleFactory());
 
-    protected static final String FEATURETYPE_LAYER = "featuretype_layer";
-
-    protected static final String COVERAGE_LAYER = "coverage_layer";
-
-    @Before
-    public void loadData() throws Exception {
-        getTestData().addWorkspace(getTestData().WCS_PREFIX, getTestData().WCS_URI, getCatalog());
+    @Override
+    protected void onSetUp(SystemTestData testData) throws Exception {
+        // do not setup other test data, not used, not needed
         getTestData().addDefaultRasterLayer(getTestData().WORLD, getCatalog());
-    }
-
-    @After
-    public void restoreLayers() throws IOException {
-        revertLayer(SystemTestData.BASIC_POLYGONS);
-        removeWorkspace(getTestData().WCS_PREFIX);
-        removeLayer(getTestData().WCS_PREFIX, getTestData().WORLD.getLocalPart());
     }
 
     protected Rule[] checkSLD(String resultXml) {
         sldParser.setInput(new StringReader(resultXml));
         StyledLayerDescriptor descriptor = sldParser.parseSLD();
+        return checkSLD(descriptor);
+    }
+
+    protected Rule[] checkSLD(StyledLayerDescriptor descriptor) {
         assertNotNull(descriptor);
         assertNotNull(descriptor.getStyledLayers());
         if (descriptor.getStyledLayers().length > 0) {

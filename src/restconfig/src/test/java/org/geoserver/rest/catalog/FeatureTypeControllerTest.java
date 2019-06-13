@@ -6,6 +6,8 @@
 package org.geoserver.rest.catalog;
 
 import static org.custommonkey.xmlunit.XMLAssert.*;
+import static org.geoserver.data.test.MockData.SF_PREFIX;
+import static org.geoserver.rest.RestBaseController.ROOT_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -14,15 +16,22 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import javax.xml.namespace.QName;
 import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 import org.geoserver.catalog.AttributeTypeInfo;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.data.test.CiteTestData;
 import org.geoserver.data.test.SystemTestData;
 import org.geoserver.rest.RestBaseController;
 import org.geotools.data.DataAccess;
@@ -33,6 +42,7 @@ import org.junit.Test;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.feature.type.Name;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.w3c.dom.Document;
 
@@ -600,6 +610,7 @@ public class FeatureTypeControllerTest extends CatalogRESTTestSupport {
                 postAsServletResponse(
                         BASEPATH + "/workspaces/gs/datastores/ngpds/featuretypes", xml, "text/xml");
         assertEquals(201, response.getStatus());
+        assertEquals(MediaType.TEXT_PLAIN_VALUE, response.getContentType());
         assertNotNull(response.getHeader("Location"));
         assertTrue(
                 response.getHeader("Location")
@@ -654,6 +665,7 @@ public class FeatureTypeControllerTest extends CatalogRESTTestSupport {
                         xml,
                         "text/xml");
         assertEquals(201, response.getStatus());
+        assertEquals(MediaType.TEXT_PLAIN_VALUE, response.getContentType());
         assertNotNull(response.getHeader("Location"));
         assertTrue(
                 response.getHeader("Location")
@@ -717,9 +729,59 @@ public class FeatureTypeControllerTest extends CatalogRESTTestSupport {
         assertEquals(before, after);
     }
 
+    @Test
+    public void testGetWithMultipleStore() throws Exception {
+        QName geometryless = CiteTestData.GEOMETRYLESS;
+        QName qName =
+                new QName(geometryless.getNamespaceURI(), geometryless.getLocalPart(), SF_PREFIX);
+        Map<SystemTestData.LayerProperty, Object> props = new HashMap<>();
+        props.put(SystemTestData.LayerProperty.STORE, "tempStore");
+        getTestData().addVectorLayer(qName, props, catalog);
+
+        MockHttpServletResponse layerStore1 =
+                getAsServletResponse(ROOT_PATH + "/workspaces/sf/featuretypes/GenericEntity.json");
+        MockHttpServletResponse layerStore2 =
+                getAsServletResponse(ROOT_PATH + "/workspaces/sf/featuretypes/Geometryless.json");
+
+        assertEquals(layerStore1.getStatus(), 200);
+        assertEquals(layerStore2.getStatus(), 200);
+    }
+
     public static void assertContains(String message, String contains) {
         assertTrue(
                 "Expected \"" + message + "\" to contain \"" + contains + "\"",
                 message.contains(contains));
+    }
+
+    /** Tests services disabled on layer-resource */
+    @Test
+    public void testEnabledServicesOnLayer() throws Exception {
+        disableServicesOnBuildings();
+        Document dom =
+                getAsDOM(
+                        ROOT_PATH + "/workspaces/cite/datastores/cite/featuretypes/Buildings.xml",
+                        200);
+        assertXpathEvaluatesTo("true", "//serviceConfiguration", dom);
+        assertXpathExists("//disabledServices/string[.='WFS']", dom);
+        assertXpathExists("//disabledServices/string[.='CSW']", dom);
+        enableServicesOnBuildings();
+    }
+
+    private void disableServicesOnBuildings() {
+        LayerInfo linfo = getCatalog().getLayerByName("Buildings");
+        ResourceInfo ri = linfo.getResource();
+        ri.setServiceConfiguration(true);
+        ri.setDisabledServices(new ArrayList<>(Arrays.asList("WFS", "CSW")));
+        getCatalog().save(ri);
+        getCatalog().save(linfo);
+    }
+
+    private void enableServicesOnBuildings() {
+        LayerInfo linfo = getCatalog().getLayerByName("Buildings");
+        ResourceInfo ri = linfo.getResource();
+        ri.setServiceConfiguration(false);
+        ri.setDisabledServices(new ArrayList<>());
+        getCatalog().save(ri);
+        getCatalog().save(linfo);
     }
 }

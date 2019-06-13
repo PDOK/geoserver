@@ -5,7 +5,8 @@
  */
 package org.geoserver.wfs.xml;
 
-import static org.geoserver.ows.util.ResponseUtils.*;
+import static org.geoserver.ows.util.ResponseUtils.buildURL;
+import static org.geoserver.ows.util.ResponseUtils.params;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -231,7 +232,7 @@ public abstract class FeatureTypeSchemaBuilder {
             } catch (IOException e) {
                 logger.warning(
                         "Unable to get schema location for feature type '"
-                                + featureTypeInfos[0].getPrefixedName()
+                                + featureTypeInfos[0].prefixedName()
                                 + "'. Reason: '"
                                 + e.getMessage()
                                 + "'. Building the schema manually instead.");
@@ -302,7 +303,7 @@ public abstract class FeatureTypeSchemaBuilder {
                                     includes);
                         }
                     } else {
-                        typeNames.append(info.getPrefixedName()).append(",");
+                        typeNames.append(info.prefixedName()).append(",");
                     }
                 }
                 if (typeNames.length() > 0) {
@@ -954,7 +955,13 @@ public abstract class FeatureTypeSchemaBuilder {
 
         protected XSDSchema gmlSchema() {
             if (gml2Schema == null) {
-                gml2Schema = xmlConfiguration.schema();
+                XSDSchema result;
+                try {
+                    result = xmlConfiguration.getXSD().getSchema();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                gml2Schema = result;
             }
 
             return gml2Schema;
@@ -999,7 +1006,11 @@ public abstract class FeatureTypeSchemaBuilder {
         }
 
         private XSDSchema createGml3Schema() {
-            return xmlConfiguration.schema();
+            try {
+                return xmlConfiguration.getXSD().getSchema();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         protected boolean filterAttributeType(AttributeDescriptor attribute) {
@@ -1016,7 +1027,7 @@ public abstract class FeatureTypeSchemaBuilder {
 
     public static class GML32 extends GML3 {
         /** Cached gml32 schema */
-        private static XSDSchema gml32Schema;
+        private static volatile XSDSchema gml32Schema;
 
         public GML32(GeoServer gs) {
             super(gs);
@@ -1046,7 +1057,11 @@ public abstract class FeatureTypeSchemaBuilder {
 
         protected XSDSchema gmlSchema() {
             if (gml32Schema == null) {
-                gml32Schema = createGml32Schema();
+                synchronized (FeatureTypeSchemaBuilder.class) {
+                    if (gml32Schema == null) {
+                        gml32Schema = createGml32Schema();
+                    }
+                }
             }
 
             return gml32Schema;

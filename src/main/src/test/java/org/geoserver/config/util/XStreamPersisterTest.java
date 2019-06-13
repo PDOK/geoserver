@@ -53,6 +53,7 @@ import org.geoserver.catalog.LayerGroupInfo.Mode;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.NamespaceInfo;
+import org.geoserver.catalog.SLDHandler;
 import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.WMSStoreInfo;
@@ -113,10 +114,10 @@ public class XStreamPersisterTest {
         GeoServerInfo g1 = factory.createGlobal();
         g1.setAdminPassword("foo");
         g1.setAdminUsername("bar");
-        g1.setCharset("ISO-8859-1");
+        g1.getSettings().setCharset("ISO-8859-1");
 
         ContactInfo contact = factory.createContact();
-        g1.setContact(contact);
+        g1.getSettings().setContact(contact);
         contact.setAddress("123");
         contact.setAddressCity("Victoria");
         contact.setAddressCountry("Canada");
@@ -130,17 +131,17 @@ public class XStreamPersisterTest {
         contact.setContactPosition("hacker");
         contact.setContactVoice("+1 250 765 4321");
 
-        g1.setNumDecimals(2);
-        g1.setOnlineResource("http://acme.org");
-        g1.setProxyBaseUrl("http://proxy.acme.org");
-        g1.setSchemaBaseUrl("http://schemas.acme.org");
+        g1.getSettings().setNumDecimals(2);
+        g1.getSettings().setOnlineResource("http://acme.org");
+        g1.getSettings().setProxyBaseUrl("http://proxy.acme.org");
+        g1.getSettings().setSchemaBaseUrl("http://schemas.acme.org");
 
-        g1.setTitle("Acme's GeoServer");
+        g1.getSettings().setTitle("Acme's GeoServer");
         g1.setUpdateSequence(123);
-        g1.setVerbose(true);
-        g1.setVerboseExceptions(true);
-        g1.getMetadata().put("one", new Integer(1));
-        g1.getMetadata().put("two", new Double(2.2));
+        g1.getSettings().setVerbose(true);
+        g1.getSettings().setVerboseExceptions(true);
+        g1.getMetadata().put("one", Integer.valueOf(1));
+        g1.getMetadata().put("two", Double.valueOf(2.2));
 
         ByteArrayOutputStream out = out();
 
@@ -175,7 +176,7 @@ public class XStreamPersisterTest {
     public void testGobalContactDefault() throws Exception {
         GeoServerInfo g1 = factory.createGlobal();
         ContactInfo contact = factory.createContact();
-        g1.setContact(contact);
+        g1.getSettings().setContact(contact);
 
         ByteArrayOutputStream out = out();
         persister.save(g1, out);
@@ -520,6 +521,21 @@ public class XStreamPersisterTest {
 
         catalog.add(s2);
         assertNull(s2.getWorkspace());
+    }
+
+    @Test
+    public void testLegacyStyle() throws Exception {
+        String xml =
+                "<style>\n"
+                        + "  <id>StyleInfoImpl--570ae188:124761b8d78:-7fe2</id>\n"
+                        + "  <name>raster</name>\n"
+                        + "  <filename>raster.sld</filename>\n"
+                        + "</style>";
+
+        StyleInfo style =
+                persister.load(new ByteArrayInputStream(xml.getBytes("UTF-8")), StyleInfo.class);
+        assertEquals(SLDHandler.FORMAT, style.getFormat());
+        assertEquals(SLDHandler.VERSION_10, style.getFormatVersion());
     }
 
     @Test
@@ -1127,7 +1143,7 @@ public class XStreamPersisterTest {
 
         Multimap<String, Object> mmap = ArrayListMultimap.create();
         mmap.put("one", "abc");
-        mmap.put("one", new Integer(2));
+        mmap.put("one", Integer.valueOf(2));
         mmap.put("two", new NumberRange<Integer>(Integer.class, 10, 20));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -1191,7 +1207,7 @@ public class XStreamPersisterTest {
         metadataLink.setAbout("about");
         coverage.getMetadataLinks().add(metadataLink);
         CoverageDimensionImpl coverageDimension = new CoverageDimensionImpl("time");
-        coverageDimension.setNullValues(Collections.singletonList(new Double(0)));
+        coverageDimension.setNullValues(Collections.singletonList(Double.valueOf(0)));
         coverage.getDimensions().add(coverageDimension);
         coverage.getInterpolationMethods().add("Bilinear");
         coverage.getParameters().put("ParameterKey", "ParameterValue");

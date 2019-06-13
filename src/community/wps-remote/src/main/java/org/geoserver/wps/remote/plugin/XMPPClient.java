@@ -36,7 +36,6 @@ import org.apache.http.ssl.SSLContexts;
 import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.ows.URLMangler.URLType;
-import org.geoserver.ows.util.RequestUtils;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
@@ -584,7 +583,7 @@ public class XMPPClient extends RemoteProcessClient {
 
         try {
             if (baseURL == null) {
-                baseURL = RequestUtils.baseURL(request.getHttpRequest());
+                baseURL = ResponseUtils.baseURL(request.getHttpRequest());
             }
 
             baseURL = ResponseUtils.buildURL(baseURL, "/", null, URLType.SERVICE);
@@ -627,12 +626,6 @@ public class XMPPClient extends RemoteProcessClient {
              */
             pendingRequests.add(
                     new RemoteRequestDescriptor(serviceName, input, metadata, pid, baseURL));
-
-            // NOTIFY LISTENERS
-            for (RemoteProcessClientListener listener : getRemoteClientListeners()) {
-                listener.progress(pid, 0.0);
-                listener.setTask(pid, "Blocked: no resources available for execution!");
-            }
         }
 
         return pid;
@@ -944,15 +937,14 @@ public class XMPPClient extends RemoteProcessClient {
     protected void checkPendingRequests() throws Exception {
         synchronized (pendingRequests) {
             for (RemoteRequestDescriptor request : pendingRequests) {
-
                 // Check if the request is still valid
                 final String pid = request.getPid();
                 boolean isRequestValid = false;
+                RemoteProcessClientListener blockedProcess = null;
                 for (RemoteProcessClientListener process : getRemoteClientListeners()) {
                     if (process.getPID().equals(pid)) {
-                        process.progress(pid, 0.0);
-                        process.setTask(pid, "Blocked: no resources available for execution!");
                         isRequestValid = true;
+                        blockedProcess = process;
                         break;
                     }
                 }
@@ -1004,6 +996,9 @@ public class XMPPClient extends RemoteProcessClient {
                     // Remove the request from the queue
                     pendingRequests.remove(request);
                     continue;
+                } else {
+                    blockedProcess.setTask(pid, "Blocked: no resources available for execution!");
+                    blockedProcess.progress(pid, blockedProcess.getProgress(pid));
                 }
             }
         }
@@ -1062,8 +1057,9 @@ public class XMPPClient extends RemoteProcessClient {
      *
      * @param service name
      * @param candidateServiceJID
+     * @throws Exception
      */
-    private String getFlattestMachine(Name serviceName) {
+    private String getFlattestMachine(Name serviceName) throws Exception {
         // The candidate remote processing node
         RemoteMachineDescriptor candidateNode = null;
 
@@ -1086,10 +1082,11 @@ public class XMPPClient extends RemoteProcessClient {
                     Boolean.valueOf(getConfiguration().get("xmpp_force_execution"));
         }
 
-        synchronized (registeredProcessingMachines) {
-            LOGGER.info(
-                    "XMPPClient::getFlattestMachine - scanning the connected remote services...");
+        LOGGER.info("XMPPClient::getFlattestMachine - scanning the connected remote services...");
 
+        getEndpointsLoadAverages();
+
+        synchronized (registeredProcessingMachines) {
             for (RemoteMachineDescriptor node : registeredProcessingMachines) {
                 if (node.getAvailable() && node.getServiceName().equals(serviceName)) {
 
@@ -1569,8 +1566,10 @@ class XMPPPacketListener implements PacketListener {
                         /** Manage the channel occupants list */
                         final String channel = p.getFrom().substring(0, p.getFrom().indexOf("@"));
                         /*
-                         * if (xmppClient.occupantsList.get(channel) == null) { xmppClient.occupantsList.put(channel, new ArrayList<String>()); } if
-                         * (xmppClient.occupantsList.get(channel) != null) { if (!xmppClient.occupantsList.get(channel).contains(p. getFrom()))
+                         * if (xmppClient.occupantsList.get(channel) == null) {
+                         * xmppClient.occupantsList.put(channel, new ArrayList<String>()); } if
+                         * (xmppClient.occupantsList.get(channel) != null) { if
+                         * (!xmppClient.occupantsList.get(channel).contains(p. getFrom()))
                          * xmppClient.occupantsList.get(channel).add(p.getFrom() ); }
                          */
 

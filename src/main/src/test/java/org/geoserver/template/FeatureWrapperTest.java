@@ -38,8 +38,8 @@ public class FeatureWrapperTest {
                         featureType,
                         new Object[] {
                             "one",
-                            new Integer(1),
-                            new Double(1.1),
+                            Integer.valueOf(1),
+                            Double.valueOf(1.1),
                             gf.createPoint(new Coordinate(1, 1))
                         },
                         "fid.1"));
@@ -48,8 +48,8 @@ public class FeatureWrapperTest {
                         featureType,
                         new Object[] {
                             "two",
-                            new Integer(2),
-                            new Double(2.2),
+                            Integer.valueOf(2),
+                            Double.valueOf(2.2),
                             gf.createPoint(new Coordinate(2, 2))
                         },
                         "fid.2"));
@@ -58,8 +58,8 @@ public class FeatureWrapperTest {
                         featureType,
                         new Object[] {
                             "three",
-                            new Integer(3),
-                            new Double(3.3),
+                            Integer.valueOf(3),
+                            Double.valueOf(3.3),
                             gf.createPoint(new Coordinate(3, 3))
                         },
                         "fid.3"));

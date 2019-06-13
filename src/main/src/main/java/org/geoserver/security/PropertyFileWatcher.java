@@ -5,7 +5,6 @@
  */
 package org.geoserver.security;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -29,10 +28,6 @@ public class PropertyFileWatcher extends FileWatcher<Properties> {
         super(resource);
     }
 
-    @Deprecated
-    public PropertyFileWatcher(File file) {
-        super(file);
-    }
     /**
      * Read properties from file.
      *
@@ -92,12 +87,12 @@ public class PropertyFileWatcher extends FileWatcher<Properties> {
         }
 
         @Override
-        public String getProperty(String key) {
+        public synchronized String getProperty(String key) {
             return (String) linkMap.get(key);
         }
 
         @Override
-        public String getProperty(String key, String defaultValue) {
+        public synchronized String getProperty(String key, String defaultValue) {
             return (String) (linkMap.containsKey(key) ? linkMap.get(key) : defaultValue);
         }
 

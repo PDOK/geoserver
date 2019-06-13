@@ -14,13 +14,12 @@ import static org.geoserver.web.demo.PreviewLayerProvider.TYPE;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.wicket.AttributeModifier;
 import org.apache.wicket.Component;
 import org.apache.wicket.behavior.AttributeAppender;
@@ -28,6 +27,8 @@ import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.link.ExternalLink;
+import org.apache.wicket.markup.html.list.ListItem;
+import org.apache.wicket.markup.html.list.ListView;
 import org.apache.wicket.markup.html.panel.Fragment;
 import org.apache.wicket.markup.repeater.RepeatingView;
 import org.apache.wicket.model.IModel;
@@ -37,8 +38,6 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.ows.util.ResponseUtils;
 import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.GeoServerBasePage;
-import org.geoserver.web.demo.PreviewLayer.GMLOutputParams;
-import org.geoserver.web.demo.PreviewLayer.PreviewLayerType;
 import org.geoserver.web.wicket.GeoServerDataProvider.Property;
 import org.geoserver.web.wicket.GeoServerTablePanel;
 import org.geoserver.wfs.WFSGetFeatureOutputFormat;
@@ -57,10 +56,6 @@ public class MapPreviewPage extends GeoServerBasePage {
     private transient List<String> availableWMSFormats;
     // private transient List<String> availableWFSFormats;
 
-    /** GML output params computation may be expensive, results are cached in this map */
-    private transient Map<String, GMLOutputParams> gmlParamsCache =
-            new HashMap<String, GMLOutputParams>();
-
     public MapPreviewPage() {
         // output formats for the drop downs
         final List<String> wmsOutputFormats = getAvailableWMSFormats();
@@ -78,7 +73,8 @@ public class MapPreviewPage extends GeoServerBasePage {
                             IModel<PreviewLayer> itemModel,
                             Property<PreviewLayer> property) {
                         PreviewLayer layer = itemModel.getObject();
-
+                        boolean wmsVisible = layer.hasServiceSupport("WMS");
+                        boolean wfsVisible = layer.hasServiceSupport("WFS");
                         if (property == TYPE) {
                             Fragment f = new Fragment(id, "iconFragment", MapPreviewPage.this);
                             f.add(new Image("layerIcon", layer.getIcon()));
@@ -88,25 +84,24 @@ public class MapPreviewPage extends GeoServerBasePage {
                         } else if (property == TITLE) {
                             return new Label(id, property.getModel(itemModel));
                         } else if (property == COMMON) {
-                            // openlayers preview
                             Fragment f = new Fragment(id, "commonLinks", MapPreviewPage.this);
-                            final String olUrl =
-                                    layer.getWmsLink() + "&format=application/openlayers";
-                            f.add(new ExternalLink("ol", olUrl, "OpenLayers"));
-                            // kml preview
-                            final String kmlUrl =
-                                    layer.getBaseURL("wms") + "/kml?layers=" + layer.getName();
-                            f.add(new ExternalLink("kml", kmlUrl, "KML"));
-                            // gml preview (we actually want it only for vector layers)
-                            final String gmlUrl =
-                                    layer.getGmlLink(gmlParamsCache) + getMaxFeatures();
-                            Component gmlLink = new ExternalLink("gml", gmlUrl, "GML");
-                            f.add(gmlLink);
-                            gmlLink.setVisible(layer.getType() == PreviewLayerType.Vector);
-
+                            ListView lv =
+                                    new ListView("commonFormat", commonFormatLinks(layer)) {
+                                        @Override
+                                        public void populateItem(ListItem item) {
+                                            final ExternalLink link =
+                                                    (ExternalLink) item.getModelObject();
+                                            item.add(link);
+                                        }
+                                    };
+                            f.add(lv);
                             return f;
                         } else if (property == ALL) {
-                            return buildJSWMSSelect(id, wmsOutputFormats, wfsOutputFormats, layer);
+                            return buildJSWMSSelect(
+                                    id,
+                                    wmsVisible ? wmsOutputFormats : Collections.emptyList(),
+                                    wfsVisible ? wfsOutputFormats : Collections.emptyList(),
+                                    layer);
                         }
                         throw new IllegalArgumentException(
                                 "Don't know a property named " + property.getName());
@@ -116,6 +111,16 @@ public class MapPreviewPage extends GeoServerBasePage {
         add(table);
     }
 
+    private List<ExternalLink> commonFormatLinks(PreviewLayer layer) {
+        List<ExternalLink> links = new ArrayList<>();
+        List<CommonFormatLink> formats =
+                getGeoServerApplication().getBeansOfType(CommonFormatLink.class);
+        Collections.sort(formats);
+        for (CommonFormatLink link : formats) {
+            links.add(link.getFormatLink(layer));
+        }
+        return links;
+    }
     /**
      * Generates the maxFeatures element of the WFS request using the value of
      * maxNumberOfFeaturesForPreview. Values <= 0 give no limit.
@@ -204,9 +209,10 @@ public class MapPreviewPage extends GeoServerBasePage {
             List<String> wmsOutputFormats,
             List<String> wfsOutputFormats,
             PreviewLayer layer) {
-        Fragment f = new Fragment(id, "menuFragment", MapPreviewPage.this);
+        Fragment f = new Fragment(id, "menuFragment", this);
         WebMarkupContainer menu = new WebMarkupContainer("menu");
 
+        WebMarkupContainer wmsFormatsGroup = new WebMarkupContainer("wms");
         RepeatingView wmsFormats = new RepeatingView("wmsFormats");
         for (int i = 0; i < wmsOutputFormats.size(); i++) {
             String wmsOutputFormat = wmsOutputFormats.get(i);
@@ -218,7 +224,9 @@ public class MapPreviewPage extends GeoServerBasePage {
                             "value", new Model<String>(ResponseUtils.urlEncode(wmsOutputFormat))));
             wmsFormats.add(format);
         }
-        menu.add(wmsFormats);
+        wmsFormatsGroup.add(wmsFormats);
+        wmsFormatsGroup.setVisible(CollectionUtils.isNotEmpty(wmsOutputFormats));
+        menu.add(wmsFormatsGroup);
 
         // the vector ones, it depends, we might have to hide them
         boolean vector =
@@ -241,6 +249,7 @@ public class MapPreviewPage extends GeoServerBasePage {
             }
         }
         wfsFormatsGroup.add(wfsFormats);
+        wfsFormatsGroup.setVisible(CollectionUtils.isNotEmpty(wfsOutputFormats));
         menu.add(wfsFormatsGroup);
 
         // build the wms request, redirect to it in a new window, reset the selection

@@ -78,7 +78,6 @@ public class GetFeatureKvpRequestReader extends BaseFeatureKvpRequestReader {
                 default:
                     EMFUtils.set(eObject, "outputFormat", "application/gml+xml; version=3.2");
             }
-            ;
         }
 
         // aliases
@@ -200,7 +199,7 @@ public class GetFeatureKvpRequestReader extends BaseFeatureKvpRequestReader {
                 EObject q = (EObject) query.get(0);
 
                 for (int i = 1; i < m; i++) {
-                    query.add(EMFUtils.clone(q, req.getFactory()));
+                    query.add(EMFUtils.clone(q, req.getFactory(), false));
                 }
 
                 return;

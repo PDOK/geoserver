@@ -277,7 +277,7 @@ public abstract class GeoServerAbstractTestSupport extends OneTimeSetupTest {
                 disposeIfExists(getXSD10());
 
                 // kill the context
-                applicationContext.destroy();
+                applicationContext.close();
 
                 // kill static caches
                 GeoServerExtensionsHelper.init(null);
@@ -1000,7 +1000,8 @@ public abstract class GeoServerAbstractTestSupport extends OneTimeSetupTest {
     protected void print(Document dom) throws Exception {
         TransformerFactory txFactory = TransformerFactory.newInstance();
         try {
-            txFactory.setAttribute("{http://xml.apache.org/xalan}indent-number", new Integer(2));
+            txFactory.setAttribute(
+                    "{http://xml.apache.org/xalan}indent-number", Integer.valueOf(2));
         } catch (Exception e) {
             // some
         }

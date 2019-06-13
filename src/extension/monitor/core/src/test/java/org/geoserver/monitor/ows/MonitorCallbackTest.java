@@ -68,6 +68,7 @@ import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.util.Version;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -153,6 +154,7 @@ public class MonitorCallbackTest {
         data = monitor.start();
     }
 
+    @After
     public void tearDown() throws Exception {
         monitor.complete();
     }
@@ -436,7 +438,7 @@ public class MonitorCallbackTest {
     MapLayerInfo createMapLayer(String name, String ns) {
         ResourceInfo r = createMock(ResourceInfo.class);
         expect(r.getName()).andReturn(name);
-        expect(r.getPrefixedName()).andReturn(ns + ":" + name);
+        expect(r.prefixedName()).andReturn(ns + ":" + name);
         expect(r.getTitle()).andReturn(name);
         expect(r.getAbstract()).andReturn(name);
         replay(r);

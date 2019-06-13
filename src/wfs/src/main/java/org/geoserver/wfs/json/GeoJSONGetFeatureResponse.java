@@ -63,7 +63,9 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
 
     /** capabilities output format string. */
     public String getCapabilitiesElementName() {
-        return JSONType.getJSONType(getOutputFormat()).toString();
+        return JSONType.getJSONType(
+                        getOutputFormats().isEmpty() ? null : getOutputFormats().iterator().next())
+                .toString();
     }
 
     /** Returns the mime type */
@@ -209,10 +211,16 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
             // encode collection with complex features
             ComplexGeoJsonWriter complexWriter =
                     new ComplexGeoJsonWriter(jsonWriter) {
+
                         @Override
-                        protected void encodeFeature(Feature feature) {
-                            super.encodeFeature(feature);
-                            writeExtraFeatureProperties(feature, operation, jsonWriter);
+                        protected void writeExtraFeatureProperties(
+                                Feature feature, boolean topLevelFeature) {
+                            // the various links should be reported only for the top feature, not
+                            // for all nested ones
+                            if (topLevelFeature) {
+                                GeoJSONGetFeatureResponse.this.writeExtraFeatureProperties(
+                                        feature, operation, jsonWriter);
+                            }
                         }
                     };
             complexWriter.write(resultsList);
@@ -441,15 +449,16 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
                             // geometry here if it's not the default.
                             // If it's the default that you already
                             // printed above, so you don't need it here.
-                            if (ad.equals(defaultGeomType)) {
-                                // Do nothing, we wrote it above
-                                // jsonWriter.value("geometry_name");
-                            } else if (value == null) {
-                                jsonWriter.key(ad.getLocalName());
-                                jsonWriter.value(null);
-                            } else {
-                                jsonWriter.key(ad.getLocalName());
-                                jsonWriter.writeGeom((Geometry) value);
+                            if (!ad.equals(defaultGeomType)) {
+                                if (value == null) {
+                                    jsonWriter.key(ad.getLocalName());
+                                    jsonWriter.value(null);
+                                } else {
+                                    // if it was the default geometry, it has been written above
+                                    // already
+                                    jsonWriter.key(ad.getLocalName());
+                                    jsonWriter.writeGeom((Geometry) value);
+                                }
                             }
                         } else {
                             jsonWriter.key(ad.getLocalName());
@@ -558,5 +567,10 @@ public class GeoJSONGetFeatureResponse extends WFSGetFeatureOutputFormat {
     @Override
     public String getCharset(Operation operation) {
         return gs.getGlobal().getSettings().getCharset();
+    }
+
+    @Override
+    public String getAttachmentFileName(Object value, Operation operation) {
+        return super.getAttachmentFileName(value, operation);
     }
 }

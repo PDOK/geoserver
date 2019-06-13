@@ -16,6 +16,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -91,7 +92,6 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
     /**
      * Creates a new GetLegendGraphicKvpReader object.
      *
-     * @param params map of key/value pairs with the parameters for a GetLegendGraphic request
      * @param wms WMS config object.
      */
     public GetLegendGraphicKvpReader(WMS wms) {
@@ -188,7 +188,7 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
         } else {
             // Assume this is "just" a request for a legend graphic representing for a style (no
             // infoObject for context)
-            LegendRequest styleLegend = request.new LegendRequest();
+            LegendRequest styleLegend = new LegendRequest();
             layers.add(styleLegend);
         }
         request.getLegends().addAll(layers);
@@ -207,23 +207,6 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
         try {
             // Parse optional parameters into legend data structure created above
             parseOptionalParameters(request, infoObject, rawKvp);
-
-            if (request.getLayers().size() != request.getStyles().size()) {
-                String msg =
-                        layers.size()
-                                + " layers requested, but found "
-                                + request.getStyles().size()
-                                + " styles specified. ";
-                throw new ServiceException(msg, getClass().getName());
-            }
-            if (request.getRules().size() > 0 && layers.size() != request.getRules().size()) {
-                String msg =
-                        layers.size()
-                                + " layers requested, but found "
-                                + request.getRules().size()
-                                + " rules specified. ";
-                throw new ServiceException(msg, getClass().getName());
-            }
         } catch (IOException e) {
             throw new ServiceException(e);
         }
@@ -237,7 +220,7 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
      * <p>Additional LayerInfo details such as title and legend are filled in if available.
      *
      * @param layerInfo The layer description
-     * @param req The GetLegendGrapicRequest used for context
+     * @param request The GetLegendGrapicRequest used for context
      * @return created LegendRequest
      * @throws FactoryRegistryException
      * @throws IOException
@@ -249,8 +232,7 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
         FeatureType featureType = getLayerFeatureType(layerInfo);
         if (featureType != null) {
             LegendRequest legend =
-                    request
-                    .new LegendRequest(featureType, layerInfo.getResource().getQualifiedName());
+                    new LegendRequest(featureType, layerInfo.getResource().getQualifiedName());
             legend.setLayerInfo(layerInfo);
 
             MapLayerInfo mli = new MapLayerInfo(layerInfo);
@@ -541,13 +523,25 @@ public class GetLegendGraphicKvpReader extends KvpRequestReader {
             }
         }
 
-        req.setStyles(sldStyles);
+        Iterator<Style> stylesIterator = sldStyles.iterator();
+        for (LegendRequest legend1 : req.getLegends()) {
+            if (!stylesIterator.hasNext()) {
+                break; // no more styles
+            }
+            legend1.setStyle(stylesIterator.next());
+        }
 
         String rule = (String) rawKvp.get("RULE");
 
         if (rule != null) {
             List<String> ruleNames = KvpUtils.readFlat(rule);
-            req.setRules(ruleNames);
+            Iterator<String> s = ruleNames.iterator();
+            for (LegendRequest legend : req.getLegends()) {
+                if (!s.hasNext()) {
+                    break; // no more styles
+                }
+                legend.setRule(s.next());
+            }
         }
     }
 

@@ -7,7 +7,6 @@ package org.geoserver.catalog.impl;
 
 import static org.junit.Assert.*;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +19,10 @@ public class InfoObjectProxyTest {
         BeanImpl bean = new BeanImpl();
         ModificationProxy handler = new ModificationProxy(bean);
 
-        Class proxyClass =
-                Proxy.getProxyClass(Bean.class.getClassLoader(), new Class[] {Bean.class});
-
         Bean proxy =
                 (Bean)
-                        proxyClass
-                                .getConstructor(new Class[] {InvocationHandler.class})
-                                .newInstance(new Object[] {handler});
+                        Proxy.newProxyInstance(
+                                Bean.class.getClassLoader(), new Class[] {Bean.class}, handler);
 
         bean.setFoo("one");
         bean.setBar(1);
@@ -39,16 +34,16 @@ public class InfoObjectProxyTest {
         proxy.getScratch().add("y");
 
         assertEquals("one", bean.getFoo());
-        assertEquals(new Integer(1), bean.getBar());
+        assertEquals(Integer.valueOf(1), bean.getBar());
         assertTrue(bean.getScratch().isEmpty());
 
         assertEquals("two", proxy.getFoo());
-        assertEquals(new Integer(2), proxy.getBar());
+        assertEquals(Integer.valueOf(2), proxy.getBar());
         assertEquals(2, proxy.getScratch().size());
 
         handler.commit();
         assertEquals("two", bean.getFoo());
-        assertEquals(new Integer(2), bean.getBar());
+        assertEquals(Integer.valueOf(2), bean.getBar());
         assertEquals(2, bean.getScratch().size());
     }
 

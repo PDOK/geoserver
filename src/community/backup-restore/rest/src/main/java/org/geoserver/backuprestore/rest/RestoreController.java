@@ -171,7 +171,8 @@ public class RestoreController extends AbstractBackupRestoreController {
             MediaType.APPLICATION_XML_VALUE,
             MediaType.APPLICATION_JSON_VALUE,
             MediaTypeExtensions.TEXT_JSON_VALUE
-        }
+        },
+        produces = MediaType.TEXT_PLAIN_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
     public Object restorePost(
@@ -209,7 +210,9 @@ public class RestoreController extends AbstractBackupRestoreController {
                     getBackupFacade()
                             .runRestoreAsync(
                                     restore.getArchiveFile(),
-                                    restore.getFilter(),
+                                    restore.getWsFilter(),
+                                    restore.getSiFilter(),
+                                    restore.getLiFilter(),
                                     asParams(restore.getOptions()));
 
             LOGGER.log(Level.INFO, "Restore file: " + restore.getArchiveFile());

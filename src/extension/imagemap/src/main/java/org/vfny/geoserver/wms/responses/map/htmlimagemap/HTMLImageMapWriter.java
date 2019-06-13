@@ -88,7 +88,7 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
      * Creates a new HTMLImageMapWriter object.
      *
      * @param out stream to encode the layer to
-     * @param config current wms context
+     * @param mapContent current wms context
      * @throws ClassCastException
      * @throws UnsupportedEncodingException
      */
@@ -151,7 +151,7 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
      * Encodes a single layer (FeatureCollection) using the supplied style.
      *
      * @param fColl layer to encode
-     * @param style style to use for encoding
+     * @param ftsList the feature type styles to use for encoding
      * @throws IOException if an error occurs during encoding
      * @throws AbortedException if the operation is aborted
      */
@@ -161,7 +161,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
         SimpleFeatureIterator iter = null;
         try {
             SimpleFeatureType featureType = fColl.getSchema();
-            Class<?> gtype = featureType.getGeometryDescriptor().getType().getBinding();
 
             // iterates through the single features
             iter = fColl.features();
@@ -212,25 +211,18 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
      * @param featureTypeStyle The feature type style containing the rules.
      * @param feature The feature being filtered against.
      */
-    Rule[] filterRules(FeatureTypeStyle featureTypeStyle, SimpleFeature feature) {
-        Rule[] rules = featureTypeStyle.getRules();
-
-        if ((rules == null) || (rules.length == 0)) {
-            return new Rule[0];
-        }
-
-        List<Rule> filtered = new ArrayList<Rule>(rules.length);
+    List<Rule> filterRules(FeatureTypeStyle featureTypeStyle, SimpleFeature feature) {
+        List<Rule> filtered = new ArrayList<Rule>();
 
         // process the rules, keep track of the need to apply an else filters
         boolean match = false;
         boolean hasElseFilter = false;
 
-        for (int i = 0; i < rules.length; i++) {
-            Rule rule = rules[i];
+        for (Rule rule : featureTypeStyle.rules()) {
             LOGGER.finer(new StringBuffer("Applying rule: ").append(rule.toString()).toString());
 
             // does this rule have an else filter
-            if (rule.hasElseFilter()) {
+            if (rule.isElseFilter()) {
                 hasElseFilter = true;
 
                 continue;
@@ -266,16 +258,14 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
         // any else filters
         if (!match && hasElseFilter) {
             // loop through again and apply all the else rules
-            for (int i = 0; i < rules.length; i++) {
-                Rule rule = rules[i];
-
-                if (rule.hasElseFilter()) {
+            for (Rule rule : featureTypeStyle.rules()) {
+                if (rule.isElseFilter()) {
                     filtered.add(rule);
                 }
             }
         }
 
-        return (Rule[]) filtered.toArray(new Rule[filtered.size()]);
+        return filtered;
     }
 
     /**
@@ -299,7 +289,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          * encoding
          *
          * @param ft feature to encode
-         * @param style style to use for the encoding
          * @param fts "cached" ftss matching the FeatureType of the feature
          * @throws IOException if an error occurs during encoding
          */
@@ -359,7 +348,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          * d) post geometry encoding e) end feature encoding
          *
          * @param ft feature to encode
-         * @param style style to use for the encoding
          * @param fts "cached" ftss matching the FeatureType of the feature
          * @throws IOException if an error occurs during encoding
          */
@@ -482,7 +470,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          * Analyze the supplied style and process any matching rule.
          *
          * @param ft feature to which the style is going to be applied
-         * @param style style to process
          * @param ftsList cached fts matching the feature
          * @return true if the supplied feature has to be included in the output according to style
          *     filters.
@@ -493,10 +480,12 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
             int total = 0;
             for (int i = 0; i < ftsList.length; i++) {
                 FeatureTypeStyle fts = ftsList[i];
-                Rule[] rules = filterRules(fts, ft);
-                total += rules.length;
+                List<Rule> rules = filterRules(fts, ft);
+                total += rules.size();
 
-                for (int j = 0; j < rules.length; j++) processRule(ft, rules[j]);
+                for (Rule rule : rules) {
+                    processRule(ft, rule);
+                }
             }
             if (total == 0) return false;
             return true;
@@ -511,9 +500,8 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          */
         protected void processRule(SimpleFeature ft, Rule rule) throws IOException {
 
-            Symbolizer[] symbolizers = rule.getSymbolizers();
-            for (int i = 0; i < symbolizers.length; i++) {
-                Symbolizer symbolizer = symbolizers[i];
+            List<Symbolizer> symbolizers = rule.symbolizers();
+            for (Symbolizer symbolizer : symbolizers) {
                 // process any given symbolizer
                 processSymbolizer(ft, rule, symbolizer);
             }
@@ -825,7 +813,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          * the loop.
          *
          * @param ft feature to encode
-         * @param style style to use for the encoding
          * @param fts "cached" ftss matching the FeatureType of the feature
          * @throws IOException if an error occurs during encoding
          */
@@ -875,7 +862,6 @@ public class HTMLImageMapWriter extends OutputStreamWriter {
          * Analyze the supplied style and process any matching rule.
          *
          * @param ft feature to which the style is going to be applied
-         * @param style style to process
          * @param ftsList cached fts matching the feature
          * @return true if the style filters "accept" the feature
          * @throws IOException if an error occurs during the process

@@ -1054,23 +1054,6 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
             final Filter filter,
             @Nullable Integer offset,
             @Nullable Integer count,
-            @Nullable SortBy sortOrder) {
-
-        SortBy[] sortOrderList = null;
-
-        if (sortOrder != null) {
-            sortOrderList = new SortBy[] {sortOrder};
-        }
-
-        return list(of, filter, offset, count, sortOrderList);
-    }
-
-    @Override
-    public <T extends CatalogInfo> CloseableIterator<T> list(
-            final Class<T> of,
-            final Filter filter,
-            @Nullable Integer offset,
-            @Nullable Integer count,
             @Nullable SortBy... sortOrder) {
 
         if (sortOrder != null) {
@@ -1105,7 +1088,6 @@ public class DefaultCatalogFacade extends AbstractCatalogFacade implements Catal
             final Class<T> of, final Filter filter, final SortBy[] sortByList) {
         List<T> all;
 
-        T t = null;
         if (NamespaceInfo.class.isAssignableFrom(of)) {
             all = (List<T>) namespaces.list(of, toPredicate(filter));
         } else if (WorkspaceInfo.class.isAssignableFrom(of)) {

@@ -90,8 +90,8 @@ Get attributes for the states layer, in JSON format
        }
     }
     
-Classify Vector Data
---------------------
+Classify Raster and Vector Data
+-------------------------------
 ``/classify[.<format>]``
 
 .. list-table::
@@ -103,16 +103,19 @@ Classify Vector Data
      - Formats
      - Default Format
    * - GET
-     - Create a set of SLD Rules for the given layer (of vector type)
+     - Create a set of SLD Rules for the given layer
      - 200
      - HTML, XML, JSON
      - HTML
 
 The service can be used to create a set of SLD rules for the given vector
-layer, specyfing the **attribute** used for classification, the  **classification 
-type** (equalInterval, uniqueInterval, quantile, jenks) and one of the
+layer, specifying the **attribute** used for classification, the  **classification 
+type** (equalInterval, uniqueInterval, quantile, jenks, equalArea) and one of the
 **predefined color ranges** (red, blue, gray, jet, random, custom), together
 with some other optional parameters.
+
+The same can be applied on a raster layer too, in order to classify its contents. Data from the first
+band is used by default, but a different one can be selected.
 
 Using the **CUSTOM** ColorMap, startColor and endColor (and optionally midColor)
 have to be specified.
@@ -132,11 +135,11 @@ The parameters usable to customize the ColorMap are:
      - 2
    * - attribute (mandatory)
      - Classification attribute
-     - one of the layer attribute names
-     - 
+     - For vector layers, one of the layer attribute names, for raster layers, a band number (starting from one, like in the raster symbolizer)
+     - No default for vectors, "1" for rasters
    * - method
      - Classification method
-     - equalInterval, uniqueInterval, quantile, jenks
+     - equalInterval, uniqueInterval, quantile, jenks, equalArea
      - equalInterval
    * - open
      - open or closed ranges
@@ -150,10 +153,10 @@ The parameters usable to customize the ColorMap are:
      - normalize (cast) attribute to double type (needed by some stores to handle integer types correctly)
      - true, false
      - false
-   * - ramp (mandatory)
+   * - ramp
      - color ranges to use
      - red, blue, gray, jet, random, custom
-     - 
+     - red
    * - startColor
      - starting color for the custom ramp
      - 
@@ -198,6 +201,23 @@ The parameters usable to customize the ColorMap are:
      - allows specifying a set of custom classes (client driven style); no classes calculation will happen (method, intervals, etc. are ignored)
      - classes in the following format: <min>,<max>,<color>;...;<minN>,<maxN>,<colorN>)
      - 
+   * - bbox
+     - allows to run the classification on a specific bounding box. Recommended when the overall dataset is too big, and the classification can be performed on a smaller dataset, or to enhance the visualization of a particular subset of data
+     - same syntax as WMS/WFS, expected axis order is east/north unless the spatial reference system is explicitly provided, ``minx,miny,max,maxy[,srsName]``
+     - 
+   * - stddevs
+     - limits the data the classifier is working on to a range of "stddevs" standard deviations around the mean value. 
+     - a positive floating point number (e.g., '1', '2.5', '3').
+     -
+   * - env
+     - a list of environment variables that the underlying layer may be using to select features/rasters to be
+       classified (e.g., by using the ``filter`` in vector and mosaic layer definitions)  
+     - a semicolon separate list of name to value assignments, e.g. ``name1:value1;name2:value2;name3:value3;...``
+     -
+   * - continuous
+     - used only for raster layers, if set to true will generate a raster pallette that interpolates linearly between classified values 
+     - true|false
+     -
     
 Examples
 ~~~~~~~~~~
@@ -456,6 +476,9 @@ color ramp and 3 **open** intervals.
     
 Classify Raster Data
 --------------------
+
+This resource is deprecated, as the classify endpoint can now handle also raster data
+
 ``/rasterize[.<format>]``
 
 .. list-table::

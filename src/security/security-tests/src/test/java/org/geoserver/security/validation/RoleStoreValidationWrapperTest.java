@@ -5,9 +5,9 @@
  */
 package org.geoserver.security.validation;
 
+import static org.easymock.EasyMock.*;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.classextension.EasyMock.*;
 import static org.geoserver.security.validation.RoleServiceException.*;
 import static org.junit.Assert.*;
 
@@ -173,6 +173,7 @@ public class RoleStoreValidationWrapperTest extends GeoServerMockTestSupport {
     }
 
     @Test
+    @SuppressWarnings("SelfComparison")
     public void testRoleServiceWrapperAccessRules() throws Exception {
         setMockCreator(
                 new MockCreator() {

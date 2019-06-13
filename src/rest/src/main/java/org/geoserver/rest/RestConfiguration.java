@@ -20,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -166,8 +168,17 @@ public class RestConfiguration extends WebMvcConfigurationSupport {
     public void configurePathMatch(PathMatchConfigurer configurer) {
         // Force MVC to use /restng endpoint. If we need something more advanced, we should make a
         // custom PathHelper
-        configurer.setUrlPathHelper(new GeoServerUrlPathHelper());
-        configurer.getUrlPathHelper().setAlwaysUseFullPath(true);
+        GeoServerUrlPathHelper helper = new GeoServerUrlPathHelper();
+        helper.setAlwaysUseFullPath(true);
+        configurer.setUrlPathHelper(helper);
+    }
+
+    @Override
+    protected void addFormatters(FormatterRegistry registry) {
+        // add all configured Spring Converter classes to allow extension/pluggability
+        for (Converter converter : GeoServerExtensions.extensions(Converter.class)) {
+            registry.addConverter(converter);
+        }
     }
 
     static class GeoServerUrlPathHelper extends UrlPathHelper {
@@ -183,7 +194,7 @@ public class RestConfiguration extends WebMvcConfigurationSupport {
             try {
                 return URLDecoder.decode(source, "UTF-8");
             } catch (UnsupportedEncodingException e) {
-                return null;
+                throw new RuntimeException(e);
             }
         }
     }

@@ -1,6 +1,6 @@
 /* (c) 2014 Open Source Geospatial Foundation - all rights reserved
  * (c) 2001 - 2013 OpenPlans
- *           (c) 2002-2008 Open Source Geospatial Foundation (LGPL)
+ * (c) 2002-2008 Open Source Geospatial Foundation (LGPL)
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
@@ -68,10 +68,10 @@ public class JAIToolsRangeConverterFactory implements ConverterFactory {
         }
 
         if (m.group(2) != null) {
-            min = new Double(m.group(2));
+            min = Double.valueOf(m.group(2));
         }
         if (m.group(3) != null) {
-            max = new Double(m.group(3));
+            max = Double.valueOf(m.group(3));
         }
 
         boolean inclmin;

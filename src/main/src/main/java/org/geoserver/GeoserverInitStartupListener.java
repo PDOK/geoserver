@@ -7,6 +7,7 @@ package org.geoserver;
 
 import com.google.common.collect.Lists;
 import it.geosolutions.concurrent.ConcurrentTileCacheMultiMap;
+import it.geosolutions.jaiext.ConcurrentOperationRegistry;
 import java.beans.Introspector;
 import java.lang.reflect.Method;
 import java.sql.Driver;
@@ -40,7 +41,6 @@ import javax.servlet.ServletContextListener;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.LogManager;
 import org.geoserver.config.impl.CoverageAccessInfoImpl;
-import org.geoserver.jai.ConcurrentOperationRegistry;
 import org.geoserver.logging.LoggingUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geotools.coverage.CoverageFactoryFinder;
@@ -69,8 +69,6 @@ public class GeoserverInitStartupListener implements ServletContextListener {
     private static final Logger LOGGER = Logging.getLogger("org.geoserver.logging");
 
     boolean relinquishLoggingControl;
-
-    private Iterator<Class<?>> products;
 
     private static final String COMPARISON_TOLERANCE_PROPERTY = "COMPARISON_TOLERANCE";
 
@@ -127,9 +125,7 @@ public class GeoserverInitStartupListener implements ServletContextListener {
 
         // setup concurrent operation registry
         JAI jaiDef = JAI.getDefaultInstance();
-        if (!(jaiDef.getOperationRegistry() instanceof ConcurrentOperationRegistry
-                || jaiDef.getOperationRegistry()
-                        instanceof it.geosolutions.jaiext.ConcurrentOperationRegistry)) {
+        if (!(jaiDef.getOperationRegistry() instanceof ConcurrentOperationRegistry)) {
             jaiDef.setOperationRegistry(ConcurrentOperationRegistry.initializeRegistry());
         }
 
@@ -274,7 +270,7 @@ public class GeoserverInitStartupListener implements ServletContextListener {
                     // the
                     // sun.jdbc.odbc.JdbcOdbcDriver
                     ClassLoader driverClassLoader = driver.getClass().getClassLoader();
-                    if (driverClassLoader != null && webappClassLoader.equals(driverClassLoader)) {
+                    if (driverClassLoader != null && driverClassLoader.equals(webappClassLoader)) {
                         driversToUnload.add(driver);
                     }
                 } catch (Throwable t) {
@@ -288,10 +284,6 @@ public class GeoserverInitStartupListener implements ServletContextListener {
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Could now unload driver " + driver.getClass(), e);
                 }
-            }
-            drivers = DriverManager.getDrivers();
-            while (drivers.hasMoreElements()) {
-                Driver driver = drivers.nextElement();
             }
             try {
                 Class h2Driver = Class.forName("org.h2.Driver");
@@ -341,11 +333,7 @@ public class GeoserverInitStartupListener implements ServletContextListener {
                 try {
                     executor.shutdown();
                 } finally {
-                    try {
-                        executor.shutdownNow();
-                    } finally {
-
-                    }
+                    executor.shutdownNow();
                 }
             }
 

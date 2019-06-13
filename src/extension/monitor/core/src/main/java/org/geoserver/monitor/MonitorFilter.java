@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.FilterChain;
@@ -25,10 +26,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.geoserver.filters.GeoServerFilter;
 import org.geoserver.monitor.RequestData.Status;
 import org.geoserver.platform.GeoServerExtensions;
+import org.geoserver.security.SecurityUtils;
 import org.geotools.util.logging.Logging;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 public class MonitorFilter implements GeoServerFilter {
 
@@ -43,6 +44,8 @@ public class MonitorFilter implements GeoServerFilter {
     MonitorRequestFilter requestFilter;
 
     ExecutorService postProcessExecutor;
+
+    BiConsumer<RequestData, Authentication> executionAudit;
 
     public MonitorFilter(Monitor monitor, MonitorRequestFilter requestFilter) {
         this.monitor = monitor;
@@ -112,13 +115,9 @@ public class MonitorFilter implements GeoServerFilter {
         if (SecurityContextHolder.getContext() != null
                 && SecurityContextHolder.getContext().getAuthentication() != null) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            Object principal = auth.getPrincipal();
-            if (principal != null) {
-                if (principal instanceof UserDetails) {
-                    data.setRemoteUser(((UserDetails) principal).getUsername());
-                } else if (principal instanceof String) {
-                    data.setRemoteUser((String) principal);
-                }
+            String username = SecurityUtils.getUsername(auth.getPrincipal());
+            if (username != null) {
+                data.setRemoteUser(username);
             }
         }
 
@@ -176,7 +175,16 @@ public class MonitorFilter implements GeoServerFilter {
         monitor.complete();
 
         // post processing
-        postProcessExecutor.execute(new PostProcessTask(monitor, data, req, resp));
+        PostProcessTask task =
+                new PostProcessTask(
+                        monitor,
+                        data,
+                        req,
+                        resp,
+                        SecurityContextHolder.getContext().getAuthentication());
+        // Execution Audit
+        task.setExecutionAudit(executionAudit);
+        postProcessExecutor.execute(task);
 
         if (error != null) {
             if (error instanceof RuntimeException) {
@@ -231,26 +239,40 @@ public class MonitorFilter implements GeoServerFilter {
         }
     }
 
+    /**
+     * Audit consumer function to be executed on the underlying PostProcessTask thread. Will receive
+     * {@link RequestData} and {@link Authentication} from thread execution.
+     */
+    void setExecutionAudit(BiConsumer<RequestData, Authentication> executionAudit) {
+        this.executionAudit = executionAudit;
+    }
+
     static class PostProcessTask implements Runnable {
 
         Monitor monitor;
         RequestData data;
         HttpServletRequest request;
         HttpServletResponse response;
+        Authentication propagatedAuth;
+
+        BiConsumer<RequestData, Authentication> executionAudit;
 
         PostProcessTask(
                 Monitor monitor,
                 RequestData data,
                 HttpServletRequest request,
-                HttpServletResponse response) {
+                HttpServletResponse response,
+                Authentication propagatedAuth) {
             this.monitor = monitor;
             this.data = data;
             this.request = request;
             this.response = response;
+            this.propagatedAuth = propagatedAuth;
         }
 
         public void run() {
             try {
+                SecurityContextHolder.getContext().setAuthentication(propagatedAuth);
                 List<RequestPostProcessor> pp = new ArrayList();
                 pp.add(new ReverseDNSPostProcessor());
                 pp.addAll(GeoServerExtensions.extensions(RequestPostProcessor.class));
@@ -265,11 +287,23 @@ public class MonitorFilter implements GeoServerFilter {
 
                 monitor.postProcessed(data);
             } finally {
+                if (executionAudit != null)
+                    executionAudit.accept(
+                            data, SecurityContextHolder.getContext().getAuthentication());
                 monitor = null;
                 data = null;
                 request = null;
                 response = null;
+                SecurityContextHolder.getContext().setAuthentication(null);
             }
+        }
+
+        /**
+         * Audit consumer function. Will receive post processed {@link RequestData} and run time
+         * {@link Authentication}.
+         */
+        void setExecutionAudit(BiConsumer<RequestData, Authentication> executionAudit) {
+            this.executionAudit = executionAudit;
         }
     }
 }

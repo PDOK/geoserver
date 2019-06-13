@@ -243,9 +243,18 @@ public class RemoteProcess implements Process, RemoteProcessClientListener {
     }
 
     @Override
-    public void setTask(String pId, String logMessage) {
+    public void setTask(final String pId, final String logMessage) {
         if (pId != null && pId.equals(pid)) {
             listener.setTask(new SimpleInternationalString(logMessage));
         }
+    }
+
+    @Override
+    public double getProgress(final String pId) {
+        if (pId != null && pId.equals(pid)) {
+            return listener.getProgress();
+        }
+
+        return Double.NaN;
     }
 }

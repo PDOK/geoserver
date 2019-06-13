@@ -9,6 +9,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -127,7 +128,6 @@ public class IOUtils {
      */
     public static void filteredCopy(BufferedReader from, File to, Map<String, String> filters)
             throws IOException {
-        BufferedWriter out = null;
         // prepare the escaped ${key} keys so that it won't be necessary to do
         // it over and over
         // while parsing the file
@@ -135,9 +135,7 @@ public class IOUtils {
         for (Map.Entry<String, String> entry : filters.entrySet()) {
             escapedMap.put("${" + entry.getKey() + "}", entry.getValue());
         }
-        try {
-            out = new BufferedWriter(new FileWriter(to));
-
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(to))) {
             String line = null;
             while ((line = from.readLine()) != null) {
                 for (Map.Entry<String, String> entry : escapedMap.entrySet()) {
@@ -149,7 +147,6 @@ public class IOUtils {
             out.flush();
         } finally {
             from.close();
-            out.close();
         }
     }
 
@@ -184,10 +181,12 @@ public class IOUtils {
         if (!toDir.exists()) if (!toDir.mkdir()) throw new IOException("Could not create " + toDir);
 
         File[] files = fromDir.listFiles();
-        for (File file : files) {
-            File destination = new File(toDir, file.getName());
-            if (file.isDirectory()) deepCopy(file, destination);
-            else copy(file, destination);
+        if (files != null) {
+            for (File file : files) {
+                File destination = new File(toDir, file.getName());
+                if (file.isDirectory()) deepCopy(file, destination);
+                else copy(file, destination);
+            }
         }
     }
 
@@ -354,26 +353,28 @@ public class IOUtils {
         File[] files = directory.listFiles(filter);
         // copy file by reading 4k at a time (faster than buffered reading)
         byte[] buffer = new byte[4 * 1024];
-        for (File file : files) {
-            if (file.exists()) {
-                if (file.isDirectory()) {
-                    // recurse and append
-                    String newPrefix = prefix + file.getName() + "/";
-                    zipout.putNextEntry(new ZipEntry(newPrefix));
-                    zipDirectory(file, newPrefix, zipout, filter);
-                } else {
-                    ZipEntry entry = new ZipEntry(prefix + file.getName());
-                    zipout.putNextEntry(entry);
+        if (files != null) {
+            for (File file : files) {
+                if (file.exists()) {
+                    if (file.isDirectory()) {
+                        // recurse and append
+                        String newPrefix = prefix + file.getName() + "/";
+                        zipout.putNextEntry(new ZipEntry(newPrefix));
+                        zipDirectory(file, newPrefix, zipout, filter);
+                    } else {
+                        ZipEntry entry = new ZipEntry(prefix + file.getName());
+                        zipout.putNextEntry(entry);
 
-                    InputStream in = new FileInputStream(file);
-                    int c;
-                    try {
-                        while (-1 != (c = in.read(buffer))) {
-                            zipout.write(buffer, 0, c);
+                        InputStream in = new FileInputStream(file);
+                        int c;
+                        try {
+                            while (-1 != (c = in.read(buffer))) {
+                                zipout.write(buffer, 0, c);
+                            }
+                            zipout.closeEntry();
+                        } finally {
+                            in.close();
                         }
-                        zipout.closeEntry();
-                    } finally {
-                        in.close();
                     }
                 }
             }
@@ -529,6 +530,23 @@ public class IOUtils {
             } else {
                 FileUtils.moveFile(source, dest);
             }
+        }
+    }
+
+    /**
+     * Replacement for the now deprecated {@link
+     * org.apache.commons.io.IOUtils#closeQuietly(Closeable)}, to be used only when then "quiet"
+     * behavior bit is really rneeded
+     *
+     * @param closeable
+     */
+    public static void closeQuietly(final Closeable closeable) {
+        try {
+            if (closeable != null) {
+                closeable.close();
+            }
+        } catch (final IOException ioe) {
+            // ignore
         }
     }
 }

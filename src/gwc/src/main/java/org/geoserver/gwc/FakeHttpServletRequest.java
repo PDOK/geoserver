@@ -31,7 +31,7 @@ import javax.servlet.http.Part;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "deprecation"})
 class FakeHttpServletRequest implements HttpServletRequest {
 
     private static final Enumeration EMPTY_ENUMERATION =
@@ -311,6 +311,7 @@ class FakeHttpServletRequest implements HttpServletRequest {
         throw new ServletDebugException();
     }
 
+    @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
     public String getRemoteAddr() {
         return original.map(r -> r.getRemoteAddr()).orElse("127.0.0.1");
     }

@@ -1,12 +1,11 @@
 /* (c) 2014 Open Source Geospatial Foundation - all rights reserved
- * Copyright (C) 2007-2008-2009 GeoSolutions S.A.S.
- *  http://www.geo-solutions.it
+ * (c) 2007-2008-2009 GeoSolutions S.A.S., http://www.geo-solutions.it
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  */
 package org.geoserver.sldservice.utils.classifier;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -24,9 +23,7 @@ import org.geotools.styling.Mark;
 import org.geotools.styling.Rule;
 import org.geotools.styling.StyleBuilder;
 import org.geotools.styling.StyleFactory;
-import org.geotools.styling.Symbolizer;
 import org.geotools.util.factory.GeoTools;
-import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory2;
 import org.opengis.filter.expression.Expression;
@@ -44,9 +41,11 @@ public class RulesBuilder {
 
     private static final Logger LOGGER = Logger.getLogger(RulesBuilder.class.toString());
 
-    private FilterFactory2 ff;
+    private static FilterFactory2 FF =
+            CommonFactoryFinder.getFilterFactory2(GeoTools.getDefaultHints());
 
-    private StyleFactory styleFactory;
+    private static StyleFactory SF =
+            CommonFactoryFinder.getStyleFactory(GeoTools.getDefaultHints());
 
     private StyleBuilder sb;
 
@@ -56,9 +55,7 @@ public class RulesBuilder {
     private boolean includeStrokeForPoints = false;
 
     public RulesBuilder() {
-        ff = CommonFactoryFinder.getFilterFactory2(GeoTools.getDefaultHints());
-        styleFactory = CommonFactoryFinder.getStyleFactory(GeoTools.getDefaultHints());
-        sb = new StyleBuilder();
+        sb = new StyleBuilder(SF, FF);
     }
 
     public void setStrokeWeight(double strokeWeight) {
@@ -79,27 +76,18 @@ public class RulesBuilder {
         this.includeStrokeForPoints = includeStrokeForPoints;
     }
 
-    /**
-     * Generate a List of rules using quantile classification Sets up only filter not symbolizer
-     *
-     * @param features
-     * @param property
-     * @param classNumber
-     */
-    public List<Rule> quantileClassification(
+    private List<Rule> getRules(
             FeatureCollection features,
             String property,
             Class<?> propertyType,
             int classNumber,
             boolean open,
-            boolean normalize) {
-
-        FeatureType fType;
-        Classifier groups = null;
+            boolean normalize,
+            String functionName) {
         try {
             final Function classify =
-                    ff.function("Quantile", ff.property(property), ff.literal(classNumber));
-            groups = (Classifier) classify.evaluate(features);
+                    FF.function(functionName, FF.property(property), FF.literal(classNumber));
+            Classifier groups = (Classifier) classify.evaluate(features);
             if (groups instanceof RangedClassifier)
                 if (open)
                     return openRangedRules(
@@ -114,10 +102,24 @@ public class RulesBuilder {
             if (LOGGER.isLoggable(Level.INFO))
                 LOGGER.log(
                         Level.INFO,
-                        "Failed to build Quantile Classification" + e.getLocalizedMessage(),
+                        "Failed to build "
+                                + functionName
+                                + " Classification"
+                                + e.getLocalizedMessage(),
                         e);
         }
         return null;
+    }
+
+    /** Generate a List of rules using quantile classification Sets up only filter not symbolizer */
+    public List<Rule> quantileClassification(
+            FeatureCollection features,
+            String property,
+            Class<?> propertyType,
+            int classNumber,
+            boolean open,
+            boolean normalize) {
+        return getRules(features, property, propertyType, classNumber, open, normalize, "Quantile");
     }
 
     /**
@@ -132,34 +134,11 @@ public class RulesBuilder {
             FeatureCollection features,
             String property,
             Class<?> propertyType,
-            int classNumber,
+            int intervals,
             boolean open,
             boolean normalize) {
-        Classifier groups = null;
-        try {
-
-            final Function classify =
-                    ff.function("EqualInterval", ff.property(property), ff.literal(classNumber));
-            groups = (Classifier) classify.evaluate(features);
-            // System.out.println(groups.getSize());
-            if (groups instanceof RangedClassifier)
-                if (open)
-                    return openRangedRules(
-                            (RangedClassifier) groups, property, propertyType, normalize);
-                else
-                    return closedRangedRules(
-                            (RangedClassifier) groups, property, propertyType, normalize);
-            else if (groups instanceof ExplicitClassifier)
-                return this.explicitRules((ExplicitClassifier) groups, property, propertyType);
-
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(Level.INFO))
-                LOGGER.log(
-                        Level.INFO,
-                        "Failed to build EqualInterval Classification" + e.getLocalizedMessage(),
-                        e);
-        }
-        return null;
+        return getRules(
+                features, property, propertyType, intervals, open, normalize, "EqualInterval");
     }
 
     /**
@@ -176,35 +155,55 @@ public class RulesBuilder {
             int intervals,
             boolean normalize)
             throws IllegalArgumentException {
-        Classifier groups = null;
-        int classNumber = features.size();
-        try {
-            final Function classify =
-                    ff.function("UniqueInterval", ff.property(property), ff.literal(classNumber));
-            groups = (Classifier) classify.evaluate(features);
-
-            if (groups instanceof RangedClassifier)
-                return this.closedRangedRules(
-                        (RangedClassifier) groups, property, propertyType, normalize);
-            else if (groups instanceof ExplicitClassifier) {
-                ExplicitClassifier explicitGroups = (ExplicitClassifier) groups;
-                if (intervals > 0 && explicitGroups.getSize() > intervals) {
-                    throw new IllegalArgumentException("Intervals: " + explicitGroups.getSize());
-                }
-                return this.explicitRules(explicitGroups, property, propertyType);
-            }
-
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(Level.INFO))
-                LOGGER.log(
-                        Level.INFO,
-                        "Failed to build UniqueInterval Classification" + e.getLocalizedMessage(),
-                        e);
-            if (e instanceof IllegalArgumentException) {
-                throw (IllegalArgumentException) e;
-            }
+        List<Rule> rules =
+                getRules(
+                        features,
+                        property,
+                        propertyType,
+                        features.size(),
+                        false,
+                        normalize,
+                        "UniqueInterval");
+        if (intervals > 0 && rules.size() > intervals) {
+            throw new IllegalArgumentException("Intervals: " + rules.size());
         }
-        return null;
+        return rules;
+    }
+
+    /**
+     * Generate a List of rules using Jenks Natural Breaks classification Sets up only filter not
+     * symbolizer
+     *
+     * @param features
+     * @param property
+     * @param classNumber
+     */
+    public List<Rule> jenksClassification(
+            FeatureCollection features,
+            String property,
+            Class<?> propertyType,
+            int classNumber,
+            boolean open,
+            boolean normalize) {
+        return getRules(features, property, propertyType, classNumber, open, normalize, "Jenks");
+    }
+
+    /**
+     * Generate a List of rules using Equal Area classification. Sets up only filter not symbolizer.
+     *
+     * @param features
+     * @param property
+     * @param classNumber
+     */
+    public List<Rule> equalAreaClassification(
+            FeatureCollection features,
+            String property,
+            Class<?> propertyType,
+            int classNumber,
+            boolean open,
+            boolean normalize) {
+        return getRules(
+                features, property, propertyType, classNumber, open, normalize, "EqualArea");
     }
 
     /**
@@ -233,14 +232,14 @@ public class RulesBuilder {
             while (it.hasNext() && colors.hasNext()) {
                 color = colors.next();
                 rule = it.next();
-                rule.setSymbolizers(
-                        new Symbolizer[] {
-                            sb.createPolygonSymbolizer(
-                                    strokeWeight < 0
-                                            ? null
-                                            : sb.createStroke(strokeColor, strokeWeight),
-                                    sb.createFill(color))
-                        });
+                rule.symbolizers().clear();
+                rule.symbolizers()
+                        .add(
+                                sb.createPolygonSymbolizer(
+                                        strokeWeight < 0
+                                                ? null
+                                                : sb.createStroke(strokeColor, strokeWeight),
+                                        sb.createFill(color)));
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.INFO))
@@ -285,11 +284,11 @@ public class RulesBuilder {
                                 includeStrokeForPoints && strokeWeight >= 0
                                         ? sb.createStroke(strokeColor, strokeWeight)
                                         : null);
-                rule.setSymbolizers(
-                        new Symbolizer[] {
-                            sb.createPointSymbolizer(
-                                    sb.createGraphic(null, mark, null, 1.0, pointSize, 0.0))
-                        });
+                rule.symbolizers().clear();
+                rule.symbolizers()
+                        .add(
+                                sb.createPointSymbolizer(
+                                        sb.createGraphic(null, mark, null, 1.0, pointSize, 0.0)));
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.INFO))
@@ -326,7 +325,8 @@ public class RulesBuilder {
             while (it.hasNext() && colors.hasNext()) {
                 color = colors.next();
                 rule = it.next();
-                rule.setSymbolizers(new Symbolizer[] {sb.createLineSymbolizer(color)});
+                rule.symbolizers().clear();
+                rule.symbolizers().add(sb.createLineSymbolizer(color));
             }
         } catch (Exception e) {
             if (LOGGER.isLoggable(Level.INFO))
@@ -336,7 +336,7 @@ public class RulesBuilder {
     }
 
     public StyleFactory getStyleFactory() {
-        return this.styleFactory;
+        return this.SF;
     }
 
     /**
@@ -351,63 +351,42 @@ public class RulesBuilder {
         Rule r;
         Filter f;
         List<Rule> list = new ArrayList();
-        Expression att = normalizeProperty(ff.property(property), propertyType, normalize);
+        Expression att = normalizeProperty(FF.property(property), propertyType, normalize);
 
         try {
             /* First class */
-            r = styleFactory.createRule();
-            /*if (groups.getMin(0).equals(groups.getMax(0))) {
-                f = ff.equals(att, ff.literal(groups.getMax(0)));
-                r.setFilter(f);
-                r.setTitle(ff.literal(groups.getMax(0)).toString());
-                list.add(r);
-            } else {
-                f = ff.lessOrEqual(att, ff.literal(groups.getMax(0)));
-                r.setFilter(f);
-                r.setTitle(" <= " + ff.literal(groups.getMax(0)));
-                list.add(r);
-            }*/
-            f = ff.lessOrEqual(att, ff.literal(groups.getMax(0)));
+            r = SF.createRule();
+            f = FF.less(att, FF.literal(groups.getMax(0)));
             r.setFilter(f);
-            r.setTitle(" <= " + ff.literal(groups.getMax(0)));
+            r.getDescription().setTitle(" < " + FF.literal(groups.getMax(0)));
             list.add(r);
             for (int i = 1; i < groups.getSize() - 1; i++) {
-                r = styleFactory.createRule();
+                r = SF.createRule();
                 if (groups.getMin(i).equals(groups.getMax(i))) {
-                    f = ff.equals(att, ff.literal(groups.getMax(i)));
-                    r.setTitle(ff.literal(groups.getMin(i)).toString());
+                    f = FF.equals(att, FF.literal(groups.getMax(i)));
+                    r.getDescription().setTitle((FF.literal(groups.getMin(i)).toString()));
                     r.setFilter(f);
                     list.add(r);
                 } else {
                     f =
-                            ff.and(
-                                    ff.greater(att, ff.literal(groups.getMin(i))),
-                                    ff.lessOrEqual(att, ff.literal(groups.getMax(i))));
-                    r.setTitle(
-                            " > "
-                                    + ff.literal(groups.getMin(i))
-                                    + " AND <= "
-                                    + ff.literal(groups.getMax(i)));
+                            FF.and(
+                                    FF.greaterOrEqual(att, FF.literal(groups.getMin(i))),
+                                    FF.less(att, FF.literal(groups.getMax(i))));
+                    r.getDescription()
+                            .setTitle(
+                                    (" >= "
+                                            + FF.literal(groups.getMin(i))
+                                            + " AND < "
+                                            + FF.literal(groups.getMax(i))));
                     r.setFilter(f);
                     list.add(r);
                 }
             }
             /* Last class */
-            r = styleFactory.createRule();
-            /*if (groups.getMin(groups.getSize() - 1).equals(groups.getMax(groups.getSize() - 1))) {
-                f = ff.equals(att, ff.literal(groups.getMin(groups.getSize() - 1)));
-                r.setFilter(f);
-                r.setTitle(ff.literal(groups.getMin(groups.getSize() - 1)).toString());
-                list.add(r);
-            } else {
-                f = ff.greater(att, ff.literal(groups.getMin(groups.getSize() - 1)));
-                r.setFilter(f);
-                r.setTitle(" > " + ff.literal(groups.getMin(groups.getSize() - 1)));
-                list.add(r);
-            }*/
-            f = ff.greater(att, ff.literal(groups.getMin(groups.getSize() - 1)));
+            r = SF.createRule();
+            f = FF.greaterOrEqual(att, FF.literal(groups.getMin(groups.getSize() - 1)));
             r.setFilter(f);
-            r.setTitle(" > " + ff.literal(groups.getMin(groups.getSize() - 1)));
+            r.getDescription().setTitle((" >= " + FF.literal(groups.getMin(groups.getSize() - 1))));
             list.add(r);
             return list;
         } catch (Exception e) {
@@ -425,7 +404,7 @@ public class RulesBuilder {
         if (normalize
                 && (Integer.class.isAssignableFrom(propertyType)
                         || Long.class.isAssignableFrom(propertyType))) {
-            return ff.function("parseDouble", property);
+            return FF.function("parseDouble", property);
         }
         return property;
     }
@@ -442,30 +421,32 @@ public class RulesBuilder {
         Rule r;
         Filter f;
         List<Rule> list = new ArrayList();
-        Expression att = normalizeProperty(ff.property(property), propertyType, normalize);
+        Expression att = normalizeProperty(FF.property(property), propertyType, normalize);
         try {
             /* First class */
-            r = styleFactory.createRule();
+            r = SF.createRule();
             for (int i = 0; i < groups.getSize(); i++) {
-                r = styleFactory.createRule();
-                if (i > 0 && groups.getMax(i).equals(groups.getMax(i - 1))) continue;
+                r = SF.createRule();
                 if (groups.getMin(i).equals(groups.getMax(i))) {
-                    f = ff.equals(att, ff.literal(groups.getMin(i)));
-                    r.setTitle(ff.literal(groups.getMin(i)).toString());
+                    f = FF.equals(att, FF.literal(groups.getMin(i)));
+                    r.getDescription().setTitle((FF.literal(groups.getMin(i)).toString()));
                     r.setFilter(f);
                     list.add(r);
                 } else {
                     f =
-                            ff.and(
-                                    i == 0
-                                            ? ff.greaterOrEqual(att, ff.literal(groups.getMin(i)))
-                                            : ff.greater(att, ff.literal(groups.getMin(i))),
-                                    ff.lessOrEqual(att, ff.literal(groups.getMax(i))));
-                    r.setTitle(
-                            " > "
-                                    + ff.literal(groups.getMin(i))
-                                    + " AND <= "
-                                    + ff.literal(groups.getMax(i)));
+                            FF.and(
+                                    FF.greaterOrEqual(att, FF.literal(groups.getMin(i))),
+                                    i == (groups.getSize() - 1)
+                                            ? FF.lessOrEqual(att, FF.literal(groups.getMax(i)))
+                                            : FF.less(att, FF.literal(groups.getMax(i))));
+
+                    r.getDescription()
+                            .setTitle(
+                                    (" >= "
+                                            + FF.literal(groups.getMin(i))
+                                            + " AND "
+                                            + (i == (groups.getSize() - 1) ? "<=" : "<")
+                                            + FF.literal(groups.getMax(i))));
                     r.setFilter(f);
                     list.add(r);
                 }
@@ -493,27 +474,27 @@ public class RulesBuilder {
         Rule r;
         Filter f;
         List<Rule> list = new ArrayList();
-        PropertyName att = ff.property(property);
+        PropertyName att = FF.property(property);
         String szFilter = "";
         String szTitle = "";
         Literal val;
 
         try {
             for (int i = 0; i < groups.getSize(); i++) {
-                r = styleFactory.createRule();
+                r = SF.createRule();
                 Set ls = groups.getValues(i);
                 Iterator it = ls.iterator();
-                val = ff.literal(it.next());
+                val = FF.literal(it.next());
                 szFilter = att + "=\'" + val + "\'";
                 szTitle = "" + val;
 
                 while (it.hasNext()) {
-                    val = ff.literal(it.next());
+                    val = FF.literal(it.next());
                     szFilter += " OR " + att + "=\'" + val + "\'";
                     szTitle += " OR " + val;
                 }
                 f = CQL.toFilter(szFilter);
-                r.setTitle(szTitle);
+                r.getDescription().setTitle(szTitle);
                 r.setFilter(f);
                 list.add(r);
             }
@@ -522,47 +503,6 @@ public class RulesBuilder {
             if (LOGGER.isLoggable(Level.INFO))
                 LOGGER.log(
                         Level.INFO, "Failed to build explicit Rules" + e.getLocalizedMessage(), e);
-        }
-        return null;
-    }
-
-    /**
-     * Generate a List of rules using Jenks Natural Breaks classification Sets up only filter not
-     * symbolizer
-     *
-     * @param features
-     * @param property
-     * @param classNumber
-     */
-    public List<Rule> jenksClassification(
-            FeatureCollection features,
-            String property,
-            Class<?> propertyType,
-            int classNumber,
-            boolean open,
-            boolean normalize) {
-        Classifier groups = null;
-        try {
-            final Function classify =
-                    ff.function("Jenks", ff.property(property), ff.literal(classNumber));
-            groups = (Classifier) classify.evaluate(features);
-            // System.out.println(groups.getSize());
-            if (groups instanceof RangedClassifier)
-                if (open)
-                    return openRangedRules(
-                            (RangedClassifier) groups, property, propertyType, normalize);
-                else
-                    return closedRangedRules(
-                            (RangedClassifier) groups, property, propertyType, normalize);
-            else if (groups instanceof ExplicitClassifier)
-                return this.explicitRules((ExplicitClassifier) groups, property, propertyType);
-
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(Level.INFO))
-                LOGGER.log(
-                        Level.INFO,
-                        "Failed to build Jenks classification" + e.getLocalizedMessage(),
-                        e);
         }
         return null;
     }

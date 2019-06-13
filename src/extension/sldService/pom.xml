@@ -11,7 +11,7 @@
  <parent>
    <groupId>org.geoserver</groupId>
    <artifactId>extension</artifactId>
-   <version>2.15-SNAPSHOT</version>
+   <version>2.16-SNAPSHOT</version>
  </parent>
   
  <groupId>org.geoserver.extension</groupId>
@@ -22,22 +22,22 @@
         <dependency>
             <groupId>org.geoserver</groupId>
             <artifactId>gs-main</artifactId>
-            <version>2.15-SNAPSHOT</version>
+            <version>2.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.geoserver</groupId>
             <artifactId>gs-rest</artifactId>
-            <version>2.15-SNAPSHOT</version>
+            <version>2.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.geoserver</groupId>
             <artifactId>gs-restconfig</artifactId>
-            <version>2.15-SNAPSHOT</version>
+            <version>2.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.geoserver</groupId>
             <artifactId>gs-wms</artifactId>
-            <version>2.15-SNAPSHOT</version>
+            <version>2.16-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>jdom</groupId>
@@ -55,6 +55,14 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
         </dependency>
+
+        <!-- This library is used by json-lib to write XML -->
+        <dependency>
+            <groupId>xom</groupId>
+            <artifactId>xom</artifactId>
+            <version>1.1</version>
+        </dependency>
+
 
         <!-- test dependencies -->
         <dependency>
@@ -107,6 +115,11 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

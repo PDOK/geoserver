@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
@@ -117,6 +118,40 @@ public class Resources {
 
             default:
                 return null;
+        }
+    }
+
+    /**
+     * Checks {@link Resource#getType()} and returns existing file() or dir() as appropriate, or
+     * null for {@link Resource.Type#UNDEFINED}.
+     *
+     * <p>This approach is a reproduction of GeoServerResourceLoader find logic.
+     *
+     * @see Resource#dir()
+     * @see Resource#file()
+     * @param resource Resource indicated
+     * @param force false to return null for {@link Resource.Type#UNDEFINED}, true to force a File
+     *     to be created.
+     * @return The file if exists, null if {@link Resource.Type#UNDEFINED} and force is false, a
+     *     File with the resource path otherwise
+     */
+    public static File find(Resource resource, boolean force) {
+        if (resource == null) {
+            return null;
+        }
+        switch (resource.getType()) {
+            case DIRECTORY:
+                return resource.dir();
+
+            case RESOURCE:
+                return resource.file();
+
+            default:
+                if (force) {
+                    return new File(resource.path());
+                } else {
+                    return null;
+                }
         }
     }
 
@@ -539,7 +574,7 @@ public class Resources {
      */
     public static Resource fromURL(Resource baseDirectory, String url) {
         String ss;
-        if ((ss = StringUtils.removeStart(url, "resource:")) != url) {
+        if (!Objects.equals(url, ss = StringUtils.removeStart(url, "resource:"))) {
             return baseDirectory.get(ss);
         }
 

@@ -70,19 +70,24 @@ public class SLDHandler extends StyleHandler {
         try {
             TEMPLATES.put(
                     StyleType.POINT,
-                    IOUtils.toString(SLDHandler.class.getResourceAsStream("template_point.sld")));
+                    IOUtils.toString(
+                            SLDHandler.class.getResourceAsStream("template_point.sld"), "UTF-8"));
             TEMPLATES.put(
                     StyleType.POLYGON,
-                    IOUtils.toString(SLDHandler.class.getResourceAsStream("template_polygon.sld")));
+                    IOUtils.toString(
+                            SLDHandler.class.getResourceAsStream("template_polygon.sld"), "UTF-8"));
             TEMPLATES.put(
                     StyleType.LINE,
-                    IOUtils.toString(SLDHandler.class.getResourceAsStream("template_line.sld")));
+                    IOUtils.toString(
+                            SLDHandler.class.getResourceAsStream("template_line.sld"), "UTF-8"));
             TEMPLATES.put(
                     StyleType.RASTER,
-                    IOUtils.toString(SLDHandler.class.getResourceAsStream("template_raster.sld")));
+                    IOUtils.toString(
+                            SLDHandler.class.getResourceAsStream("template_raster.sld"), "UTF-8"));
             TEMPLATES.put(
                     StyleType.GENERIC,
-                    IOUtils.toString(SLDHandler.class.getResourceAsStream("template_generic.sld")));
+                    IOUtils.toString(
+                            SLDHandler.class.getResourceAsStream("template_generic.sld"), "UTF-8"));
         } catch (IOException e) {
             throw new RuntimeException("Error loading up the style templates", e);
         }
@@ -99,7 +104,7 @@ public class SLDHandler extends StyleHandler {
 
     @Override
     public String getCodeMirrorEditMode() {
-        return "xml";
+        return "text/sld10";
     }
 
     @Override
@@ -114,7 +119,7 @@ public class SLDHandler extends StyleHandler {
 
     @Override
     public String mimeType(Version version) {
-        if (version != null && VERSION_11.equals(version)) {
+        if (version != null && version.equals(VERSION_11)) {
             return MIMETYPE_11;
         }
         return MIMETYPE_10;
@@ -174,7 +179,7 @@ public class SLDHandler extends StyleHandler {
             }
             return sld;
         } finally {
-            IOUtils.closeQuietly(reader);
+            org.geoserver.util.IOUtils.closeQuietly(reader);
         }
     }
 
@@ -320,10 +325,6 @@ public class SLDHandler extends StyleHandler {
             reader = RequestUtils.getBufferedXMLReader((InputStream) input, XML_LOOKAHEAD);
         } else {
             reader = RequestUtils.getBufferedXMLReader(toReader(input), XML_LOOKAHEAD);
-        }
-
-        if (!reader.ready()) {
-            return null;
         }
 
         String version;

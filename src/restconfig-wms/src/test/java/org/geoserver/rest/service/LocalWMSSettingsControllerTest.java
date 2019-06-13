@@ -83,6 +83,7 @@ public class LocalWMSSettingsControllerTest extends CatalogRESTTestSupport {
         getAsDOM(RestBaseController.ROOT_PATH + "/services/wms/workspaces/sf/settings.html");
     }
 
+    @Test
     public void testCreateAsJSON() throws Exception {
         removeLocalWorkspace();
         String input =
@@ -99,7 +100,6 @@ public class LocalWMSSettingsControllerTest extends CatalogRESTTestSupport {
         JSONObject jsonObject = (JSONObject) json;
         assertNotNull(jsonObject);
         JSONObject wmsinfo = (JSONObject) jsonObject.get("wms");
-        assertEquals("wms_sf", wmsinfo.get("id"));
         assertEquals("WMS", wmsinfo.get("name"));
         assertEquals("true", wmsinfo.get("enabled").toString().trim());
         JSONObject workspace = (JSONObject) wmsinfo.get("workspace");
@@ -182,7 +182,8 @@ public class LocalWMSSettingsControllerTest extends CatalogRESTTestSupport {
     public void testPutFullAsXML() throws Exception {
         String xml =
                 IOUtils.toString(
-                        LocalWMSSettingsControllerTest.class.getResourceAsStream("wms.xml"));
+                        LocalWMSSettingsControllerTest.class.getResourceAsStream("wms.xml"),
+                        "UTF-8");
         MockHttpServletResponse response =
                 putAsServletResponse(
                         RestBaseController.ROOT_PATH + "/services/wms/workspaces/sf/settings",

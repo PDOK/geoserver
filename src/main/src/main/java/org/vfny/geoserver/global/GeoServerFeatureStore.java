@@ -16,7 +16,6 @@ import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.feature.FeatureCollection;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.Name;
 import org.opengis.filter.Filter;
 import org.opengis.filter.identity.FeatureId;
@@ -45,11 +44,7 @@ public class GeoServerFeatureStore extends GeoServerFeatureSource implements Sim
         super(store, settings);
     }
 
-    /**
-     * FeatureStore access (to save casting)
-     *
-     * @return DOCUMENT ME!
-     */
+    /** FeatureStore access (to save casting) */
     SimpleFeatureStore store() {
         return (SimpleFeatureStore) source;
     }
@@ -72,56 +67,14 @@ public class GeoServerFeatureStore extends GeoServerFeatureSource implements Sim
         return store().addFeatures(fc);
     }
 
-    /**
-     * DOCUMENT ME!
-     *
-     * @param filter DOCUMENT ME!
-     * @throws IOException DOCUMENT ME!
-     */
+    /** */
     public void removeFeatures(Filter filter) throws IOException {
         filter = makeDefinitionFilter(filter);
 
         store().removeFeatures(filter);
     }
 
-    /**
-     * DOCUMENT ME!
-     *
-     * @param type DOCUMENT ME!
-     * @param value DOCUMENT ME!
-     * @param filter DOCUMENT ME!
-     * @throws IOException DOCUMENT ME!
-     * @task REVISIT: should we check that non exposed attributes are requiered in <code>type</code>
-     *     ?
-     */
-    public void modifyFeatures(AttributeDescriptor[] type, Object[] value, Filter filter)
-            throws IOException {
-        filter = makeDefinitionFilter(filter);
-
-        store().modifyFeatures(type, value, filter);
-    }
-
-    /**
-     * DOCUMENT ME!
-     *
-     * @param type DOCUMENT ME!
-     * @param value DOCUMENT ME!
-     * @param filter DOCUMENT ME!
-     * @throws IOException DOCUMENT ME!
-     */
-    public void modifyFeatures(AttributeDescriptor type, Object value, Filter filter)
-            throws IOException {
-        filter = makeDefinitionFilter(filter);
-
-        store().modifyFeatures(type, value, filter);
-    }
-
-    /**
-     * DOCUMENT ME!
-     *
-     * @param reader DOCUMENT ME!
-     * @throws IOException DOCUMENT ME!
-     */
+    /** */
     public void setFeatures(FeatureReader<SimpleFeatureType, SimpleFeature> reader)
             throws IOException {
         FeatureStore<SimpleFeatureType, SimpleFeature> store = store();
@@ -134,20 +87,12 @@ public class GeoServerFeatureStore extends GeoServerFeatureSource implements Sim
         store().setFeatures(reader);
     }
 
-    /**
-     * DOCUMENT ME!
-     *
-     * @param transaction DOCUMENT ME!
-     */
+    /** */
     public void setTransaction(Transaction transaction) {
         store().setTransaction(transaction);
     }
 
-    /**
-     * DOCUMENT ME!
-     *
-     * @return DOCUMENT ME!
-     */
+    /** */
     public Transaction getTransaction() {
         return store().getTransaction();
     }

@@ -123,6 +123,9 @@ An advanced rule is defined by three mandatory attributes and four optional ones
    * - ``Combine``
      - Defines how to combine parameter existing value ($1 existing value, $2 new value), by default the value is overridden
      - No
+   * - ``Repeat``
+     - If defined, Combine is applied not only once, but for every layer included in the LAYERS parameter, this allows filling parameters that require a value for each layer (e.g. STYLES or CQL_FILTER)
+     - No
 
 For commodity is also possible when defining this type of rules to configure that an existing parameter in the URL should be echoed to a get capabilities result.
 
@@ -143,6 +146,21 @@ in::
 
 No that this rule will also echo an existing cql_filter parameter to the get capabilities result.
 
+Example of an advanced rule with repeat:
+
+.. figure:: images/advanced_rule_repeat.png
+   :align: center
+
+   *Example of an advanced rule with repeat defined in the UI*
+
+This rule will transform the URL::
+
+    /geoserver/wms/H11?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=tiger,other
+
+in::
+
+    /geoserver/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=tiger,otherCQL_FILTER=CFCC%3D%27D68%27%3BCFCC%3D%27H11%27
+
 Rules Management
 -----------------------------
 
@@ -156,3 +174,11 @@ Follow a print screen of the rules management UI with all the rules previously d
    *Rules management UI*
 
 Note that the first rule (the advanced one) is not active.
+
+REST API
+--------
+
+The rules and echo parameters can also be managed by means of a REST API found at 
+``geoserver/rest/params-extractor``. Documentation for it is available in 
+:api:`Swagger format <params-extractor.yaml>`
+

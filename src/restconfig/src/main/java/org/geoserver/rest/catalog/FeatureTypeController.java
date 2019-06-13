@@ -17,7 +17,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.geoserver.catalog.*;
+import org.geoserver.catalog.AttributeTypeInfo;
+import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.CatalogBuilder;
+import org.geoserver.catalog.CatalogInfo;
+import org.geoserver.catalog.DataStoreInfo;
+import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.MetadataMap;
+import org.geoserver.catalog.NamespaceInfo;
 import org.geoserver.config.util.XStreamPersister;
 import org.geoserver.rest.ObjectToMapWrapper;
 import org.geoserver.rest.ResourceNotFoundException;
@@ -52,10 +60,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -294,6 +299,7 @@ public class FeatureTypeController extends AbstractCatalogController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(uriComponents.toUri());
+        headers.setContentType(MediaType.TEXT_PLAIN);
         return new ResponseEntity<>("", headers, HttpStatus.CREATED);
     }
 
@@ -312,8 +318,14 @@ public class FeatureTypeController extends AbstractCatalogController {
             @RequestParam(name = "quietOnNotFound", required = false, defaultValue = "false")
                     Boolean quietOnNotFound) {
 
-        DataStoreInfo dsInfo = getExistingDataStore(workspaceName, storeName);
-        FeatureTypeInfo ftInfo = catalog.getFeatureTypeByDataStore(dsInfo, featureTypeName);
+        FeatureTypeInfo ftInfo;
+        if (storeName != null) {
+            DataStoreInfo dsInfo = getExistingDataStore(workspaceName, storeName);
+            ftInfo = catalog.getFeatureTypeByDataStore(dsInfo, featureTypeName);
+        } else {
+            NamespaceInfo ns = catalog.getNamespaceByPrefix(workspaceName);
+            ftInfo = catalog.getFeatureTypeByName(ns, featureTypeName);
+        }
         checkFeatureTypeExists(ftInfo, workspaceName, storeName, featureTypeName);
 
         return wrapObject(ftInfo, FeatureTypeInfo.class);
@@ -439,7 +451,7 @@ public class FeatureTypeController extends AbstractCatalogController {
                     "Trying to create new feature type inside the store, "
                             + "but no feature type name was specified",
                     HttpStatus.BAD_REQUEST);
-        } else if (fti.getAttributes() == null || fti.getAttributes() == null) {
+        } else if (fti.getAttributes() == null || fti.getAttributes().isEmpty()) {
             throw new RestException(
                     "Trying to create new feature type inside the store, "
                             + "but no attributes were specified",
@@ -480,8 +492,7 @@ public class FeatureTypeController extends AbstractCatalogController {
     @Override
     public void configurePersister(XStreamPersister persister, XStreamMessageConverter converter) {
 
-        ServletRequestAttributes attrs =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attrs = (ServletRequestAttributes) getNonNullRequestAttributes();
         String method = attrs.getRequest().getMethod();
 
         if ("GET".equalsIgnoreCase(method)) {
@@ -497,13 +508,7 @@ public class FeatureTypeController extends AbstractCatalogController {
 
                     @Override
                     protected CatalogInfo getCatalogObject() {
-                        Map<String, String> uriTemplateVars =
-                                (Map<String, String>)
-                                        RequestContextHolder.getRequestAttributes()
-                                                .getAttribute(
-                                                        HandlerMapping
-                                                                .URI_TEMPLATE_VARIABLES_ATTRIBUTE,
-                                                        RequestAttributes.SCOPE_REQUEST);
+                        Map<String, String> uriTemplateVars = getURITemplateVariables();
                         String workspace = uriTemplateVars.get("workspaceName");
                         String featuretype = uriTemplateVars.get("featureTypeName");
                         String datastore = uriTemplateVars.get("storeName");

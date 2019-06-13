@@ -795,9 +795,6 @@ public interface Catalog extends CatalogInfo {
      */
     List<FeatureTypeInfo> getFeatureTypesByNamespace(NamespaceInfo namespace);
 
-    /** @deprecated use {@link #getFeatureTypesByDataStore(DataStoreInfo)} */
-    FeatureTypeInfo getFeatureTypeByStore(DataStoreInfo dataStore, String name);
-
     /**
      * Returns the feature type with the specified name which is part of the sp ecified data store.
      *
@@ -812,9 +809,6 @@ public interface Catalog extends CatalogInfo {
      * @return The feature type, or <code>null</code> if no such feature type e xists.
      */
     FeatureTypeInfo getFeatureTypeByDataStore(DataStoreInfo dataStore, String name);
-
-    /** @deprecated use {@link #getFeatureTypesByDataStore(DataStoreInfo)} */
-    List<FeatureTypeInfo> getFeatureTypesByStore(DataStoreInfo store);
 
     /**
      * All feature types which originate from the specified datastore.
@@ -1371,7 +1365,7 @@ public interface Catalog extends CatalogInfo {
     /**
      * Returns a workspace by name, or <code>null</code> if no such workspace exists.
      *
-     * @param The name of the store, or {@code null} or {@link #DEFAULT} to get the default
+     * @param name The name of the store, or {@code null} or {@link #DEFAULT} to get the default
      *     workspace
      */
     WorkspaceInfo getWorkspaceByName(String name);

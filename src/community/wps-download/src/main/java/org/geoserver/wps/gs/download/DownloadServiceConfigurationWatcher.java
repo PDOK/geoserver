@@ -12,13 +12,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.geoserver.data.util.IOUtils;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Paths;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.Resources;
 import org.geoserver.security.PropertyFileWatcher;
+import org.geoserver.util.IOUtils;
 import org.geotools.util.Utilities;
 import org.geotools.util.logging.Logging;
 
@@ -132,7 +132,7 @@ public class DownloadServiceConfigurationWatcher extends TimerTask
      *
      * @return an instance of {@link DownloadServiceConfiguration}.
      */
-    private DownloadServiceConfiguration loadConfiguration() {
+    DownloadServiceConfiguration loadConfiguration() {
         // load download Process Properties
         final Resource file = watcher.getResource();
         DownloadServiceConfiguration newConfiguration = null;
@@ -144,9 +144,10 @@ public class DownloadServiceConfigurationWatcher extends TimerTask
                 // parse contents
                 newConfiguration = parseConfigurationValues(properties);
             } else {
+                configuration = new DownloadServiceConfiguration();
                 if (LOGGER.isLoggable(Level.INFO)) {
                     LOGGER.info(
-                            "Unable to read confguration file for download service: "
+                            "Unable to read configuration file for download service: "
                                     + file.path()
                                     + " continuing with default configuration-->\n"
                                     + configuration);
@@ -156,6 +157,7 @@ public class DownloadServiceConfigurationWatcher extends TimerTask
             if (LOGGER.isLoggable(Level.INFO)) {
                 LOGGER.log(Level.INFO, e.getLocalizedMessage(), e);
             }
+            configuration = new DownloadServiceConfiguration();
             if (LOGGER.isLoggable(Level.INFO)) {
                 LOGGER.info(
                         "Unable to read confguration file for download service: "

@@ -20,7 +20,7 @@ public class DescribeCoverageTest extends WCSTestSupport {
     @Test
     public void testEntityExpansion() throws Exception {
         final File xml = new File("./src/test/resources/testDescribeCoverageEntityExpansion.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
 
         Document dom = postAsDOM("wcs", request);
         assertNotNull(dom);
@@ -34,14 +34,14 @@ public class DescribeCoverageTest extends WCSTestSupport {
     public void testDescribeCoverageSimple() throws Exception {
 
         final File xml = new File("./src/test/resources/testDescribeCoverage.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
 
         Document dom = postAsDOM("wcs", request);
         assertNotNull(dom);
         // print(dom, System.out);
 
         // validate
-        checkValidationErrors(dom, WCS20_SCHEMA);
+        checkValidationErrors(dom, getWcs20Schema());
 
         // check it is good
         assertXpathEvaluatesTo("wcs__BlueMarble", "//wcs:CoverageDescription//wcs:CoverageId", dom);
@@ -63,13 +63,13 @@ public class DescribeCoverageTest extends WCSTestSupport {
     @Test
     public void testDescribeCoverageMultiband() throws Exception {
         final File xml = new File("./src/test/resources/testDescribeCoverageMultiBand.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
 
         Document dom = postAsDOM("wcs", request);
         assertNotNull(dom);
         // print(dom, System.out);
 
-        checkValidationErrors(dom, WCS20_SCHEMA);
+        checkValidationErrors(dom, getWcs20Schema());
 
         // check it is good
         assertXpathEvaluatesTo("wcs__multiband", "//wcs:CoverageDescription//wcs:CoverageId", dom);

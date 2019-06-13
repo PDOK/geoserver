@@ -18,7 +18,9 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
+import org.geoserver.platform.resource.Files;
 import org.geoserver.platform.resource.Resource;
+import org.geoserver.platform.resource.Resources;
 import org.geoserver.wms.WMSMapContent;
 import org.geotools.util.SoftValueHashMap;
 import org.geotools.util.URLs;
@@ -28,8 +30,6 @@ public class WatermarkDecoration implements MapDecoration {
     private static final Logger LOGGER = Logger.getLogger("org.geoserver.wms.responses");
 
     public static final Color TRANSPARENT = new Color(255, 255, 255, 0);
-
-    private static final int TRANSPARENT_CODE = (255 << 16) | (255 << 8) | 255;
 
     private String imageURL;
 
@@ -101,7 +101,11 @@ public class WatermarkDecoration implements MapDecoration {
             url = new URL(imageURL);
 
             if (url.getProtocol() == null || url.getProtocol().equals("file")) {
-                File file = loader.url(imageURL);
+                File file =
+                        Resources.find(
+                                Resources.fromURL(
+                                        Files.asResource(loader.getBaseDirectory()), imageURL),
+                                true);
                 if (file.exists()) {
                     url = URLs.fileToUrl(file);
                 }

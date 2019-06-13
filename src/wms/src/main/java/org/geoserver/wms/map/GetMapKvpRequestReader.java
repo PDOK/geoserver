@@ -5,7 +5,12 @@
  */
 package org.geoserver.wms.map;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,9 +49,8 @@ import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.catalog.util.ReaderDimensionsAccessor;
 import org.geoserver.config.ConfigurationListenerAdapter;
 import org.geoserver.config.ServiceInfo;
-import org.geoserver.ows.HttpServletRequestAware;
+import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.KvpRequestReader;
-import org.geoserver.ows.LocalHttpServletRequest;
 import org.geoserver.ows.util.KvpUtils;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.util.EntityResolverProvider;
@@ -67,7 +71,6 @@ import org.geotools.styling.FeatureTypeStyle;
 import org.geotools.styling.NamedLayer;
 import org.geotools.styling.NamedStyle;
 import org.geotools.styling.Style;
-import org.geotools.styling.StyleFactory;
 import org.geotools.styling.StyledLayer;
 import org.geotools.styling.StyledLayerDescriptor;
 import org.geotools.styling.UserLayer;
@@ -84,8 +87,7 @@ import org.vfny.geoserver.util.SLDValidator;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.SAXException;
 
-public class GetMapKvpRequestReader extends KvpRequestReader
-        implements HttpServletRequestAware, DisposableBean {
+public class GetMapKvpRequestReader extends KvpRequestReader implements DisposableBean {
 
     private static Map<String, Integer> interpolationMethods;
 
@@ -95,9 +97,6 @@ public class GetMapKvpRequestReader extends KvpRequestReader
         interpolationMethods.put("BILINEAR", Interpolation.INTERP_BILINEAR);
         interpolationMethods.put("BICUBIC", Interpolation.INTERP_BICUBIC);
     }
-
-    /** style factory */
-    private StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
 
     /** filter factory */
     private FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
@@ -196,22 +195,6 @@ public class GetMapKvpRequestReader extends KvpRequestReader
         }
     }
 
-    /**
-     * Implements {@link HttpServletRequestAware#setHttpRequest(HttpServletRequest)} to gather
-     * request information for some properties like {@link GetMapRequest#isGet()} and {@link
-     * GetMapRequest#getRequestCharset()}.
-     *
-     * @see
-     *     org.geoserver.ows.HttpServletRequestAware#setHttpRequest(javax.servlet.http.HttpServletRequest)
-     */
-    public void setHttpRequest(HttpServletRequest httpRequest) {
-        LocalHttpServletRequest.set(httpRequest);
-    }
-
-    public void setStyleFactory(StyleFactory styleFactory) {
-        this.styleFactory = styleFactory;
-    }
-
     public void setFilterFactory(FilterFactory filterFactory) {
         this.filterFactory = filterFactory;
     }
@@ -228,7 +211,10 @@ public class GetMapKvpRequestReader extends KvpRequestReader
     @Override
     public GetMapRequest createRequest() throws Exception {
         GetMapRequest request = new GetMapRequest();
-        HttpServletRequest httpRequest = LocalHttpServletRequest.get();
+        HttpServletRequest httpRequest =
+                Optional.ofNullable(Dispatcher.REQUEST.get())
+                        .map(r -> r.getHttpRequest())
+                        .orElse(null);
         if (httpRequest != null) {
             request.setRequestCharset(httpRequest.getCharacterEncoding());
             request.setGet("GET".equalsIgnoreCase(httpRequest.getMethod()));
@@ -761,9 +747,7 @@ public class GetMapKvpRequestReader extends KvpRequestReader
                 interpolations.add(interpolation);
             } else if (o instanceof LayerGroupInfo) {
                 List<LayerInfo> subLayers = ((LayerGroupInfo) o).layers();
-                for (LayerInfo layer : subLayers) {
-                    interpolations.add(interpolation);
-                }
+                interpolations.addAll(Collections.nCopies(subLayers.size(), interpolation));
             } else {
                 throw new IllegalArgumentException("Unknown layer info type: " + o);
             }

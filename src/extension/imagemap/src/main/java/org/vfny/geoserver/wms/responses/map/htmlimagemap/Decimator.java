@@ -1,6 +1,6 @@
 /* (c) 2014 Open Source Geospatial Foundation - all rights reserved
  * (c) 2001 - 2013 OpenPlans
- *           (c) 2004-2008 Open Source Geospatial Foundation (LGPL)
+ * (c) 2004-2008 Open Source Geospatial Foundation (LGPL)
  * This code is licensed under the GPL 2.0 license, available at the root
  * application directory.
  *
@@ -80,15 +80,6 @@ public final class Decimator {
             this.spanx = 1;
             this.spany = 1;
         }
-    }
-
-    /**
-     * @throws TransformException
-     * @deprecated use the other constructor (with rectange) see javadox. This works fine, but it
-     *     the results are often poor if you're also doing CRS xforms.
-     */
-    public Decimator(MathTransform screenToWorld) {
-        this(screenToWorld, new Rectangle()); // do at (0,0)
     }
 
     public final void decimateTransformGeneralize(Geometry geometry, MathTransform transform)

@@ -145,7 +145,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingLatitudeNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -159,7 +159,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/requestGetCoverageTrimmingLatitudeNativeCRSXMLMultipart.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("multipart/related", response.getContentType());
@@ -248,7 +248,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -296,7 +296,7 @@ public class GetCoverageTest extends WCSTestSupport {
     public void testCoverageTrimmingBorders() throws Exception {
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTrimmingBorders.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         // make sure we are not getting a service exception
@@ -308,7 +308,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingOutsideBorders.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         // make sure we are not getting a service exception
@@ -318,7 +318,7 @@ public class GetCoverageTest extends WCSTestSupport {
     @Test
     public void testGetFullCoverageXML() throws Exception {
         final File xml = new File("./src/test/resources/requestGetFullCoverage.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         // check the headers
@@ -372,7 +372,7 @@ public class GetCoverageTest extends WCSTestSupport {
     @Test
     public void testInputLimits() throws Exception {
         final File xml = new File("./src/test/resources/requestGetFullCoverage.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         // set limits
         setInputLimit(1);
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
@@ -386,7 +386,7 @@ public class GetCoverageTest extends WCSTestSupport {
     @Test
     public void testOutputLimits() throws Exception {
         final File xml = new File("./src/test/resources/requestGetFullCoverage.xml");
-        final String request = FileUtils.readFileToString(xml); // set limits
+        final String request = FileUtils.readFileToString(xml, "UTF-8"); // set limits
         // set output limits
         setOutputLimit(1);
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
@@ -402,7 +402,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingLongNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -453,7 +453,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingSlicingNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -505,7 +505,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTrimmingDuplicatedNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("application/xml", response.getContentType());
@@ -612,7 +612,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageSlicingLongitudeNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -664,7 +664,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageSlicingLatitudeNativeCRSXML.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -715,7 +715,7 @@ public class GetCoverageTest extends WCSTestSupport {
     public void testCoverageTimeSlicingNoTimeConfigured() throws Exception {
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2000-10-31T00:00:00.000Z");
 
@@ -733,7 +733,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(WATTEMP), ResourceInfo.TIME, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2000-10-31T00:00:00.000Z");
         // nearest neighbor match, lowest time returned
@@ -746,7 +746,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(WATTEMP), ResourceInfo.TIME, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2008-10-31T00:00:00.000Z");
         checkWaterTempValue(request, 14.89799975766800344);
@@ -758,7 +758,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(WATTEMP), ResourceInfo.TIME, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2000-10-31T11:30:00.000Z");
         // nearest neighbor match, lowest time returned
@@ -772,7 +772,7 @@ public class GetCoverageTest extends WCSTestSupport {
         // System.out.println(getDataDirectory().root());
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2008-11-01T00:00:00.000Z");
         checkWaterTempValue(request, 14.52999974018894136);
@@ -784,7 +784,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(WATTEMP), ResourceInfo.TIME, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp");
         request = request.replace("${slicePoint}", "2011-11-01T00:00:00.000Z");
         // nearest neighbor match, highest time returned
@@ -799,7 +799,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(TIMERANGES), ResourceInfo.ELEVATION, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePoint}", "2008-10-31T00:00:00.000Z");
         // timeranges is really just an expanded watertemp
@@ -814,7 +814,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(TIMERANGES), ResourceInfo.ELEVATION, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePoint}", "2008-11-04T11:00:00.000Z");
         // timeranges is really just an expanded watertemp, and we expect NN
@@ -829,7 +829,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 getLayerId(TIMERANGES), ResourceInfo.ELEVATION, DimensionPresentation.LIST, null);
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageTimeSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePoint}", "2008-11-06T00:00:00.000Z");
         // timeranges is really just an expanded watertemp
@@ -843,13 +843,16 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTimeElevationCustomSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePointElevation}", "20");
         request = request.replace("${slicePointTime}", "2008-10-31T00:00:00.000Z");
         request = request.replace("${Custom}", "WAVELENGTH");
         request = request.replace("${slicePointCustom}", "20");
         // timeranges is really just an expanded watertemp
+        checkWaterTempValue(request, 18.478999927756377);
+
+        request = request.replace("WAVELENGTH", "wavelength");
         checkWaterTempValue(request, 18.478999927756377);
     }
 
@@ -861,13 +864,16 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTimeElevationCustomSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePointElevation}", "140");
         request = request.replace("${slicePointTime}", "2008-11-07T00:00:00.000Z");
         request = request.replace("${Custom}", "WAVELENGTH");
         request = request.replace("${slicePointCustom}", "80");
         // timeranges is really just an expanded watertemp
+        checkWaterTempValue(request, 14.52999974018894136);
+
+        request = request.replace("WAVELENGTH", "wavelength");
         checkWaterTempValue(request, 14.52999974018894136);
     }
 
@@ -883,7 +889,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageMultipleCustomSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__customdimensions");
         request = request.replace("${slicePointElevation}", "140");
         request = request.replace("${slicePointTime}", "2008-11-07T00:00:00.000Z");
@@ -892,6 +898,9 @@ public class GetCoverageTest extends WCSTestSupport {
         request = request.replace("${CustomTwo}", "CUSTOM");
         request = request.replace("${slicePointCustomTwo}", "99");
         // timeranges is really just an expanded watertemp
+        checkWaterTempValue(request, 14.52999974018894136);
+
+        request = request.replace("WAVELENGTH", "wavelength").replace("CUSTOM", "custom");
         checkWaterTempValue(request, 14.52999974018894136);
     }
 
@@ -902,7 +911,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTimeElevationSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePointElevation}", "140");
         request = request.replace("${slicePointTime}", "2008-11-07T00:00:00.000Z");
@@ -916,7 +925,7 @@ public class GetCoverageTest extends WCSTestSupport {
                 TIMERANGES, ResourceInfo.TIME, ResourceInfo.ELEVATION, "WAVELENGTH");
         final File xml =
                 new File("./src/test/resources/trimming/requestGetCoverageElevationSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePoint}", "140");
 
@@ -993,7 +1002,7 @@ public class GetCoverageTest extends WCSTestSupport {
 
     private void checkDatelineCrossing(final File xml)
             throws IOException, Exception, DataSourceException {
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -1037,7 +1046,7 @@ public class GetCoverageTest extends WCSTestSupport {
     @Test
     public void testDatelineCrossingPolar() throws Exception {
         final File xml = new File("./src/test/resources/requestGetCoverageAcrossDatelinePolar.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -1076,7 +1085,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/requestGetCoverageAcrossDatelineMercatorPacific.xml");
-        final String request = FileUtils.readFileToString(xml);
+        final String request = FileUtils.readFileToString(xml, "UTF-8");
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
 
         assertEquals("image/tiff", response.getContentType());
@@ -1144,7 +1153,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageDimensionTrimmingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${dimension}", "elevation");
         request = request.replace("${trimLow}", "-500");
@@ -1165,7 +1174,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageDimensionTrimmingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${dimension}", "elevation");
         request = request.replace("${trimLow}", "99.5"); //
@@ -1186,7 +1195,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageDimensionTrimmingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${dimension}", "time");
         request = request.replace("${trimLow}", "1990-11-01T00:00:00.000Z");
@@ -1212,7 +1221,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageDimensionTrimmingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__watertemp_dilated");
         request = request.replace("${dimension}", "time");
         request = request.replace("${trimLow}", "2008-11-01T11:00:00.000Z");
@@ -1233,7 +1242,7 @@ public class GetCoverageTest extends WCSTestSupport {
         final File xml =
                 new File(
                         "./src/test/resources/trimming/requestGetCoverageTimeElevationCustomSlicingXML.xml");
-        String request = FileUtils.readFileToString(xml);
+        String request = FileUtils.readFileToString(xml, "UTF-8");
         request = request.replace("${coverageId}", "sf__timeranges");
         request = request.replace("${slicePointElevation}", "20");
         request = request.replace("${slicePointTime}", "2008-10-31T00:00:00.000Z");
@@ -1242,6 +1251,14 @@ public class GetCoverageTest extends WCSTestSupport {
 
         MockHttpServletResponse response = postAsServletResponse("wcs", request);
         String errorMessage =
+                checkOws20Exception(response, 404, InvalidSubsetting.getExceptionCode(), "subset");
+        assertEquals(
+                "Requested WAVELENGTH subset does not intersect the available values [12/24, 25/80]",
+                errorMessage);
+
+        request = request.replace("WAVELENGTH", "wavelength");
+        response = postAsServletResponse("wcs", request);
+        errorMessage =
                 checkOws20Exception(response, 404, InvalidSubsetting.getExceptionCode(), "subset");
         assertEquals(
                 "Requested WAVELENGTH subset does not intersect the available values [12/24, 25/80]",

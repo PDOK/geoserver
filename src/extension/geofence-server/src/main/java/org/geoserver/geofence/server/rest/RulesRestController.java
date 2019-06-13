@@ -7,6 +7,7 @@ package org.geoserver.geofence.server.rest;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -187,10 +188,11 @@ public class RulesRestController extends RestBaseController {
             MediaType.APPLICATION_XML_VALUE,
             MediaType.APPLICATION_JSON_VALUE,
             MediaTypeExtensions.TEXT_JSON_VALUE
-        }
+        },
+        produces = MediaType.TEXT_PLAIN_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Long> insert(@RequestBody(required = true) JaxbRule rule) {
+    public String insert(@RequestBody(required = true) JaxbRule rule) {
         long priority = rule.getPriority() == null ? 0 : rule.getPriority().longValue();
         if (adminService.getRuleByPriority(priority) != null) {
             adminService.shift(priority, 1);
@@ -205,7 +207,7 @@ public class RulesRestController extends RestBaseController {
             adminService.setDetails(id, rule.getLayerDetails().toLayerDetails(null));
         }
 
-        return new ResponseEntity<Long>(id, HttpStatus.CREATED);
+        return String.valueOf(id);
     }
 
     @RequestMapping(value = "/rules/id/{id}", method = RequestMethod.POST)
@@ -213,7 +215,7 @@ public class RulesRestController extends RestBaseController {
             @PathVariable("id") Long id, @RequestBody JaxbRule rule) {
         if (rule.getPriority() != null) {
             ShortRule priorityRule = adminService.getRuleByPriority(rule.getPriority().longValue());
-            if (priorityRule != null && priorityRule.getId() != id) {
+            if (priorityRule != null && !Objects.equals(priorityRule.getId(), id)) {
                 adminService.shift(rule.getPriority().longValue(), 1);
             }
         }
@@ -233,7 +235,7 @@ public class RulesRestController extends RestBaseController {
             @PathVariable("id") Long id, @RequestBody JaxbRule rule) {
         if (rule.getPriority() != null) {
             ShortRule priorityRule = adminService.getRuleByPriority(rule.getPriority().longValue());
-            if (priorityRule != null && priorityRule.getId() != id) {
+            if (priorityRule != null && !Objects.equals(priorityRule.getId(), id)) {
                 adminService.shift(rule.getPriority().longValue(), 1);
             }
         }
@@ -344,7 +346,7 @@ public class RulesRestController extends RestBaseController {
         // let's find the rules that need to be moved
         List<Rule> rules = findRules(rulesIds);
         if (rules.isEmpty()) {
-            return ResponseEntity.ok(null);
+            return ResponseEntity.ok().build();
         }
         // shift priorities of rules with a priority equal or lower than the target
         // priority

@@ -19,7 +19,6 @@ public class StyleInfoImpl implements StyleInfo {
 
     protected WorkspaceInfo workspace;
 
-    @Deprecated
     // not used, maininting this property for xstream backward compatability
     protected Version sldVersion = null;
 
@@ -32,6 +31,8 @@ public class StyleInfoImpl implements StyleInfo {
     protected LegendInfo legend;
 
     protected transient Catalog catalog;
+
+    protected MetadataMap metadata = new MetadataMap();
 
     protected StyleInfoImpl() {}
 
@@ -69,14 +70,6 @@ public class StyleInfoImpl implements StyleInfo {
 
     public void setWorkspace(WorkspaceInfo workspace) {
         this.workspace = workspace;
-    }
-
-    public Version getSLDVersion() {
-        return getFormatVersion();
-    }
-
-    public void setSLDVersion(Version v) {
-        setFormatVersion(v);
     }
 
     public String getFormat() {
@@ -117,6 +110,21 @@ public class StyleInfoImpl implements StyleInfo {
 
     public void setLegend(LegendInfo legend) {
         this.legend = legend;
+    }
+
+    @Override
+    public MetadataMap getMetadata() {
+        // non nullable
+        checkMetadataNotNull();
+        return metadata;
+    }
+
+    public void setMetadata(MetadataMap metadata) {
+        this.metadata = metadata;
+    }
+
+    private void checkMetadataNotNull() {
+        if (metadata == null) metadata = new MetadataMap();
     }
 
     public void accept(CatalogVisitor visitor) {
@@ -172,7 +180,16 @@ public class StyleInfoImpl implements StyleInfo {
                 .toString();
     }
 
-    private Object readResolve() {
+    @Override
+    public String prefixedName() {
+        if (workspace != null) {
+            return workspace.getName() + ":" + getName();
+        } else {
+            return getName();
+        }
+    }
+
+    protected Object readResolve() {
         // this check is here to enable smooth migration from old configurations that don't have
         // the version property, and a transition from the deprecated sldVersion property
 
@@ -188,14 +205,5 @@ public class StyleInfoImpl implements StyleInfo {
         }
 
         return this;
-    }
-
-    @Override
-    public String prefixedName() {
-        if (workspace != null) {
-            return workspace.getName() + ":" + getName();
-        } else {
-            return getName();
-        }
     }
 }

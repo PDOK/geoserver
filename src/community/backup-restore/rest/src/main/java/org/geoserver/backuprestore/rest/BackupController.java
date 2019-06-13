@@ -170,7 +170,8 @@ public class BackupController extends AbstractBackupRestoreController {
             MediaType.APPLICATION_XML_VALUE,
             MediaType.APPLICATION_JSON_VALUE,
             MediaTypeExtensions.TEXT_JSON_VALUE
-        }
+        },
+        produces = MediaType.TEXT_PLAIN_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
     public Object backupPost(
@@ -209,7 +210,9 @@ public class BackupController extends AbstractBackupRestoreController {
                             .runBackupAsync(
                                     backup.getArchiveFile(),
                                     backup.isOverwrite(),
-                                    backup.getFilter(),
+                                    backup.getWsFilter(),
+                                    backup.getSiFilter(),
+                                    backup.getLiFilter(),
                                     asParams(backup.getOptions()));
 
             LOGGER.log(Level.INFO, "Backup file generated: " + backup.getArchiveFile());

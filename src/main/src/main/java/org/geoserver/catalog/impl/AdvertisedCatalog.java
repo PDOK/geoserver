@@ -23,6 +23,7 @@ import org.geoserver.ows.Dispatcher;
 import org.geoserver.ows.Request;
 import org.geoserver.security.decorators.DecoratingLayerGroupInfo;
 import org.geotools.filter.expression.InternalVolatileFunction;
+import org.geotools.util.decorate.AbstractDecorator;
 import org.opengis.filter.Filter;
 import org.opengis.filter.FilterFactory;
 
@@ -72,6 +73,25 @@ public class AdvertisedCatalog extends AbstractFilteredCatalog {
          */
         public List<PublishedInfo> getOriginalLayers() {
             return delegate.getLayers();
+        }
+
+        /**
+         * Returns the original styles, including the advertised ones. Use this method only if
+         * strictly necessary (current use case, figuring out if the group is queryable or not)
+         *
+         * @return
+         */
+        public List<StyleInfo> getOriginalStyles() {
+            return delegate.getStyles();
+        }
+
+        /**
+         * Returns the delegate. Thread carefully when using this!
+         *
+         * @return
+         */
+        public LayerGroupInfo unwrap() {
+            return delegate;
         }
     }
 

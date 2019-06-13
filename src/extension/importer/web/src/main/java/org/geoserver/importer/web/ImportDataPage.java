@@ -225,9 +225,7 @@ public class ImportDataPage extends GeoServerSecuredPage {
                                             try {
                                                 if (t.getError() != null) {
                                                     error(t.getError());
-                                                } else if (t.isCancelled()) {
-                                                    // do nothing
-                                                } else {
+                                                } else if (!t.isCancelled()) {
                                                     ImportContext imp = t.get();
 
                                                     // check the import for actual things to do
@@ -554,7 +552,7 @@ public class ImportDataPage extends GeoServerSecuredPage {
         //                "org.geotools.data.sqlserver.SQLServerDataStoreFactory"), //
         //        arcsde(new PackageResourceReference(GeoServerApplication.class,
         //                "img/icons/geosilk/database_vector.png"), ArcSDEPage.class,
-        //                "org.geotools.arcsde.ArcSDEDataStoreFactory");
+        //                "org.geotools.arcsde.data.ArcSDEDataStoreFactory");
 
         DataIcon icon;
 
@@ -597,7 +595,7 @@ public class ImportDataPage extends GeoServerSecuredPage {
 
             DataStoreFactorySpi factory = null;
             try {
-                factory = clazz.newInstance();
+                factory = clazz.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Error creating DataStore factory: " + className, e);

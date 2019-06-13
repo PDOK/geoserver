@@ -22,10 +22,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.kml.KmlEncodingContext;
-import org.geoserver.kml.icons.IconProperties;
-import org.geoserver.kml.icons.IconPropertyExtractor;
-import org.geoserver.kml.icons.IconPropertyInjector;
 import org.geoserver.wms.WMSInfo;
+import org.geoserver.wms.icons.IconProperties;
+import org.geoserver.wms.icons.IconPropertyExtractor;
+import org.geoserver.wms.icons.IconPropertyInjector;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.renderer.style.ExpressionExtractor;
 import org.geotools.styling.Fill;
@@ -445,7 +445,7 @@ public class PlacemarkStyleDecoratorFactory implements KmlDecoratorFactory {
                 opacity = 1.0;
             }
             return new StringBuffer()
-                    .append(intToHex(new Float(255 * opacity).intValue()))
+                    .append(intToHex((int) (255 * opacity)))
                     .append(intToHex(c.getBlue()))
                     .append(intToHex(c.getGreen()))
                     .append(intToHex(c.getRed()))

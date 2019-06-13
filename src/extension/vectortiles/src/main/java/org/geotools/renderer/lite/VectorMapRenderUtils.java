@@ -5,9 +5,7 @@
 package org.geotools.renderer.lite;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,8 +102,8 @@ public class VectorMapRenderUtils {
             styleQuery =
                     VectorMapRenderUtils.getStyleQuery(
                             featureSource, styleList, queryArea, screenSize, geometryDescriptor);
-        } catch (IllegalFilterException | FactoryException e1) {
-            throw Throwables.propagate(e1);
+        } catch (IllegalFilterException | FactoryException e) {
+            throw new RuntimeException(e);
         }
         // take into account the origin query (coming from cql_filter or featureid)
         Query query = DataUtilities.mixQueries(styleQuery, layer.getQuery(), null);
@@ -119,18 +117,7 @@ public class VectorMapRenderUtils {
 
     public static double getMapScale(
             WMSMapContent mapContent, final ReferencedEnvelope renderingArea) {
-        final double mapScale;
-        try {
-            mapScale =
-                    RendererUtilities.calculateScale(
-                            renderingArea,
-                            mapContent.getMapWidth(),
-                            mapContent.getMapHeight(),
-                            null);
-        } catch (TransformException | FactoryException e) {
-            throw Throwables.propagate(e);
-        }
-        return mapScale;
+        return RendererUtilities.calculateOGCScale(renderingArea, mapContent.getMapWidth(), null);
     }
 
     public static int getComputedBuffer(
@@ -215,7 +202,7 @@ public class VectorMapRenderUtils {
         try {
             processRuleForQuery(styles, query);
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
 
         // simplify the filter
@@ -448,11 +435,6 @@ public class VectorMapRenderUtils {
     private static boolean isFeatureTypeStyleActive(FeatureType ftype, FeatureTypeStyle fts) {
         // TODO: find a complex feature equivalent for this check
         return fts.featureTypeNames().isEmpty()
-                || ((ftype.getName().getLocalPart() != null)
-                        && (ftype.getName()
-                                        .getLocalPart()
-                                        .equalsIgnoreCase(fts.getFeatureTypeName())
-                                || FeatureTypes.isDecendedFrom(
-                                        ftype, null, fts.getFeatureTypeName())));
+                || fts.featureTypeNames().stream().anyMatch(tn -> FeatureTypes.matches(ftype, tn));
     }
 }

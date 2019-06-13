@@ -22,6 +22,7 @@ import org.geoserver.geofence.services.exception.NotFoundServiceEx;
 import org.geoserver.rest.RestBaseController;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -122,7 +123,11 @@ public class AdminRulesRestController extends RestBaseController {
         return new ResponseEntity<>(adminService.insert(rule.toRule()), HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/adminrules/id/{id}", method = RequestMethod.POST)
+    @RequestMapping(
+        value = "/adminrules/id/{id}",
+        method = RequestMethod.POST,
+        produces = MediaType.TEXT_PLAIN_VALUE
+    )
     public @ResponseStatus(HttpStatus.OK) void update(
             @PathVariable("id") Long id, @RequestBody JaxbAdminRule rule) {
         if (rule.getPriority() != null) {
@@ -187,7 +192,7 @@ public class AdminRulesRestController extends RestBaseController {
         // let's find the rules that need to be moved
         List<AdminRule> rules = findRules(rulesIds);
         if (rules.isEmpty()) {
-            return ResponseEntity.ok(null);
+            return ResponseEntity.ok().build();
         }
         // shift priorities of rules with a priority equal or lower than the target priority
         adminService.shift(targetPriority, rules.size());
