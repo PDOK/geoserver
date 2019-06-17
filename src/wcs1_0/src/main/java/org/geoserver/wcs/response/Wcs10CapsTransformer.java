@@ -38,8 +38,8 @@ import org.geoserver.config.SettingsInfo;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.wcs.WCSInfo;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.util.factory.GeoTools;
 import org.geotools.util.logging.Logging;
 import org.geotools.xml.transform.TransformerBase;
 import org.geotools.xml.transform.Translator;
@@ -71,8 +71,6 @@ public class Wcs10CapsTransformer extends TransformerBase {
 
     protected static final String XSI_URI = "http://www.w3.org/2001/XMLSchema-instance";
 
-    private GeoServer geoServer;
-
     private WCSInfo wcs;
 
     private Catalog catalog;
@@ -82,7 +80,6 @@ public class Wcs10CapsTransformer extends TransformerBase {
     /** Creates a new WFSCapsTransformer object. */
     public Wcs10CapsTransformer(GeoServer geoServer) {
         super();
-        this.geoServer = geoServer;
         this.wcs = geoServer.getService(WCSInfo.class);
         this.catalog = geoServer.getCatalog();
         setNamespaceDeclarationEnabled(false);

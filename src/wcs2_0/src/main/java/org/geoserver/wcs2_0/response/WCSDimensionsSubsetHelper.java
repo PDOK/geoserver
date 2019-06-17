@@ -805,7 +805,8 @@ public class WCSDimensionsSubsetHelper {
                 }
 
                 // only care for custom dimensions
-                if (dimensionKeys.contains(dimension)) {
+                if (dimensionKeys.stream().anyMatch(dimension::equalsIgnoreCase)) {
+                    dimension = dimension.toUpperCase(); // using uppercase with imagemosaic
                     List<Object> selectedValues = new ArrayList<Object>();
 
                     // now decide what to do
@@ -1175,7 +1176,6 @@ public class WCSDimensionsSubsetHelper {
 
         // spatial subset
         Filter filter = filterSpatial(gcr, reader, source);
-        ;
 
         // temporal subset
         filter = filterTime(filter, gcr, coverageName, reader);

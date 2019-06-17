@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 import org.apache.commons.lang3.StringUtils;
 import org.geotools.data.property.PropertyFeatureReader;
 import org.geotools.feature.IllegalAttributeException;
-import org.geotools.resources.Classes;
+import org.geotools.util.Classes;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.WKTWriter;
 import org.opengis.feature.Property;
@@ -267,7 +267,7 @@ public class AppSchemaTestOracleSetup extends ReferenceDataOracleSetup {
                             // be supported if present.
                             Geometry geom = (Geometry) value;
                             value =
-                                    new WKTWriter(geom.getCoordinate().z == Double.NaN ? 2 : 3)
+                                    new WKTWriter(Double.isNaN(geom.getCoordinate().z) ? 2 : 3)
                                             .write(geom);
                         }
                         if (value == null || value.toString().equalsIgnoreCase("null")) {

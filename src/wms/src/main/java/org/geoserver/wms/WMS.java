@@ -31,6 +31,7 @@ import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.DimensionInfo;
 import org.geoserver.catalog.DimensionPresentation;
 import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.catalog.LayerGroupHelper;
 import org.geoserver.catalog.LayerGroupInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
@@ -60,18 +61,16 @@ import org.geoserver.wms.map.RenderedImageMapResponse;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
-import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
-import org.geotools.data.ows.WMSCapabilities;
-import org.geotools.decorate.Wrapper;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.factory.GeoTools;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.visitor.CalcResult;
 import org.geotools.feature.visitor.MaxVisitor;
 import org.geotools.feature.visitor.MinVisitor;
 import org.geotools.feature.visitor.UniqueVisitor;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.ows.wms.Layer;
+import org.geotools.ows.wms.WMSCapabilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.CRS.AxisOrder;
 import org.geotools.styling.Style;
@@ -80,6 +79,8 @@ import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
 import org.geotools.util.Range;
 import org.geotools.util.Version;
+import org.geotools.util.decorate.Wrapper;
+import org.geotools.util.factory.GeoTools;
 import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -401,6 +402,19 @@ public class WMS implements ApplicationContextAware {
     public String getGlobalWatermarkingURL() {
         WatermarkInfo watermark = getServiceInfo().getWatermark();
         return watermark.getURL();
+    }
+
+    public boolean isRemoteStylesCacheEnabled() {
+        CacheConfiguration cache = getServiceInfo().getCacheConfiguration();
+        return cache != null && cache.isEnabled() ? true : false;
+    }
+
+    public CacheConfiguration getRemoteResourcesCacheConfiguration() {
+        return getServiceInfo().getCacheConfiguration();
+    }
+
+    public void setRemoteResourcesCacheConfiguration(CacheConfiguration cacheCfg) {
+        getServiceInfo().setCacheConfiguration(cacheCfg);
     }
 
     public FeatureTypeInfo getFeatureTypeInfo(final Name name) {
@@ -978,7 +992,7 @@ public class WMS implements ApplicationContextAware {
         for (PublishedInfo published : layers) {
             if (published instanceof LayerInfo) {
                 queryable |= isQueryable((LayerInfo) published);
-            } else {
+            } else if (published instanceof LayerGroupInfo) {
                 queryable |= isQueryable((LayerGroupInfo) published);
             }
         }
@@ -997,12 +1011,11 @@ public class WMS implements ApplicationContextAware {
      * @return a list of {@link PublishedInfo} contained in the layer (queryable or not)
      */
     private List<PublishedInfo> getLayersForQueryableChecks(LayerGroupInfo layerGroup) {
-        List<PublishedInfo> layers = layerGroup.getLayers();
         // direct wrapper?
         if (layerGroup instanceof AdvertisedCatalog.AdvertisedLayerGroup) {
             AdvertisedCatalog.AdvertisedLayerGroup wrapper =
                     (AdvertisedCatalog.AdvertisedLayerGroup) layerGroup;
-            layers = wrapper.getOriginalLayers();
+            layerGroup = wrapper.unwrap();
         } else if (layerGroup instanceof Wrapper) {
             // hidden inside some other wrapper?
             Wrapper wrapper = (Wrapper) layerGroup;
@@ -1010,10 +1023,12 @@ public class WMS implements ApplicationContextAware {
                 wrapper.unwrap(AdvertisedCatalog.AdvertisedLayerGroup.class);
                 AdvertisedCatalog.AdvertisedLayerGroup alg =
                         (AdvertisedCatalog.AdvertisedLayerGroup) layerGroup;
-                layers = alg.getOriginalLayers();
+                layerGroup = alg.unwrap();
             }
         }
-        return layers;
+
+        // get the full list of layers and groups
+        return new LayerGroupHelper(layerGroup).allPublished();
     }
 
     /**

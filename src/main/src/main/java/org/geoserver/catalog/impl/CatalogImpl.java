@@ -65,6 +65,7 @@ import org.geoserver.catalog.event.impl.CatalogPostModifyEventImpl;
 import org.geoserver.catalog.event.impl.CatalogRemoveEventImpl;
 import org.geoserver.catalog.util.CloseableIterator;
 import org.geoserver.ows.util.OwsUtils;
+import org.geoserver.platform.ExtensionPriority;
 import org.geoserver.platform.GeoServerExtensions;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geotools.styling.StyledLayerDescriptor;
@@ -500,8 +501,6 @@ public class CatalogImpl implements Catalog {
     }
 
     public <T extends ResourceInfo> T getResourceByName(String name, Class<T> clazz) {
-        ResourceInfo resource;
-
         // check is the name is a fully qualified one
         int colon = name.indexOf(':');
         if (colon != -1) {
@@ -818,6 +817,7 @@ public class CatalogImpl implements Catalog {
         return facade.getMaps();
     }
 
+    @SuppressWarnings("PMD.UnusedLocalVariable")
     public void add(LayerGroupInfo layerGroup) {
         layerGroup = resolve(layerGroup);
         validate(layerGroup, true);
@@ -1559,6 +1559,7 @@ public class CatalogImpl implements Catalog {
 
     public void addListener(CatalogListener listener) {
         listeners.add(listener);
+        Collections.sort(listeners, ExtensionPriority.COMPARATOR);
     }
 
     public void removeListener(CatalogListener listener) {

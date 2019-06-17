@@ -300,11 +300,10 @@ public class GeoServerSecurityManager implements ApplicationContextAware, Applic
         Resource masterpw = security().get(MASTER_PASSWD_CONFIG_FILENAME);
         if (masterpw.getType() == Type.RESOURCE) {
             init(loadMasterPasswordConfig());
-        } else {
-            // if it doesn't exist this must be a migration startup... and this case should be
-            // handled during migration where all the datastore passwords are processed
-            // explicitly
         }
+        // if it doesn't exist this must be a migration startup... and this case should be
+        // handled during migration where all the datastore passwords are processed
+        // explicitly
 
         configPasswordEncryptionHelper = new ConfigurationPasswordEncryptionHelper(this);
     }
@@ -1688,10 +1687,10 @@ public class GeoServerSecurityManager implements ApplicationContextAware, Applic
                 // commit the password change to the keystore
                 ksProvider.commitMasterPasswordChange();
 
-                if (!config.getProviderName().equals(oldConfig.getProviderName())) {
-                    // TODO: reencrypt the keystore? restart the server?
-                    // updateConfigurationFilesWithEncryptedFields();
-                }
+                // if (!config.getProviderName().equals(oldConfig.getProviderName())) {
+                // TODO: reencrypt the keystore? restart the server?
+                // updateConfigurationFilesWithEncryptedFields();
+                // }
             } catch (IOException e) {
                 // error occured, roll back
                 ksProvider.abortMasterPasswordChange();
@@ -1714,11 +1713,32 @@ public class GeoServerSecurityManager implements ApplicationContextAware, Applic
 
     /** Checks the specified password against the master password. */
     public boolean checkMasterPassword(String passwd) {
-        return checkMasterPassword(passwd.toCharArray());
+        return checkMasterPassword(passwd.toCharArray(), true);
+    }
+
+    /** Checks the specified password against the master password. */
+    public boolean checkMasterPassword(String passwd, boolean forLogin) {
+        return checkMasterPassword(passwd.toCharArray(), forLogin);
     }
 
     /** Checks the specified password against the master password. */
     public boolean checkMasterPassword(char[] passwd) {
+        return checkMasterPassword(passwd, true);
+    }
+
+    /** Checks the specified password against the master password. */
+    public boolean checkMasterPassword(char[] passwd, boolean forLogin) {
+        try {
+            if (forLogin
+                    && !this.masterPasswordProviderHelper
+                            .loadConfig(this.masterPasswordConfig.getProviderName())
+                            .isLoginEnabled()) {
+                return false;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to load master password provider config", e);
+        }
+
         GeoServerDigestPasswordEncoder pwEncoder =
                 loadPasswordEncoder(GeoServerDigestPasswordEncoder.class);
         if (masterPasswdDigest == null) {

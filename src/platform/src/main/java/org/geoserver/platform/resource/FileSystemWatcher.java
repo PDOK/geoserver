@@ -210,13 +210,6 @@ public class FileSystemWatcher implements ResourceNotificationDispatcher, Dispos
                 if (fileModified > last || !exsists) {
                     kind = exsists ? Kind.ENTRY_MODIFY : Kind.ENTRY_CREATE;
                     exsists = true;
-                } else {
-                    // boolean win = System.getProperty("os.name").startsWith("Windows");
-                    // if( !win ){
-                    // // not windows - so no need to check directory contents
-                    // return null; // no change
-                    // }
-
                 }
                 File[] files = file.listFiles();
 
@@ -428,12 +421,12 @@ public class FileSystemWatcher implements ResourceNotificationDispatcher, Dispos
     }
 
     /**
-     * Package visibility to allow test cases to set a shorter delay for testing.
+     * To allow test cases to set a shorter delay for testing.
      *
      * @param delay
      * @param unit
      */
-    void schedule(long delay, TimeUnit unit) {
+    public void schedule(long delay, TimeUnit unit) {
         this.delay = delay;
         this.unit = unit;
         if (monitor != null) {

@@ -261,9 +261,9 @@ public class XmlSchemaEncoder extends WFSDescribeFeatureTypeOutputFormat {
      */
     private String generateSpecifiedTypes(FeatureTypeInfo[] infos) {
         // TypeRepository repository = TypeRepository.getInstance();
-        String tempResponse = new String();
+        String tempResponse = "";
 
-        String generatedType = new String();
+        String generatedType = "";
         Set validTypes = new HashSet();
 
         // Loop through requested tables to add element types
@@ -363,15 +363,14 @@ public class XmlSchemaEncoder extends WFSDescribeFeatureTypeOutputFormat {
     public String writeFile(File inputFile) throws IOException {
         LOGGER.finest("writing file " + inputFile);
 
-        String finalOutput = new String();
+        String finalOutput = "";
 
         try {
             // File inputFile = new File(inputFileName);
             FileInputStream inputStream = new FileInputStream(inputFile);
             byte[] fileBuffer = new byte[inputStream.available()];
-            int bytesRead;
 
-            while ((bytesRead = inputStream.read(fileBuffer)) != -1) {
+            while (inputStream.read(fileBuffer) != -1) {
                 String tempOutput = new String(fileBuffer);
                 finalOutput = finalOutput + tempOutput;
             }

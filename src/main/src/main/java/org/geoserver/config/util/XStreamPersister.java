@@ -44,6 +44,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -144,6 +145,7 @@ import org.geoserver.security.GeoServerSecurityManager;
 import org.geoserver.security.SecureCatalogImpl;
 import org.geotools.coverage.grid.GeneralGridEnvelope;
 import org.geotools.coverage.grid.GridGeometry2D;
+import org.geotools.data.util.MeasureConverterFactory;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.Geometries;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -158,7 +160,6 @@ import org.geotools.referencing.crs.DefaultProjectedCRS;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.referencing.wkt.Formattable;
 import org.geotools.util.Converters;
-import org.geotools.util.MeasureConverterFactory;
 import org.geotools.util.NumberRange;
 import org.geotools.util.logging.Logging;
 import org.locationtech.jts.geom.Geometry;
@@ -658,8 +659,8 @@ public class XStreamPersister {
      */
     public void save(Object obj, OutputStream out) throws IOException {
         // unwrap dynamic proxies
-        obj = unwrapProxies(obj);
-        xs.toXML(obj, new OutputStreamWriter(out, "UTF-8"));
+        Object unwrapped = unwrapProxies(obj);
+        xs.toXML(unwrapped, new OutputStreamWriter(out, "UTF-8"));
     }
 
     /**
@@ -1294,7 +1295,7 @@ public class XStreamPersister {
                                 "Unexpected item "
                                         + item
                                         + " whose type is not among: "
-                                        + subclasses);
+                                        + Arrays.toString(subclasses));
                     }
                     String typeName = cam.serializedClass(theClass);
                     writer.addAttribute("type", typeName);

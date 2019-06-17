@@ -38,13 +38,13 @@ import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.wcs.WCSInfo;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.geotools.factory.GeoTools;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.geotools.temporal.object.DefaultPeriodDuration;
 import org.geotools.util.DateRange;
 import org.geotools.util.NumberRange;
+import org.geotools.util.factory.GeoTools;
 import org.geotools.util.logging.Logging;
 import org.geotools.xml.transform.TransformerBase;
 import org.geotools.xml.transform.Translator;
@@ -86,14 +86,11 @@ public class Wcs10DescribeCoverageTransformer extends TransformerBase {
         METHOD_NAME_MAP.put("bicubic", "cubic");
     }
 
-    private WCSInfo wcs;
-
     private Catalog catalog;
 
     /** Creates a new WFSCapsTransformer object. */
     public Wcs10DescribeCoverageTransformer(WCSInfo wcs, Catalog catalog) {
         super();
-        this.wcs = wcs;
         this.catalog = catalog;
         this.skipMisconfigured =
                 ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS.equals(
@@ -110,8 +107,6 @@ public class Wcs10DescribeCoverageTransformer extends TransformerBase {
         public static final String SCHEMAS = "schemas";
 
         private DescribeCoverageType request;
-
-        private String proxifiedBaseUrl;
 
         /**
          * Creates a new WFSCapsTranslator object.
@@ -713,10 +708,7 @@ public class Wcs10DescribeCoverageTransformer extends TransformerBase {
 
             for (Iterator it = ci.getInterpolationMethods().iterator(); it.hasNext(); ) {
                 String method = (String) it.next();
-                String converted = METHOD_NAME_MAP.get(method);
-                if (
-                /* converted */ method != null)
-                    element("wcs:interpolationMethod", /* converted */ method);
+                if (method != null) element("wcs:interpolationMethod", method);
             }
             end("wcs:supportedInterpolations");
         }

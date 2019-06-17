@@ -62,10 +62,10 @@ public class ServiceException extends org.geoserver.platform.ServiceException {
             org.geotools.util.logging.Logging.getLogger("org.vfny.geoserver.responses");
 
     /** message inserted by GeoServer as to what it thinks happened */
-    protected String preMessage = new String();
+    protected String preMessage = "";
 
     /** full classpath of originating GeoServer class */
-    protected String locator = new String();
+    protected String locator = "";
 
     /** Empty constructor. */
     public ServiceException() {
@@ -174,7 +174,6 @@ public class ServiceException extends org.geoserver.platform.ServiceException {
      *     it faster.
      */
     public String getXmlMessage(boolean printStackTrace) {
-        String indent = "   ";
         StringBuffer mesg = new StringBuffer();
 
         // this distinction no longer so much applies, as we don't always

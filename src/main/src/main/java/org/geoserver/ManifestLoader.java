@@ -30,7 +30,7 @@ import org.geoserver.config.GeoServer;
 import org.geoserver.platform.GeoServerResourceLoader;
 import org.geoserver.platform.resource.Resource;
 import org.geoserver.platform.resource.Resource.Type;
-import org.geotools.factory.GeoTools;
+import org.geotools.util.factory.GeoTools;
 import org.geotools.util.logging.Logging;
 
 /** @author cancellieri carlo - GeoSolutions SAS */
@@ -224,9 +224,6 @@ public class ManifestLoader {
         if (classLoader == null) {
             throw new IllegalArgumentException("Unable to run with null classLoader");
         }
-
-        // load metadata
-        Map<String, Manifest> manifests = ManifestLoader.loadManifest(classLoader);
 
         // start building the model
         AboutModel model = new AboutModel();

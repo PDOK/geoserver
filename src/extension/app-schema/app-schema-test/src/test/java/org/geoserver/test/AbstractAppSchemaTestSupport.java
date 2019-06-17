@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -34,7 +35,11 @@ import org.custommonkey.xmlunit.XMLUnit;
 import org.custommonkey.xmlunit.XpathEngine;
 import org.custommonkey.xmlunit.exceptions.XpathException;
 import org.geoserver.data.test.SystemTestData;
+import org.geoserver.util.IOUtils;
 import org.geoserver.wfs.WFSInfo;
+import org.geotools.appschema.jdbc.NestedFilterToSQL;
+import org.geotools.appschema.resolver.xml.AppSchemaValidator;
+import org.geotools.appschema.resolver.xml.AppSchemaXSDRegistry;
 import org.geotools.data.DataAccess;
 import org.geotools.data.complex.AppSchemaDataAccess;
 import org.geotools.data.complex.AppSchemaDataAccessRegistry;
@@ -46,12 +51,9 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.jdbc.BasicSQLDialect;
 import org.geotools.jdbc.JDBCDataStore;
-import org.geotools.jdbc.NestedFilterToSQL;
 import org.geotools.jdbc.PreparedFilterToSQL;
 import org.geotools.jdbc.PreparedStatementSQLDialect;
 import org.geotools.jdbc.SQLDialect;
-import org.geotools.xml.AppSchemaValidator;
-import org.geotools.xml.AppSchemaXSDRegistry;
 import org.geotools.xml.resolver.SchemaCache;
 import org.geotools.xml.resolver.SchemaCatalog;
 import org.geotools.xml.resolver.SchemaResolver;
@@ -138,6 +140,7 @@ public abstract class AbstractAppSchemaTestSupport extends GeoServerSystemTestSu
         getGeoServer().save(wfs);
         // disable schema caching in tests, as schemas are expected to provided on the classpath
         SchemaCache.disableAutomaticConfiguration();
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     }
 
     /**
@@ -620,5 +623,20 @@ public abstract class AbstractAppSchemaTestSupport extends GeoServerSystemTestSu
         StringWriter writer = new StringWriter();
         transformer.transform(new DOMSource(document), new StreamResult(writer));
         return writer.getBuffer().toString();
+    }
+
+    /**
+     * Helper method that reads a resource from the class path converting it to text.
+     *
+     * @param resourcePath non relative path to the class path resource
+     * @return the content of the resource as text
+     */
+    protected String readResource(String resourcePath) {
+        try (InputStream input =
+                NormalizedMultiValuesTest.class.getResourceAsStream(resourcePath)) {
+            return IOUtils.toString(input);
+        } catch (Exception exception) {
+            throw new RuntimeException(String.format("Error reading resource '%s'.", resourcePath));
+        }
     }
 }
