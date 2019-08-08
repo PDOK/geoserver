@@ -92,6 +92,7 @@ import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.FeatureTypes;
 import org.geotools.feature.NameImpl;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.geotools.gce.geotiff.GeoTiffFormat;
 import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.gml2.GML;
@@ -103,6 +104,7 @@ import org.geotools.ows.wms.WebMapServer;
 import org.geotools.ows.wms.xml.WMSSchema;
 import org.geotools.ows.wmts.WebMapTileServer;
 import org.geotools.ows.wmts.model.WMTSCapabilities;
+import org.geotools.ows.wmts.model.WMTSLayer;
 import org.geotools.referencing.CRS;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleImpl;
@@ -1587,6 +1589,13 @@ public class ResourcePool {
             // GeoServer does not need to be updated to the multicoverage stuff
             // (we might want to introduce a hint later for code that really wants to get the
             // multi-coverage reader)
+
+            if (reader.getFormat() instanceof GeoTiffFormat) { //  GEOS-9236
+                if ("geotiff_coverage".equalsIgnoreCase(coverageInfo.getNativeCoverageName())) {
+                    coverageInfo.setNativeCoverageName(reader.getGridCoverageNames()[0]);
+                }
+            }
+
             return CoverageDimensionCustomizerReader.wrap(
                     (GridCoverage2DReader) reader, coverageName, coverageInfo);
         } else {
@@ -1974,7 +1983,7 @@ public class ResourcePool {
      * @param info
      * @throws IOException
      */
-    public Layer getWMTSLayer(WMTSLayerInfo info) throws IOException {
+    public WMTSLayer getWMTSLayer(WMTSLayerInfo info) throws IOException {
 
         String name = info.getName();
         if (info.getNativeName() != null) {
@@ -1985,7 +1994,7 @@ public class ResourcePool {
 
         caps = info.getStore().getWebMapTileServer(null).getCapabilities();
 
-        for (Layer layer : caps.getLayerList()) {
+        for (WMTSLayer layer : caps.getLayerList()) {
             if (layer != null && name.equals(layer.getName())) {
                 return layer;
             }
@@ -2095,6 +2104,7 @@ public class ResourcePool {
      */
     public void clear(StyleInfo info) {
         styleCache.remove(info);
+        sldCache.remove(info);
     }
 
     /**
@@ -2493,7 +2503,12 @@ public class ResourcePool {
         public void handleModifyEvent(CatalogModifyEvent event) {}
 
         public void handlePostModifyEvent(CatalogPostModifyEvent event) {
-            event.getSource().accept(this);
+            CatalogInfo source = event.getSource();
+            source.accept(this);
+
+            if (source instanceof FeatureTypeInfo) {
+                flushDataStore((FeatureTypeInfo) source);
+            }
         }
 
         public void handleRemoveEvent(CatalogRemoveEvent event) {

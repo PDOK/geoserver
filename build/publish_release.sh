@@ -12,6 +12,7 @@ function usage() {
   echo "Environment variables:"
   echo " MAVEN_SETTINGS : settings.xml override"
   echo " SKIP_DEPLOY : Skips deploy to maven repository"
+  echo " SKIP_COMMUNITY : Skips deploy of community modules"
   echo " SKIP_UPLOAD : Skips upload to source forge"
 }
 
@@ -71,36 +72,39 @@ git checkout -b rel_$tag $tag
 pushd src > /dev/null
 if [ -z $SKIP_DEPLOY ]; then
    mvn deploy -P allExtensions -DskipTests $MAVEN_FLAGS 
-
-   # deploy released community modules
-   # pushd community > /dev/null
-   # set +e
-   # mvn clean install deploy -P communityRelease -DskipTests $MAVEN_FLAGS 
-   # set -e
-   # popd > /dev/null
 else
    echo "Skipping mvn clean install deploy -P allExtensions -DskipTests"
+fi
+
+if [ -z $SKIP_COMMUNITY ]; then
+   pushd community > /dev/null
+   set +e
+   mvn clean install deploy -P communityRelease -DskipTests $MAVEN_FLAGS || true
+   set -e
+   popd > /dev/null
+else
+   echo "Skipping mvn clean install deploy -P communityRelease -DskipTests"
 fi
 
 popd > /dev/null
 
 # upload artifacts to sourceforge
 
-pushd release/$tag > /dev/null
+pushd distribution/$tag > /dev/null
 
 if [ -z $SKIP_UPLOAD ]; then
-  rsync -ave "ssh -i $SF_PK" *-bin.zip *-war.zip *doc.zip *.pdf $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/
+  rsync -ave "ssh " *-bin.zip *-war.zip *doc.zip $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/
   
-  # don't fail if exe is not around
+  # don't fail if exe or pdf is not around
   set +e
-  rsync -ave "ssh -i $SF_PK" *.exe  $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/
+  rsync -ave "ssh " *.exe  *.pdf $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/
   set -e
   pushd plugins > /dev/null
-  rsync -ave "ssh -i $SF_PK" *.zip $SF_USER@$SF_HOST:"/home/pfs/project/g/ge/geoserver/GeoServer/$tag/extensions"
+  rsync -ave "ssh " *.zip $SF_USER@$SF_HOST:"/home/pfs/project/g/ge/geoserver/GeoServer/$tag/extensions"
   popd > /dev/null
 else
-  echo "Skipping rsync -ave "ssh -i $SF_PK" *.zip *.exe $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/"
-  echo "Skipping rsync -ave "ssh -i $SF_PK" *.zip $SF_USER@$SF_HOST:"/home/pfs/project/g/ge/geoserver/GeoServer/$tag/extensions""
+  echo "Skipping rsync -ave "ssh " *.zip *.exe $SF_USER@$SF_HOST:/home/pfs/project/g/ge/geoserver/GeoServer/$tag/"
+  echo "Skipping rsync -ave "ssh " *.zip $SF_USER@$SF_HOST:"/home/pfs/project/g/ge/geoserver/GeoServer/$tag/extensions""
 fi
 
 popd > /dev/null

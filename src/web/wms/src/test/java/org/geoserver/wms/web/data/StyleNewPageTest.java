@@ -21,7 +21,6 @@ import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.TextArea;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.form.upload.FileUploadField;
-import org.apache.wicket.request.resource.ResourceReference;
 import org.apache.wicket.util.file.File;
 import org.apache.wicket.util.tester.FormTester;
 import org.apache.wicket.util.tester.TagTester;
@@ -505,21 +504,15 @@ public class StyleNewPageTest extends GeoServerWicketTestSupport {
 
         tester.executeAjaxEvent("dialog:dialog:content:form:userPanel:image", "change");
         tester.assertVisible("dialog:dialog:content:form:userPanel:display");
-        assertTrue(
-                ((ResourceReference)
-                                ((org.apache.wicket.markup.html.image.Image)
-                                                tester.getComponentFromLastRenderedPage(
-                                                        "dialog:dialog:content:form:userPanel:display"))
-                                        .getDefaultModelObject())
-                        .getName()
-                        .equals("somepicture.png"));
 
         formTester.submit("submit");
 
         // we can at least test that the right javascript code is there
         Pattern pattern =
                 Pattern.compile(
-                        "replaceSelection\\('<ExternalGraphic>\\\\n"
+                        "replaceSelection\\('<ExternalGraphic "
+                                + "xmlns=\"http://www.opengis.net/sld\" "
+                                + "xmlns:xlink=\"http://www.w3.org/1999/xlink\">\\\\n"
                                 + "<OnlineResource xlink:type=\"simple\" xlink:href=\""
                                 + "(.*)\" />\\\\n"
                                 + "<Format>(.*)</Format>\\\\n"
